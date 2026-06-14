@@ -81,6 +81,23 @@ feinschmiede mark + social card under `assets/`. Nothing else.
 only under `.debug/` or `docs/brand-previews/`. A `.yaml` / `.json` /
 `.dsl` / `.svg` / `.txt` under `examples/` means you broke the rule.
 
+## After any build — open it
+
+Always `open` the generated `.pptx` / `.pdf` immediately after the
+pipeline reports success. Type-checks and verify gates don't catch every
+real-world defect (overlapping text, missing chrome, broken Unicode,
+wrong page count). The build "verdict clean" + a visual inspection is
+the bar — neither alone.
+
+```bash
+open ~/work/<dispatch>/out/deck.pptx
+open <annotated.pdf>          # decompile auto-emits this
+```
+
+For headless contexts (CI, dispatched workers), render the deck to PNGs
+via `soffice` + `pdftoppm` and inspect a sample of the slides. Don't
+report "done" until something visual has been looked at.
+
 ## Diagram pipeline
 
 Engine lives in the shared `feinschmiede` package, not office. See
