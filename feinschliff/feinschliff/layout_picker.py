@@ -480,14 +480,24 @@ def pick_layout(
         # should differ unless necessary). Structural layouts are exempt —
         # either by the static `_VARIETY_EXEMPT` set or by declaring
         # `variety_exempt: true` in their frontmatter profile.
+        #
+        # Cooldown is a 4-slide window with decaying weight so the same
+        # layout type really sits out a few slides before re-entering the
+        # race. The strongest hit (-1.5 at the most-recent position) is
+        # half the +3 role match — a same-role rival without recency
+        # comfortably overtakes it; a same-role rival with recency on
+        # both sides loses by ~2 points so a third option gets a chance.
         exempt = layout_id in _VARIETY_EXEMPT or profile.get("variety_exempt")
         if layout_history and not exempt:
-            if len(layout_history) >= 1 and layout_history[-1] == layout_id:
-                score -= 0.5
-                rationale_parts.append("variety-penalty(last)")
-            elif len(layout_history) >= 2 and layout_history[-2] == layout_id:
-                score -= 0.25
-                rationale_parts.append("variety-penalty(prev)")
+            # Walk the tail of the history; further-back hits cost less.
+            for back, penalty in ((1, 1.5), (2, 1.0), (3, 0.5), (4, 0.25)):
+                if (len(layout_history) >= back
+                        and layout_history[-back] == layout_id):
+                    score -= penalty
+                    rationale_parts.append(
+                        "variety-penalty(last)" if back == 1
+                        else f"variety-penalty(-{back})")
+                    break
 
         # diagram_kind affinity: steers toward the canonical diagram layout
         # for the requested kind. Applied after existing scoring so it
