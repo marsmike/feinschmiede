@@ -23,6 +23,8 @@ slots:
   text_11: {role: native-text, chars: 15, default: Campaign launch}
   text_12: {role: native-text, chars: 2, default: Q4}
 element_tree: ['text text_1 role=title @202,173 1708x191 32pt', 'text text_2 role=body @202,374 769x696 18pt', native table]
+source_hash: aa596d315ee8
+source: scientific
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: traction

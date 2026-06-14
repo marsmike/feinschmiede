@@ -4,6 +4,8 @@ ideal_count: [3, 6]
 data_band: chart
 comparison: true
 description: Horizontal bar chart on left two-thirds, large photo filling right third; title and source line above chart
+source: feinschliff
+source_hash: 260d8f47f7e1
 ---
 # chart-photo — bar chart on the left half + hero photo on the right half.
 # Best for data narratives with human/scene context.

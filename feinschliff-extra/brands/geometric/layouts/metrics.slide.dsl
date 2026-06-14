@@ -38,6 +38,8 @@ slots:
   text_26: {role: native-text, chars: 2, default: '10'}
 element_tree: ['text text_1 role=page-number @1631,72 209x74 16pt', 'text text_2 role=title @144,166 1696x159 36pt', native
     table]
+source_hash: 40c1b9e1545f
+source: geometric
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: metrics

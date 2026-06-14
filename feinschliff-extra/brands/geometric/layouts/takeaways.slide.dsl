@@ -8,7 +8,7 @@ description: 'Cream two-column takeaways: large bold title top, hierarchical bul
   top-left and dots'
 when_to_use: Closing summary — hierarchical bullets left, short reminders right.
 chrome_subject: concentric cream arc lines on olive strip top-left, small navy dot; brand-neutral
-chrome_note: 'carries native source chrome verbatim: 5 illustration'
+chrome_note: 'carries native source chrome verbatim: 4 illustration, 1 mark'
 slide_index: 11
 slots:
   text_1: {role: page-number, chars: 15, default: '11'}
@@ -25,6 +25,8 @@ element_tree: ['native illustration @956.321,-893.861 69.818x1857.54', 'native i
   'native illustration @-1.01528,1.0148 308.859x306.829', 'text text_1 role=page-number @1644,72 266x74 16pt', 'text text_2
     role=title @323.843,166 1586.16x157 36pt', 'text text_3 role=body @244,363 997x707 18pt', 'text text_4 role=body @1251,363
     659x707 18pt', 'native illustration @-0.000472441,696.084 203.659x383.916', 'native mark @62.4608,776.311 122.051x122.051']
+source_hash: 5b1cf8c13582
+source: geometric
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: takeaways

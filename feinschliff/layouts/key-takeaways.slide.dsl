@@ -4,16 +4,11 @@ ideal_count: [2, 4]
 data_band: none
 comparison: false
 narrative_act: resolution
-description: 'Dark navy background, four takeaway cards across: gold rule, numbered index, bold heading, two-sentence elaboration
-  each'
-follows_not:
-  - role=title-primary
-  - role=agenda
-  - role=chapter-opener
-follows_well:
-  - role=content-columns
-  - role=data-quantity
-  - narrative_act=complication
+description: 'Dark navy background, four takeaway cards across: gold rule, numbered index, bold heading, two-sentence elaboration each'
+follows_not: [role=title-primary, role=agenda, role=chapter-opener]
+follows_well: [role=content-columns, role=data-quantity, narrative_act=complication]
+source: feinschliff
+source_hash: 6c5ff399ae80
 ---
 # key-takeaways — end-of-section summary on the dark ink ground. 2–4
 # takeaway columns with gold rule, mono number, white heading, gray-blue

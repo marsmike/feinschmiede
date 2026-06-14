@@ -9,7 +9,7 @@ fixed_chrome: true
 description: 'Section intro on cream: large bold title and subtitle right; blue circle and pink arc geometric stack left side'
 when_to_use: Minimal section divider — title + subtitle only, geometric accents fill the space.
 chrome_subject: navy circle, pink arc, and blue quarter-circle stack on left strip; brand-neutral geometric shapes
-chrome_note: 'carries native source chrome verbatim: 5 illustration'
+chrome_note: 'carries native source chrome verbatim: 6 illustration'
 slide_index: 6
 slots:
   text_1: {role: page-number, chars: 15, default: '6'}
@@ -26,6 +26,8 @@ element_tree: ['native illustration @-0.87685,-0.438425 542.25x1085.25', 'native
   'native illustration @271.121,-0.438425 270.254x271', 'native illustration @271.121,-0.438425 270.254x271', 'text text_1
     role=page-number @1644,72 266x74 16pt', 'text text_2 role=title @687,166 1223x397 36pt', 'native illustration @-0.87685,541.812
     542.25x543', 'native illustration @270.623,541.812 270.75x271.5', 'text text_3 role=body @687,600 1223x470 24pt']
+source_hash: 1f2b08216e6c
+source: geometric
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: visual-aids

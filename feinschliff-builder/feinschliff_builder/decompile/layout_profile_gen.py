@@ -696,9 +696,12 @@ def classify_layout(
     # can detect drift and silent name shadowing across packs. `source` is
     # the pack name when known. Two `cover.slide.dsl` in different packs
     # have the same name but different `source_hash` — that tuple is the
-    # unambiguous identity. Cheap (under a millisecond per layout).
+    # unambiguous identity. lstrip() so split_frontmatter's line-number-
+    # preserving padding (it replaces the fence region with blank lines)
+    # doesn't make the hash sensitive to fence size. Cheap (sub-millisecond
+    # per layout).
     import hashlib as _hashlib
-    source_hash = _hashlib.sha1(body.encode("utf-8")).hexdigest()[:12]
+    source_hash = _hashlib.sha1(body.strip().encode("utf-8")).hexdigest()[:12]
     canvas_w, canvas_h = _parse_canvas(body)
     tokens = None
     width_emu = 0.0

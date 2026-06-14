@@ -10,7 +10,7 @@ description: 'Cream content slide: large bold title top-left, two-column body te
   blocks right edge'
 when_to_use: Two-column body with bullet sub-lists — paired guidance, do/don't lists, parallel topics.
 chrome_subject: pink and olive-green triangle blocks stacked in right-edge column; brand-neutral geometric motif
-chrome_note: 'carries native source chrome verbatim: 4 illustration'
+chrome_note: 'carries native source chrome verbatim: 2 illustration'
 slide_index: 7
 slots:
   text_1: {role: page-number, chars: 8, default: '7'}
@@ -24,6 +24,8 @@ chrome_bboxes:
 element_tree: ['native illustration @1415.66,1.05213 504.338x541.177', 'text text_1 role=page-number @1644,72 156x74 16pt',
   'text text_2 role=title @144,131 1262x193 36pt', 'text text_3 role=body @144,363 599x707 18pt', 'text text_4 role=body @753,363
     653x586 18pt', 'native illustration @1415.66,575.457 504.338x504.544']
+source_hash: 8e98a3eb9b18
+source: geometric
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: delivery

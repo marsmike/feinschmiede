@@ -4,6 +4,8 @@ ideal_count: [4, 4]
 data_band: none
 comparison: false
 description: 'Four equal-width cards in a row: each has accent label, bold lead sentence, and supporting detail; no images'
+source: feinschliff
+source_hash: 15d698792de5
 ---
 # four-column-cards — quarterly/phased plan across 4 equal cards.
 #

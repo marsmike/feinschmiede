@@ -5,8 +5,9 @@ data_band: none
 comparison: false
 narrative_role: history
 time_axis_role: chronological
-description: Horizontal timeline rail with five dated milestones alternating above/below; phase span labels under rail; title
-  above
+description: Horizontal timeline rail with five dated milestones alternating above/below; phase span labels under rail; title above
+source: feinschliff
+source_hash: 15aafd048d5d
 ---
 # timeline — chronological narrative. Horizontal axis with events as
 # labeled markers above/below the line (alternating to reduce overlap),

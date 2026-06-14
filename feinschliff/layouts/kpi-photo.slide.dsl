@@ -4,6 +4,8 @@ ideal_count: [2, 3]
 data_band: kpi
 comparison: false
 description: Two stacked jumbo KPIs with label left half; large photo right half; eyebrow and title above KPIs
+source: feinschliff
+source_hash: a4e01a85d460
 ---
 # kpi-photo — 2–3 KPI rows on the left half + hero photo on the right half.
 # Best for metric reveals with human/scene context.

@@ -4,15 +4,11 @@ ideal_count: [1, 2]
 data_band: kpi
 comparison: false
 narrative_act: resolution
-description: Large action-title headline top-left, supporting paragraph left, two jumbo KPI numerals with label and caption
-  right
-follows_not:
-  - role=closer
-  - role=title-primary
-follows_well:
-  - role=content-columns
-  - role=data-comparison
-  - role=data-quantity
+description: Large action-title headline top-left, supporting paragraph left, two jumbo KPI numerals with label and caption right
+follows_not: [role=closer, role=title-primary]
+follows_well: [role=content-columns, role=data-comparison, role=data-quantity]
+source: feinschliff
+source_hash: 20d8cd96c043
 ---
 # action-title — McKinsey-style takeaway slide. Title carries the
 # so-what; supporting body + optional KPIs sit beneath; source line at

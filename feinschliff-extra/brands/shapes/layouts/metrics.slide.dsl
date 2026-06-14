@@ -35,6 +35,8 @@ slots:
   text_24: {role: native-text, chars: 1, default: '8'}
   text_25: {role: native-text, chars: 2, default: '10'}
 element_tree: ['text text_1 role=title @132,58 1778x209 44pt', native table]
+source_hash: c619e96bd45f
+source: shapes
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: metrics

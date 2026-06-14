@@ -11,7 +11,7 @@ description: 'Closing slide: large blue circle left bearing Thank You title; nam
   accents'
 when_to_use: Closing slide — thank-you in the circle, contact lines right.
 chrome_subject: purple circle top-left, orange square outline bottom-left, teal circle partial and blue dots; brand-neutral
-chrome_note: 'carries native source chrome verbatim: 1 illustration'
+chrome_note: 'carries native source chrome verbatim: 2 illustration'
 slide_index: 13
 slots:
   text_1: {role: title, chars: 119, default: Thank you}
@@ -21,6 +21,8 @@ chrome_bboxes:
 - [0, 0, 934, 1080]
 element_tree: ['native illustration @0,0 933.88x1080', 'native illustration @0,0 933.88x1080', 'text text_2 role=body @1040,119
     870x837 24pt', 'text text_1 role=title @60,120 837x839 44pt']
+source_hash: 11cc2e66f51d
+source: shapes
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: thank-you

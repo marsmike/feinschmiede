@@ -5,6 +5,8 @@ data_band: none
 comparison: false
 variety_exempt: true
 description: Full-bleed photo cover with closing phrase overlaid bottom-center on a dark scrim
+source: feinschliff
+source_hash: d344ac7256b2
 ---
 # end-image — closer slide with hero photo above the closing line.
 # Alternative to end.slide.dsl (gold ground). Hero photo fills the top ~60%

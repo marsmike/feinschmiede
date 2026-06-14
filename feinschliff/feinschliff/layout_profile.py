@@ -174,7 +174,8 @@ def parse_profile(frontmatter_text: str, *, source: str) -> dict:
     for key in ("fixed_chrome", "chrome_text"):
         if isinstance(raw.get(key), bool):
             profile[key] = raw[key]
-    for key in ("description", "chrome_subject", "when_to_use", "family"):
+    for key in ("description", "chrome_subject", "when_to_use", "family",
+                "source", "source_hash"):
         val = raw.get(key)
         if isinstance(val, str) and val:
             profile[key] = val
@@ -212,16 +213,42 @@ def load_profile(path: Path) -> dict:
 
     Raises :class:`ProfileError` when the file has no frontmatter fence or
     the fence fails validation.
+
+    Drift detection: when the layout's frontmatter declares a
+    ``source_hash`` and the actual body's SHA-1 differs, emit a one-line
+    warning to stderr. That signal catches layouts whose body was edited
+    without re-running ``feinschliff-builder slotify`` — picker metadata
+    + visible body are out of sync. Suppress with
+    ``FEINSCHLIFF_QUIET_LAYOUT_DRIFT=1``.
     """
+    import hashlib as _hashlib
+    import os as _os
+    import sys as _sys
+
     text = path.read_text(encoding="utf-8")
-    fm, _ = split_frontmatter(text)
+    fm, body = split_frontmatter(text)
     if fm is None:
         raise ProfileError(
             f"{path}: no '--- … ---' frontmatter profile. Every layout must "
             f"declare its picker affinity (role / ideal_count / data_band / "
             f"comparison) so the picker can rank it."
         )
-    return parse_profile(fm, source=str(path))
+    profile = parse_profile(fm, source=str(path))
+    declared = profile.get("source_hash")
+    if (declared and body is not None
+            and not _os.environ.get("FEINSCHLIFF_QUIET_LAYOUT_DRIFT")):
+        # split_frontmatter pads the body with blank lines (line-number
+        # preservation). lstrip() so fence-size changes don't trip drift.
+        actual = _hashlib.sha1(body.strip().encode("utf-8")).hexdigest()[:12]
+        if actual != declared:
+            print(
+                f"layout-drift: {path}: source_hash={declared!r} but body "
+                f"hashes to {actual!r}. Re-run `feinschliff-builder slotify "
+                f"--brand-pack <pack>` to refresh, or suppress with "
+                f"FEINSCHLIFF_QUIET_LAYOUT_DRIFT=1.",
+                file=_sys.stderr,
+            )
+    return profile
 
 
 def build_profile_table(

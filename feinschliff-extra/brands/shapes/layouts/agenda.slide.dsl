@@ -13,7 +13,8 @@ slots:
   text_1: {role: body, chars: 495, default: Introduction\nBuilding confidence\nEngaging the audience\nVisual aids\nFinal …}
   text_2: {role: title, chars: 84, default: Agenda}
 element_tree: ['text text_1 role=body @914,87 874x908 24pt', 'text text_2 role=title @96,176 691x728 44pt']
-chrome_subject: scattered teal dashes and small circles as accent marks; brand-neutral abstract
+source_hash: b2de8adf3317
+source: shapes
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: agenda

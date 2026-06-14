@@ -189,6 +189,17 @@ def cmd_slotify(args) -> int:
                      for n, meta in (profile.get("slots") or {}).items()}
             if autoshrink_enabled(brand_pack):
                 slotified[name] = add_autoshrink(slotified[name], roles)
+            # Recompute source_hash AFTER every body-modifying pass
+            # (add_autoshrink etc.) so the recorded fingerprint matches
+            # the body actually written. classify_layout's initial hash
+            # is of the pre-autoshrink body — overwrite it here. lstrip()
+            # so split_frontmatter's line-preservation padding doesn't
+            # make the hash sensitive to fence size.
+            import hashlib as _hashlib
+            from feinschliff_builder.decompile.layout_profile_gen import split_frontmatter as _split
+            _, _final_body = _split(slotified[name])
+            profile["source_hash"] = _hashlib.sha1(
+                _final_body.strip().encode("utf-8")).hexdigest()[:12]
             if not args.dry_run:
                 path = layouts_dir / f"{name}.slide.dsl"
                 path.write_text(apply_profile(slotified[name], profile),

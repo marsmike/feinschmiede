@@ -8,7 +8,7 @@ description: 'Mixed layout: title top, two narrative paragraphs left, data table
   chrome'
 when_to_use: Narrative + small data table side by side — claims backed by a compact figures grid.
 chrome_subject: blue circle and pink arc partially cropped at top-left corner; brand-neutral
-chrome_note: 'carries native source chrome verbatim: 3 illustration, 1 table'
+chrome_note: 'carries native source chrome verbatim: 1 illustration, 2 mark, 1 table'
 slide_index: 10
 slots:
   text_1: {role: page-number, chars: 15, default: '10'}
@@ -45,6 +45,8 @@ chrome_bboxes:
 element_tree: ['native mark @0.00015748,-0.00015748 107.518x236.228', 'native illustration @0.00015748,0 244.183x400.848',
   'native mark @26.8417,49.4789 122.051x122.051', 'text text_1 role=page-number @1631,72 279x74 16pt', 'text text_2 role=title
     @244,172 1666x154 36pt', 'text text_3 role=body @244,367 547x703 18pt', native table]
+source_hash: 1d94df461fee
+source: geometric
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: dynamic-delivery

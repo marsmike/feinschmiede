@@ -13,6 +13,8 @@ slots:
   text_1: {role: title, chars: 96, default: GROWTH STRATEGY}
   text_2: {role: body, chars: 294, default: Expand market reach through strategic partnerships\nEnhance product features …}
 element_tree: ['text text_1 role=title @202,173 856x317 32pt', 'text text_2 role=body @1068,173 842x317 18pt', native smartart]
+source_hash: d3a27cce1ca8
+source: scientific
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: growth-strategy

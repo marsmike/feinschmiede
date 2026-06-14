@@ -3,10 +3,10 @@ role: content-columns
 ideal_count: [1, 1]
 data_band: none
 comparison: false
-family: framing
+family: organizational
 description: 'Section divider: large blue circle centre bearing title and subtitle; scattered circles and dashes as chrome'
 when_to_use: Minimal divider — title + subtitle in the central circle, nothing else.
-chrome_note: 'carries native source chrome verbatim: 1 illustration'
+chrome_note: 'carries native source chrome verbatim: 1 mark'
 slide_index: 6
 slots:
   text_1: {role: title, chars: 45, default: Selecting\nvisual aids}
@@ -15,8 +15,8 @@ chrome_bboxes:
 - [147, 867, 170, 255]
 element_tree: ['text text_1 role=title @443,213 1033x482 60pt', 'text text_2 role=body @443,695 1357x375 24pt', 'native mark
     @147.42,867.473 170.483x254.571']
-when_not_to_use: [role=content-columns, role=data-quantity, role=data-comparison]
-chrome_subject: scattered purple circles, teal dashes, and small blue dots; brand-neutral abstract shapes
+source_hash: 04c59b4cc794
+source: shapes
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: visual-aids

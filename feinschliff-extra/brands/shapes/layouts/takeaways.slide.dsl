@@ -7,7 +7,7 @@ family: organizational
 description: 'White two-column takeaways: large title top, hierarchical bullet list left, plain item list right, geometric
   corner accents'
 when_to_use: Closing summary — hierarchical bullets left, plain reminders right.
-chrome_note: 'carries native source chrome verbatim: 1 illustration'
+chrome_note: 'carries native source chrome verbatim: 1 mark'
 slide_index: 11
 slots:
   text_1: {role: title, chars: 35, default: Final tips & takeaways}
@@ -17,7 +17,8 @@ chrome_bboxes:
 - [1853, 62, 69, 126]
 element_tree: ['text text_1 role=title @132,58 1711x209 44pt', 'native mark @1852.72,61.5071 68.9324x125.524', 'text text_2
     role=body @132,288 1103x782 18pt', 'text text_3 role=body @1245,288 543x677 18pt']
-chrome_subject: purple circle top-right corner, teal dashes and strokes bottom-right, orange square bottom-left; brand-neutral
+source_hash: a8df4cb24917
+source: shapes
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: takeaways

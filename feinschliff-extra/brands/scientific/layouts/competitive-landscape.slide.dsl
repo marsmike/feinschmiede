@@ -14,6 +14,8 @@ slots:
   text_3: {role: body, chars: 481, default: 'Need:\nMore agility and adaptability\nStronger competitive edge\nAbility to a…'}
 element_tree: ['text text_1 role=title @202,173 1708x191 32pt', 'text text_2 role=body @202,374 734x562 18pt', 'text text_3
     role=body @994,374 734x562 18pt']
+source_hash: 44369188a5c6
+source: scientific
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: competitive-landscape

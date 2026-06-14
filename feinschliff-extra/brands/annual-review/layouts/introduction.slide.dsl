@@ -18,6 +18,8 @@ image_queries: {image: introduction}
 element_tree: ['image image class=replace @1158,156 762x762', 'text text_1 role=title @162,157 986x102 44pt', 'text text_2
     role=body @162,360 986x710 18pt', 'text text_3 role=footer @1307,991 231x29 12pt', 'text text_4 role=footer @1548,991
     252x79 12pt', 'text text_5 role=page-number @1810,991 100x29 12pt']
+source_hash: fab32a1dad6b
+source: annual-review
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: introduction

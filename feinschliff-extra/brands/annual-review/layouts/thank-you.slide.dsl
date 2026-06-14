@@ -20,6 +20,8 @@ image_queries: {image: thank you}
 element_tree: ['image image class=replace @0,156 762x762', 'text text_1 role=title @985,157 925x102 44pt', 'text text_2 role=body
     @985,360 925x367 18pt', 'text text_3 role=body @985,734 925x247 16pt', 'text text_4 role=footer @1307,991 231x29 12pt',
   'text text_5 role=footer @1548,991 252x79 12pt', 'text text_6 role=page-number @1810,991 100x29 12pt']
+source_hash: 3eeb09edfcaa
+source: annual-review
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: thank-you

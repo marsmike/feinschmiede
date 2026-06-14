@@ -6,6 +6,8 @@ comparison: false
 narrative_role: system
 diagram_complexity: deep
 description: 'Full-slide Excalidraw diagram with minimal chrome: thin eyebrow/title strip top, diagram fills remaining height'
+source: feinschliff
+source_hash: 857fa9d610d7
 ---
 # excalidraw-diagram-full — full-slide deep architecture diagram (10-20+
 # nodes, zones, typed arrows). Use when the audience is technical and the

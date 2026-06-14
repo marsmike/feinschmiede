@@ -5,6 +5,8 @@ data_band: none
 comparison: false
 variety_exempt: true
 description: Full-bleed image placeholder cover; title block with accent rule and large headline bottom-left on accent panel
+source: feinschliff
+source_hash: 04b6843ed59c
 ---
 # full-bleed-cover — editorial cover with full-bleed image and an orange
 # lockup card holding the title bottom-left.

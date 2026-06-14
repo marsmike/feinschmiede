@@ -5,6 +5,8 @@ data_band: none
 comparison: false
 variety_exempt: true
 description: Full-bleed accent background, centered jumbo closing phrase with rule above and version line below
+source: feinschliff
+source_hash: bf053d7efc80
 ---
 # end — closer slide. Centered "Thank you." block on the brand's accent
 # (gold) background. Sole "orange" slide in the canonical deck.

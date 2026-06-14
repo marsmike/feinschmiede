@@ -3,8 +3,9 @@ role: data-comparison
 ideal_count: [3, 3]
 data_band: none
 comparison: true
-description: Three-circle Venn diagram left with overlap labels; intersection annotations in stacked rows right with accent
-  eyebrow
+description: Three-circle Venn diagram left with overlap labels; intersection annotations in stacked rows right with accent eyebrow
+source: feinschliff
+source_hash: 38daecf46e17
 ---
 # venn — 3 overlapping circles using real oval shapes in the brand
 # palette. Right column lists named intersections + a triple-overlap.

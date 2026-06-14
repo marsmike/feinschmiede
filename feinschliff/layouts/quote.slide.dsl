@@ -3,8 +3,9 @@ role: quote
 ideal_count: [1, 1]
 data_band: none
 comparison: false
-description: Full-bleed accent background, oversized pull-quote centered lower-left with rule above; attribution line below
-  quote
+description: Full-bleed accent background, oversized pull-quote centered lower-left with rule above; attribution line below quote
+source: feinschliff
+source_hash: 23c24e2f9499
 ---
 # quote — single verbatim quote on the accent (gold) ground.
 # Block is vertically centered: rule, 40px gap, big light quote, 48px gap,

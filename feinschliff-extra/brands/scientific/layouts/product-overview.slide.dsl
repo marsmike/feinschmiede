@@ -19,6 +19,8 @@ chrome_bboxes:
 - [0, 0, 1920, 702]
 element_tree: ['native illustration @0,0 1920x702', 'text text_1 role=title @154,180 1613x360 54pt', 'text text_2 role=body
     @327,599 1267x277 24pt']
+source_hash: c002642eafce
+source: scientific
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: product-overview

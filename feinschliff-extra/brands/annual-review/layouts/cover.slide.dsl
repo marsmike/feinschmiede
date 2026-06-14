@@ -12,6 +12,8 @@ slots:
   text_1: {role: title, chars: 48, default: Annual Review}
   text_2: {role: body, chars: 356, default: 'Contoso Customer Success Team September 3, 20XX'}
 element_tree: ['text text_1 role=title @154,261 1593x333 60pt', 'text text_2 role=body @163,745 1584x162 16pt']
+source_hash: 02a5a62d2085
+source: annual-review
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: cover

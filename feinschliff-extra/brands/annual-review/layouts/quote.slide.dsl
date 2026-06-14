@@ -18,6 +18,8 @@ slot_warnings:
 element_tree: ['text text_1 role=title @122,154 250x209 200pt', 'text text_2 role=body @162,363 1585x543 28pt', 'text text_3
     role=footer @1307,991 231x29 12pt', 'text text_4 role=footer @1548,991 252x79 12pt', 'text text_5 role=page-number @1810,991
     100x29 12pt']
+source_hash: c516b4d778a1
+source: annual-review
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: quote

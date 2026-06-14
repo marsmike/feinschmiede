@@ -10,7 +10,7 @@ description: 'Cream content slide: bold title and two body paragraphs left; circ
   accent'
 when_to_use: Statement with supporting photo — two short paragraphs plus one circular image.
 chrome_subject: concentric arc lines on olive strip top-left, pink circle partial bottom-left; brand-neutral
-chrome_note: 'carries native source chrome verbatim: 5 illustration'
+chrome_note: 'carries native source chrome verbatim: 3 illustration, 1 mark'
 slide_index: 9
 slots:
   text_1: {role: page-number, chars: 8, default: '9'}
@@ -27,6 +27,8 @@ element_tree: ['native illustration @1415.66,-0.400945 504.338x541.901', 'text t
   'text text_2 role=title @144,166 1262x159 36pt', 'native illustration @1573.53,196.5 346.475x346.475', 'text text_3 role=body
     @144,367 1262x642 24pt', 'image image3 class=replace @1416,536 504x544', 'native illustration @-3.16315,839.609 338.333x240.391',
   'native mark @242.587,1018.97 122.051x61.0257']
+source_hash: 0dca6a4f1c29
+source: geometric
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: impact

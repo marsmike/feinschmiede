@@ -21,6 +21,8 @@ chrome_bboxes:
 - [1473, 0, 447, 450]
 element_tree: ['image image class=replace @70,0 684x1002', 'native illustration @1473,0 447x450.072', 'text text_1 role=title
     @898,167 901x746 36pt']
+source_hash: 7568877147af
+source: geometric
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: section-intro

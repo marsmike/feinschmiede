@@ -15,6 +15,8 @@ slots:
 image_queries: {image: product benefits}
 element_tree: ['text text_1 role=title @841,173 1069x357 32pt', 'image image class=replace @204,288 504x504', 'text text_2
     role=body @841,540 1069x530 24pt']
+source_hash: 11ae9484e02a
+source: scientific
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: product-benefits
