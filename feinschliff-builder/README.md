@@ -42,10 +42,12 @@ feinschliff-builder slotify \
     --brand-pack feinschliff-extra/brands/<name>
 ```
 
-Step 1 emits the slotified DSL bodies under `layouts/`. Step 2 adds the
-picker frontmatter (`role`, `ideal_count`, `slots`, etc.) and writes
-`deck-map.yaml`. Run them in this order — step 2 is what the `/deck`
-picker reads.
+Step 1 emits the slotified DSL bodies under `layouts/` AND writes
+`<brand>-annotated.pdf` alongside (one page-set per layout: render +
+slot coverage + frontmatter detail — the reviewer document). Pass
+`--no-annotate` to skip the PDF. Step 2 adds the picker frontmatter
+(`role`, `ideal_count`, `slots`, etc.) and writes `deck-map.yaml`. Run
+them in this order — step 2 is what the `/deck` picker reads.
 
 **Score an existing brand pack against its source PPTX (Verify):**
 
@@ -77,7 +79,7 @@ feinschliff-builder <subcommand> [options]
 
 | Subcommand | What it does |
 |---|---|
-| `decompile` | **Step 1 of bootstrap** — bulk-decompile every layout in a brand's `verify-map.yaml` from a source PPTX |
+| `decompile` | **Step 1 of bootstrap** — bulk-decompile every layout in a brand's `verify-map.yaml` from a source PPTX; also emits the annotated documentation PDF (`--no-annotate` to skip) |
 | `slotify` | **Step 2 of bootstrap** — add picker frontmatter to each layout + emit `deck-map.yaml` |
 | `audit` | Slot-coverage acceptance check for a brand pack |
 | `brand list` / `brand inspect <name>` | Brand pack utilities |

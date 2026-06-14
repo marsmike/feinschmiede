@@ -142,6 +142,17 @@ def register(parser: argparse.ArgumentParser) -> None:
                              "the verify loop renders the real picture (not a "
                              "placeholder) and struct_diff_ratio reflects shape/"
                              "text mismatch only, not picture-region noise.")
+    parser.add_argument("--no-annotate", action="store_true",
+                        help="Skip the annotated documentation PDF that "
+                             "decompile emits by default at "
+                             "<brand-pack>/<brand>-annotated.pdf. The PDF "
+                             "has one page-set per layout (render + slot "
+                             "coverage + frontmatter detail) and is what a "
+                             "brand-pack reviewer opens to inspect the "
+                             "fresh decompile.")
+    parser.add_argument("--annotate-out", type=Path, default=None,
+                        help="Override the annotated PDF path (default: "
+                             "<brand-pack>/<brand>-annotated.pdf).")
     parser.set_defaults(func=cmd_decompile)
 
 
@@ -320,4 +331,52 @@ def cmd_decompile(args) -> int:
                 derived += 1
 
     print(f"\nderived {derived} layouts")
+
+    # Default: emit the annotated documentation PDF so the operator sees
+    # the same picker frontmatter / slot overlay / coverage rubric a
+    # reviewer would. Suppress with --no-annotate (e.g. CI sweeps).
+    if args.dry_run or args.no_annotate:
+        return 0
+    plan_path = _synthesize_showcase_plan(brand_pack, mapping, requested)
+    if plan_path is None:
+        return 0  # nothing to annotate (no layouts derived)
+    out_pdf = args.annotate_out or (brand_pack / f"{brand_name}-annotated.pdf")
+    print(f"\nrendering annotated documentation PDF → {out_pdf}")
+    try:
+        from feinschliff_builder.decompile.annotate import render_annotated_pdf
+        render_annotated_pdf(plan_path, out_pdf)
+    except FileNotFoundError as exc:
+        # An external tool (soffice / pdftoppm / Chrome) is missing —
+        # the layouts themselves shipped, only the documentation step
+        # could not run. Soft-fail with a clear pointer.
+        print(f"annotate: skipped ({exc}); install soffice + pdftoppm + "
+              "Chrome to enable, or re-run with --no-annotate to silence",
+              file=sys.stderr)
     return 0
+
+
+def _synthesize_showcase_plan(brand_pack: Path, mapping: dict[str, int],
+                              requested: set[str] | None) -> Path | None:
+    """Write a minimal showcase plan in tmp pointing at every just-derived
+    layout, in `verify-map.yaml` order. Each slide entry is `{layout: <abs>}`
+    — the annotate renderer reads the per-layout frontmatter from those
+    paths to build the overlay + detail pages.
+    """
+    layouts_dir = brand_pack / "layouts"
+    slides = []
+    for name in mapping:
+        if requested is not None and name not in requested:
+            continue
+        lp = layouts_dir / f"{name}.slide.dsl"
+        if lp.is_file():
+            slides.append({"layout": str(lp)})
+    if not slides:
+        return None
+    import tempfile
+    tmp = Path(tempfile.mkdtemp(prefix=f"{brand_pack.name}-annotate-"))
+    plan = tmp / "showcase-plan.yaml"
+    import yaml as _yaml
+    plan.write_text(_yaml.safe_dump(
+        {"brand": brand_pack.name, "slides": slides},
+        sort_keys=False, default_flow_style=False))
+    return plan

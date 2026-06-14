@@ -13,7 +13,7 @@ import sys
 from feinschliff_builder.cli import (
     audit as audit_cmd,
     brand as brand_cmd,
-    compile as compile_cmd,
+    compile_html as compile_html_cmd,
     decompile as decompile_cmd,
     eval as eval_cmd,
     slotify as slotify_cmd,
@@ -33,7 +33,7 @@ def main(argv: list[str] | None = None) -> int:
 
     audit_cmd.register(sub.add_parser("audit", help="Slot-coverage acceptance check for a brand pack"))
     brand_cmd.register(sub.add_parser("brand", help="Brand pack utilities"))
-    compile_cmd.register(sub.add_parser("compile-html", help="Compile HTML to DSL skeletons"))
+    compile_html_cmd.register(sub.add_parser("compile-html", help="Compile HTML to DSL skeletons"))
     decompile_cmd.register(sub.add_parser("decompile", help="Bulk-decompile a brand pack's layouts from a source PPTX (step 1 of bootstrap)"))
     slotify_cmd.register(sub.add_parser("slotify", help="Slotify decompiled layouts + emit picker frontmatter + deck-map.yaml (step 2 of bootstrap)"))
     eval_cmd.register(sub.add_parser("eval", help="Grade generated artifacts vs a skill's evals.json"))

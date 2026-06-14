@@ -5,9 +5,9 @@ isolated `UserInstallation` profiles — parallel callers would otherwise
 collide on the shared profile lock and silently produce no output — plus
 the `pdftoppm` rasterise step most callers do next.
 
-Five scripts (render_v2_goldens, dsl_golden_compare, render_brand_atlas,
-render_brand_preview, render_side_by_side) each had their own copy of
-this dance; this module is the single canonical version.
+Several render scripts (dsl_golden_compare, render_brand_atlas,
+render_brand_preview) used to each carry their own copy of this dance;
+this module is the single canonical version.
 """
 from __future__ import annotations
 
