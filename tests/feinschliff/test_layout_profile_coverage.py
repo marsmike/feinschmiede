@@ -84,9 +84,9 @@ def test_variety_exempt_declared_in_frontmatter_is_honored():
     # Exempt layout: identical score whether or not it was just used.
     assert score_of("title-orange", None) == score_of("title-orange", ["title-orange"])
     # Non-exempt layout in the same role: variety penalty when it was the
-    # last pick (cooldown curve: -1.5 / -1.0 / -0.5 / -0.25 across
+    # last pick (cooldown curve: -3.0 / -2.0 / -1.0 / -0.5 across
     # positions -1..-4).
-    assert score_of("action-title", ["action-title"]) == score_of("action-title", None) - 1.5
+    assert score_of("action-title", ["action-title"]) == score_of("action-title", None) - 3.0
 
 
 def test_parser_skips_fence_but_layout_still_renders():

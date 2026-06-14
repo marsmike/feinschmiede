@@ -2,7 +2,7 @@
 penalty for the next several positions in `layout_history` so equally-
 scored siblings get a chance.
 
-Window: -1 = -1.5, -2 = -1.0, -3 = -0.5, -4 = -0.25. Variety-exempt
+Window: -1 = -3.0, -2 = -2.0, -3 = -1.0, -4 = -0.5. Variety-exempt
 layouts (framing moments, profile `variety_exempt: true`) skip the
 penalty entirely so the same cover doesn't get demoted.
 """
@@ -36,7 +36,7 @@ def test_just_used_layout_loses_to_alternatives():
 
 
 def test_cooldown_two_slides_back_still_demoted():
-    # Penalty curve: -1.5 / -1.0 / -0.5 / -0.25 across positions -1..-4.
+    # Penalty curve: -3.0 / -2.0 / -1.0 / -0.5 across positions -1..-4.
     # Two slides back keeps `horizontal-bullets` at -1.0 → below 5.00
     # siblings, so a different layout still wins.
     assert _winner(["horizontal-bullets", "x"]) != "horizontal-bullets"

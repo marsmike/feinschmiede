@@ -483,14 +483,17 @@ def pick_layout(
         #
         # Cooldown is a 4-slide window with decaying weight so the same
         # layout type really sits out a few slides before re-entering the
-        # race. The strongest hit (-1.5 at the most-recent position) is
-        # half the +3 role match — a same-role rival without recency
-        # comfortably overtakes it; a same-role rival with recency on
-        # both sides loses by ~2 points so a third option gets a chance.
+        # race. The strongest hit (-3.0 at the most-recent position)
+        # exceeds the full +3 role-match bonus — a back-to-back repeat
+        # only survives when there is genuinely no alternative. Calibrated
+        # against the brand-content deck-map bonus (+4) + role match (+3)
+        # + concept-count fit (+2) + description bonus (+1.5) stack that
+        # otherwise lets the same brand-content-list layout win every
+        # turn in a thin-pool brand pack.
         exempt = layout_id in _VARIETY_EXEMPT or profile.get("variety_exempt")
         if layout_history and not exempt:
             # Walk the tail of the history; further-back hits cost less.
-            for back, penalty in ((1, 1.5), (2, 1.0), (3, 0.5), (4, 0.25)):
+            for back, penalty in ((1, 3.0), (2, 2.0), (3, 1.0), (4, 0.5)):
                 if (len(layout_history) >= back
                         and layout_history[-back] == layout_id):
                     score -= penalty
