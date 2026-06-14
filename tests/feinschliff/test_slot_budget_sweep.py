@@ -2,7 +2,7 @@
 
 End-to-end honesty pin for the overflow gate: the first content length that
 trips `slot-overflow` on a 12in-deck probe slot must sit within ±10% of a
-PIL-measured greedy-wrap ground truth (the spec's bosch slide-08 class probe:
+PIL-measured greedy-wrap ground truth (a corporate-pack slide-08 class probe:
 920×787px box, size:16pt — true capacity ≈ 800–850 chars with DejaVu Sans;
 the pre-fix gate said 1658, and after the size-pt fix but before font-face
 parity the gap was 8.6%).

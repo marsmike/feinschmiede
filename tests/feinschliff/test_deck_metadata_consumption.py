@@ -101,8 +101,26 @@ def test_deck_map_layouts_for_role_maps_and_normalises():
     assert deck_map_layouts_for_role(deck_map, "title-primary") == ["garden-cover"]
     assert deck_map_layouts_for_role(deck_map, "chapter-opener") == ["hedge-a", "hedge-b"]
     assert deck_map_layouts_for_role(deck_map, "closer") == []  # mistyped → ignored
+    # No `content:` in the deck-map → content-* roles still resolve empty.
     assert deck_map_layouts_for_role(deck_map, "content-columns") == []
     assert deck_map_layouts_for_role(None, "title-primary") == []
+
+
+def test_deck_map_layouts_for_role_falls_back_to_content_list():
+    # A brand that curates its content vocabulary needs the picker to
+    # inherit that list for every non-framing role, otherwise toolkit
+    # affinity scores silently outrank brand layouts.
+    deck_map = {
+        "cover": "garden-cover",
+        "content": ["potting-grid", "herb-rows", 99],
+    }
+    assert deck_map_layouts_for_role(deck_map, "content-columns") == ["potting-grid", "herb-rows"]
+    assert deck_map_layouts_for_role(deck_map, "content-narrative") == ["potting-grid", "herb-rows"]
+    assert deck_map_layouts_for_role(deck_map, "data-timeline") == ["potting-grid", "herb-rows"]
+    # Framing moments still go through the explicit map, not the fallback.
+    assert deck_map_layouts_for_role(deck_map, "title-primary") == ["garden-cover"]
+    # No `content:` key → unmapped roles resolve to [] (no spurious matches).
+    assert deck_map_layouts_for_role({"cover": "garden-cover"}, "content-columns") == []
 
 
 def test_apply_deck_map_bonus_puts_target_rank1_without_mutating():

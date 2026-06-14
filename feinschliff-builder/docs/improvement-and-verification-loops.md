@@ -55,14 +55,14 @@ flowchart TD
 | Command | What it does |
 | --- | --- |
 | `feinschliff-builder compile-html <html> -o layouts/ --theme <b>` | One `<section data-slots>` → one `.slide.dsl` **skeleton** (slot schema + canvas + theme + TODO body). |
-| `feinschliff-builder decompile <pptx> --brand <b> -o <dir> [--with-svg]` | Inverse of `build`: each slide → one `.slide.dsl`, reverse-mapping colours/styles through the brand's `tokens.json`. |
-| `scripts/brand_decompile_all.py --brand-pack <p> --source-pptx <pptx> [--carry-images]` | Bulk-decompile every layout in `verify-map.yaml`; also records the source slide size + theme fonts into `tokens.json`. `--carry-images` extracts real `<p:pic>` binaries so the verify render shows the source photo (struct-diff then measures *chrome*, not raster noise). |
+| `feinschliff-builder decompile --brand-pack <p> --source-pptx <pptx> [--carry-images]` | Bulk-decompile every layout in `verify-map.yaml`; also records the source slide size + theme fonts into `tokens.json`. `--carry-images` extracts real `<p:pic>` binaries so the verify render shows the source photo (struct-diff then measures *chrome*, not raster noise). |
+| `feinschliff-builder slotify --brand-pack <p>` | Step 2 of bootstrap — adds picker frontmatter to every decompiled layout (`role` / `ideal_count` / `slots` …) and writes `deck-map.yaml`. Without it the picker silently drops the brand's layouts. |
 
 Bootstrap recipe (the path the `annual-review` pack was built with):
 
 1. Author `tokens.json` (`extends:` a parent brand + the palette).
 2. Author `verify-map.yaml` (`<layout-name>: <slide-number>`).
-3. `brand_decompile_all.py … --carry-images` → first-pass DSLs.
+3. `feinschliff-builder decompile … --carry-images` → first-pass DSLs.
 4. `brand_verify_loop.py …` → see how close the first pass is.
 5. `improve-brand` skill → drive each layout to ≤ threshold.
 
@@ -243,7 +243,7 @@ the remainder is the font-metric halo). Per-layout scores append to
 ## Worked example — the `annual-review` pack
 
 Built from Microsoft's "Annual Review" gallery template (13 slides) using the
-full chain: `brand_decompile_all.py --carry-images` → `brand_verify_loop.py
+full chain: `feinschliff-builder decompile --carry-images` → `brand_verify_loop.py
 --snapshot-baseline` → three `improve-brand`-style rounds.
 
 ```mermaid

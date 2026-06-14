@@ -1591,8 +1591,8 @@ def sanitize_chrome(slide_xml) -> None:
 
     # 3. Clamp outline widths > 1pt down to a 0.5pt hairline — except
     #    inside opted-in subtrees (native chrome carried verbatim from a
-    #    source deck: a thick brand outline like BSH's parallelogram IS the
-    #    corporate design, not an AI-template artefact).
+    #    source deck: a thick brand outline — e.g. a parallelogram framing
+    #    a corporate wordmark — IS the design, not an AI-template artefact).
     for ln in sptree.iter(f"{{{_NS_A}}}ln"):
         w_str = ln.get("w")
         if w_str is None:

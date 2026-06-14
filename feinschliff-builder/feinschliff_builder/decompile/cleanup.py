@@ -13,7 +13,7 @@ hybrid decompiler currently reproduces faithfully:
      picture (two stacked near-identical native pics).
 
 These passes run per slide right after `derive()` (see
-scripts/brand_decompile_all.py). All are idempotent. Keep-later policy on
+feinschliff-builder decompile). All are idempotent. Keep-later policy on
 the overlap passes: the decompiler emits in z-order, slide-owned shapes
 last, so the LATER of two near-identical boxes is the slide's own.
 """

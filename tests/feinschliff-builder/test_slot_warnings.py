@@ -2,7 +2,7 @@
 boxes become `slot_warnings` front-matter at decompile time — caught once
 per pack, not once per deck. Geometry mirrors the World Cup incidents
 (16pt label in a 27px box; two colliding chapter boxes) with NEUTRAL
-synthetic content — never bsh/bosch material."""
+synthetic content — never corporate-pack material."""
 from pathlib import Path
 
 from feinschliff_builder.decompile.layout_profile_gen import (

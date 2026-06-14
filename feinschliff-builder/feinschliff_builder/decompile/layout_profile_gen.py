@@ -1002,7 +1002,7 @@ def main(argv: list[str] | None = None) -> int:
     <layout.slide.dsl> [--description …] [--chrome-subject …]
     [--image-class slot=keep|replace …]` — update just the annotation fields
     in an EXISTING frontmatter fence. Creating the fence is the generator's
-    job (scripts/slotify_layouts.py), not this command's."""
+    job (feinschliff-builder slotify), not this command's."""
     import argparse
     import sys
 

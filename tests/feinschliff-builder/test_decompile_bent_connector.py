@@ -63,7 +63,7 @@ def _add_bent_connector(slide, x, y, cx, cy, *, rot=None, flip_v=False,
 
 
 def test_bent_connector_becomes_axis_aligned_segments():
-    """The BSH org-chart elbow shape: rot 270° + flipV. Expected route
+    """A corporate-pack org-chart elbow shape: rot 270° + flipV. Expected route
     (EMU, computed by hand): start (5750000,2750000) → bend (5750000,2500000)
     → bend (2750000,2500000) → end (2750000,2250000)."""
     prs, slide = _blank_16x9()

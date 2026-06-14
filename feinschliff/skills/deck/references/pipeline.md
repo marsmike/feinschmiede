@@ -683,10 +683,33 @@ Subagents picking layouts in parallel can't see each other's choices —
 the result is monotony (three bar-charts in a row). Pre-picking on the
 parent side preserves the variety guarantee.
 
-**When a subagent disagrees with the picked layout** (e.g. the AI for
-slides 6–9 thinks slide 7 should be `excalidraw-diagram` not the picked
-`text-picture`), it can override by adding `layout: layouts/<name>.slide.dsl`
-to its chunk entry. `deck plan-merge` honors per-slide layout overrides.
+**Overriding the picked layout is the exception, not the default.** The
+picker already saw the brand's `deck-map.yaml`, every layout's slot
+schema, and the slide's signals — its choice is informed. Brand layouts
+*are* the brand chrome: a corporate pack's `slide-NN` (whether named
+generically or semantically) carries the brand's wordmark, footer slots,
+palette accents, and master-grid alignment that the toolkit layouts
+don't reproduce. **Swapping a brand layout for a toolkit one removes
+the brand chrome from that slide** — the deck loses cohesion and the
+operator's brand-pack work is wasted.
+
+Override only when the picked layout's slot shape **genuinely cannot
+carry the content** — e.g. the picker chose `text-picture` (1 image, 1
+text block) but you have 4 metrics to display, or it chose a single-
+column body but you have a side-by-side comparison. Even then, prefer
+another **brand** layout over a toolkit fallback: the brand pack almost
+always has a closer equivalent.
+
+When you do override, add `layout: layouts/<name>.slide.dsl` to the
+chunk entry; `deck plan-merge` honors it. Build will emit a
+`brand-chrome-leak` warning if your override swaps a brand layout for
+a toolkit one — review those warnings before accepting the deck.
+
+Concrete signal: the brand prefix in the path
+(`brands/<name>/layouts/`) marks a layout as the brand's own — whether
+named generically (`slide-NN` from an auto-decompiled corporate pack)
+or semantically (`market-comparison`, `traction` in a hand-curated
+pack). Protect those.
 
 ## Step 2b — Claim-evidence text gate (optional, recommended)
 
