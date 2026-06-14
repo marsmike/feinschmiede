@@ -692,6 +692,13 @@ def classify_layout(
     chrome_bboxes uses the real slide width in EMU.
     """
     _, body = split_frontmatter(dsl_text)  # tolerate re-runs on profiled files
+    # Layout fingerprint: short SHA-1 of the body so the picker / emitter
+    # can detect drift and silent name shadowing across packs. `source` is
+    # the pack name when known. Two `cover.slide.dsl` in different packs
+    # have the same name but different `source_hash` — that tuple is the
+    # unambiguous identity. Cheap (under a millisecond per layout).
+    import hashlib as _hashlib
+    source_hash = _hashlib.sha1(body.encode("utf-8")).hexdigest()[:12]
     canvas_w, canvas_h = _parse_canvas(body)
     tokens = None
     width_emu = 0.0
@@ -876,6 +883,9 @@ def classify_layout(
             texts, images, natives, width_emu=width_emu,
             slot_roles=slot_roles, image_classes=image_classes,
             canvas_w=canvas_w)
+    profile["source_hash"] = source_hash
+    if brand_dir is not None:
+        profile["source"] = brand_dir.name
     return profile
 
 

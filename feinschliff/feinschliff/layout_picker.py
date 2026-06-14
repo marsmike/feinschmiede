@@ -541,4 +541,15 @@ def pick_layout(
             })
 
     scored.sort(key=lambda c: (-c["score"], c["layout"]))
+    # Debug trace — when FEINSCHLIFF_DEBUG_PICKER=1 set, emit the considered
+    # set + scores + rationale. Tightly scoped: small N (top_k usually 3-20)
+    # and one line per candidate, so even verbose runs stay readable.
+    import os as _os
+    import sys as _sys
+    if _os.environ.get("FEINSCHLIFF_DEBUG_PICKER"):
+        sig = f"role={role!r} concept_count={concept_count} data_quantity={data_quantity}"
+        print(f"[picker] {sig} → {len(scored)} candidates", file=_sys.stderr)
+        for c in scored[:top_k]:
+            print(f"  {c['score']:+.2f}  {c['layout']:30s}  {c['rationale']}",
+                  file=_sys.stderr)
     return scored[:top_k]
