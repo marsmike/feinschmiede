@@ -276,9 +276,14 @@ def default_bindings(fm: dict) -> dict:
 
 def build_deck(plan_path: Path, out_pptx: Path, extra_args: list[str]) -> None:
     from feinschliff.cli.main import main as feinschliff_main
+    # --workers 1: a 74-layout showcase fan-out through ProcessPoolExecutor
+    # sometimes trips BrokenProcessPool on macOS (semaphore-leak warnings,
+    # spawn-context fork issues). Sequential build is plenty fast for the
+    # annotated PDF — keep it deterministic.
     rc = feinschliff_main(["deck", "build", str(plan_path), "-o", str(out_pptx),
                            "--skip-content-lint", "--allow-missing-assets",
                            "--allow-diagram-warnings", "--no-image-provider",
+                           "--workers", "1",
                            *extra_args])
     if rc not in (0, None):
         sys.exit(f"deck build failed (rc={rc}) for {plan_path}")
