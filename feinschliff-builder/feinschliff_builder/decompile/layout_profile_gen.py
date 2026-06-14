@@ -914,7 +914,14 @@ def _merge_annotations(profile: dict, old_fm: str | None) -> dict:
     generated *profile*: non-empty `description` / `chrome_subject` and
     per-image-slot `class` overrides survive a re-run (a vision-annotation
     pass must never be wiped by regeneration); every mechanical field —
-    role, ideal_count, slots geometry, … — comes from the new profile."""
+    role, ideal_count, slots geometry, … — comes from the new profile.
+
+    Operator-curated picker constraints — `when_not_to_use`, `follows_not`,
+    `follows_well`, `variety_exempt`, and the union family-curation flag —
+    also survive, additively: the classifier-generated list is unioned
+    with the prior list (no duplicates) so heuristics + manual curation
+    compose instead of overwriting each other.
+    """
     if old_fm is None:
         return profile
     try:
@@ -930,6 +937,19 @@ def _merge_annotations(profile: dict, old_fm: str | None) -> dict:
         # illustration that no longer exists must not be resurrected.
         if key in merged and isinstance(val, str) and val.strip():
             merged[key] = val
+    # Operator-curated picker constraints — union with classifier output.
+    for key in ("when_not_to_use", "follows_not", "follows_well"):
+        old_list = old.get(key)
+        if isinstance(old_list, list):
+            new_list = list(merged.get(key) or [])
+            for item in old_list:
+                if isinstance(item, str) and item not in new_list:
+                    new_list.append(item)
+            if new_list:
+                merged[key] = new_list
+    # variety_exempt: operator's `true` is sticky.
+    if old.get("variety_exempt") is True:
+        merged["variety_exempt"] = True
     # Curated slide-type: a vision pass may overrule the heuristic `family`,
     # but only an explicit `family_curated: true` marker survives — a bare
     # hand-edit of `family` is mechanical tampering and regenerates.
