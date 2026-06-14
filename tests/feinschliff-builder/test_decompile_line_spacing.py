@@ -3,7 +3,7 @@
 with NO explicit spacing becomes `linespacing:native` (the emitter then
 writes no lnSpc so the renderer's single spacing applies, like PowerPoint).
 
-Regression for the Bosch header shift: the emitter's 1.2 default leading on
+Regression for an auto-decompiled corporate-pack header shift: the emitter's 1.2 default leading on
 source-default paragraphs pushed every decompiled headline ~25 design-px
 down the slide on all 99 layouts.
 """
@@ -69,7 +69,7 @@ def test_absent_lnspc_round_trips_as_native():
 
 def test_master_txstyles_line_spacing_inherits():
     """A placeholder paragraph with NO own lnSpc must inherit the master
-    txStyles value (Bosch sets bodyStyle 107% / titleStyle 89% ONLY on the
+    txStyles value (A corporate pack sets bodyStyle 107% / titleStyle 89% ONLY on the
     master) — not fall through to `linespacing:native`."""
     from lxml import etree as _et
     from pptx import Presentation

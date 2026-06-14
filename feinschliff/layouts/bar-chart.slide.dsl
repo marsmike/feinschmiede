@@ -4,6 +4,8 @@ ideal_count: [3, 6]
 data_band: chart
 comparison: true
 description: Full-width horizontal bar chart, four bars with label left and percentage right, accent color for top bar
+source: feinschliff
+source_hash: f3b818ca8257
 ---
 # bar-chart — horizontal bars showing 4–6 categories sharing one scale.
 # Each bar: label (left), bar fill, value (right of bar).

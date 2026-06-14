@@ -753,6 +753,50 @@ def cmd_build(args) -> int:
         print(f"deck: plan '{plan_path}' has no slides", file=sys.stderr)
         return 2
 
+    # ── brand-chrome-leak warn (skeleton→plan layout swap audit) ─────────
+    # When `plan.skeleton.yaml` lives next to `plan.yaml`, compare per-slide
+    # layout choices. A slide whose skeleton layout was a brand-pack layout
+    # (under `brands/<name>/layouts/`) but whose final plan layout is a
+    # toolkit one is a "brand-chrome leak" — the content author overrode
+    # the picker's brand pick with a generic. Loud one-line warning per
+    # leak so build logs surface what was given up. Suppress with
+    # `FEINSCHLIFF_QUIET_BRAND_LEAK=1`. No fatal effect — the operator may
+    # have a real reason to swap, but they should see it.
+    if not os.environ.get("FEINSCHLIFF_QUIET_BRAND_LEAK"):
+        sk_path = plan_path.with_name("plan.skeleton.yaml")
+        if sk_path.is_file():
+            try:
+                sk_plan = yaml.safe_load(sk_path.read_text()) or {}
+                sk_slides = sk_plan.get("slides") or []
+                leaks: list[str] = []
+                for idx, (sk_s, pl_s) in enumerate(zip(sk_slides, slides_spec), start=1):
+                    sk_lay = str(sk_s.get("layout", ""))
+                    pl_lay = str(pl_s.get("layout", ""))
+                    if not sk_lay or not pl_lay or sk_lay == pl_lay:
+                        continue
+                    sk_brand = "/brands/" in sk_lay
+                    pl_brand = "/brands/" in pl_lay
+                    if sk_brand and not pl_brand:
+                        leaks.append(
+                            f"  slide {idx}: brand layout "
+                            f"'{Path(sk_lay).stem}' → toolkit "
+                            f"'{Path(pl_lay).stem}'"
+                        )
+                if leaks:
+                    print(
+                        f"deck build: brand-chrome-leak — "
+                        f"{len(leaks)} slide(s) overrode brand picks with "
+                        f"toolkit layouts:\n" + "\n".join(leaks)
+                        + "\n  See deck-skill 'When overriding the picked "
+                        "layout' guidance; suppress with "
+                        "FEINSCHLIFF_QUIET_BRAND_LEAK=1.",
+                        file=sys.stderr,
+                    )
+            except (yaml.YAMLError, OSError):
+                # Skeleton unreadable / malformed → silent skip (a build
+                # without skeleton context is the normal pre-fan-out flow).
+                pass
+
     # Resolve build-time image provider from the default brand's
     # `$image_provider` (extends-resolved). Per-slide `brand:` overrides
     # still drive tokens/compounds, but the provider used to resolve

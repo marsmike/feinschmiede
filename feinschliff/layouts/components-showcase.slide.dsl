@@ -4,6 +4,8 @@ ideal_count: [1, 4]
 data_band: none
 comparison: false
 description: 'Brand component sampler: button variants left, tag chips below, rule styles and dimensions catalogued right'
+source: feinschliff
+source_hash: 38d7c60e8576
 ---
 # components-showcase — UI kit preview. Two paper-bg panels:
 #   left   BUTTONS (3 variants: primary, default, ghost) + TAGS (4 chips)

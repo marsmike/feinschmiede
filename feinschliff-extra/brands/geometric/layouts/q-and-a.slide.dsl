@@ -22,6 +22,8 @@ chrome_bboxes:
 element_tree: ['text text_1 role=page-number @1631,72 209x74 16pt', 'text text_2 role=title @144,152 1262x172 36pt', 'image
     image class=replace @1416,152 504x928', 'text text_3 role=body @144,363 517x652 18pt', 'text text_4 role=body @753,363
     593x652 18pt', 'native illustration @1473,629.928 447x450.072']
+source_hash: 5aeee0414d4a
+source: geometric
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: q-and-a

@@ -6,6 +6,8 @@ comparison: false
 narrative_role: system
 diagram_complexity: simple
 description: Title and eyebrow top-left, Excalidraw diagram occupying central body area, so-what line and source below
+source: feinschliff
+source_hash: 2c7559b4128b
 ---
 # excalidraw-diagram — free-form concept diagram (boxes, arrows, flows,
 # architectures). Use when content describes a system or relationship

@@ -3,8 +3,9 @@ role: data-comparison
 ideal_count: [3, 5]
 data_band: chart
 comparison: true
-description: Five vertical stacked-bar columns with four series each, value labels in segments, total above, legend right,
-  source below
+description: Five vertical stacked-bar columns with four series each, value labels in segments, total above, legend right, source below
+source: feinschliff
+source_hash: 2d324237618b
 ---
 # stacked-bar — 5 periods × 4 series segments. Each bar is a stack of
 # (series A bottom + series B + series C + series D top). Total labeled

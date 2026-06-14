@@ -184,7 +184,7 @@
     },
     "slide": {
       "type": "object",
-      "description": "Optional slide-canvas dimensions. Defaults to a 1920x1080 canvas with 100/100/80px padding when omitted. Keys ending in '_emu' hold raw EMU integers (typically `width_emu`/`height_emu` written by brand_decompile_all.py from a source PPTX) so the emitter can match the source's physical slide size.",
+      "description": "Optional slide-canvas dimensions. Defaults to a 1920x1080 canvas with 100/100/80px padding when omitted. Keys ending in '_emu' hold raw EMU integers (typically `width_emu`/`height_emu` written by feinschliff-builder decompile from a source PPTX) so the emitter can match the source's physical slide size.",
       "properties": {
         "$type": {
           "type": "string"

@@ -3,10 +3,10 @@ role: content-columns
 ideal_count: [1, 1]
 data_band: none
 comparison: false
-family: framing
+family: organizational
 description: 'White content slide: large section title top-left, four full-width bullet points, corner geometric shape accents'
 when_to_use: Up to four full-width bullet points on one theme.
-chrome_note: 'carries native source chrome verbatim: 3 illustration'
+chrome_note: 'carries native source chrome verbatim: 3 mark'
 slide_index: 5
 slots:
   text_1: {role: title, chars: 72, default: Engaging the audience}
@@ -17,8 +17,8 @@ chrome_bboxes:
 - [1750, 555, 170, 255]
 element_tree: ['native mark @1652.67,0.000314961 133.752x56.3257', 'text text_1 role=title @132,48 1778x232 44pt', 'text text_2
     role=body @132,289 1608x781 18pt', 'native mark @1749.52,555.44 170.483x254.571', 'native mark @-60.0076,810.143 273.606x151.108']
-when_not_to_use: [role=content-columns, role=data-quantity, role=data-comparison]
-chrome_subject: teal semicircle top-right corner and orange triangle bottom-left as accent shapes; brand-neutral
+source_hash: bece0c6db731
+source: shapes
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: audience

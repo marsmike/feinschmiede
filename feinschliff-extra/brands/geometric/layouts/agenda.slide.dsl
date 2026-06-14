@@ -10,7 +10,7 @@ fixed_chrome: true
 description: 'Agenda: bold AGENDA title and five items on left half; crossing olive/pink triangles and blue dot on right half'
 when_to_use: Opening agenda — up to five sections to preview; decorative triangles need no content.
 chrome_subject: crossing olive-green and pink triangles with navy circle accent; brand-neutral geometric composition
-chrome_note: 'carries native source chrome verbatim: 3 illustration'
+chrome_note: 'carries native source chrome verbatim: 2 illustration, 1 mark'
 slide_index: 2
 slots:
   text_1: {role: page-number, chars: 9, default: '2'}
@@ -23,6 +23,8 @@ chrome_bboxes:
 element_tree: ['native illustration @1018.21,0 903.889x546.137', 'text text_1 role=page-number @1631,72 168x74 16pt', 'text
     text_2 role=title @144,166 1037x241 36pt', 'text text_3 role=body @144,446 1037x624 24pt', 'native illustration @1016.11,536.223
     903.889x546.137', 'native mark @1203.55,720.891 122.051x122.051']
+source_hash: 5cde3c756df6
+source: geometric
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: agenda

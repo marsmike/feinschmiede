@@ -12,6 +12,8 @@ slots:
   image: {role: image, class: replace}
 image_queries: {image: last year}
 element_tree: ['image image class=replace @0,0 1920x1080', 'text text_1 role=title @162,157 1230x102 44pt']
+source_hash: adc62cb58fb5
+source: annual-review
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: last-year

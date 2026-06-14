@@ -5,13 +5,10 @@ data_band: none
 comparison: false
 variety_exempt: true
 description: 'Two-column numbered agenda: up to 8 items split left/right, each with index, title, and one-line description'
-follows_not:
-  - role=content-columns
-  - role=data-quantity
-  - role=data-comparison
-  - role=closer
-follows_well:
-  - role=title-primary
+follows_not: [role=content-columns, role=data-quantity, role=data-comparison, role=closer]
+follows_well: [role=title-primary]
+source: feinschliff
+source_hash: ba5f26b58826
 ---
 # agenda — table of contents on the paper ground. Title block at top,
 # 2-column grid of 3–8 agenda items below.

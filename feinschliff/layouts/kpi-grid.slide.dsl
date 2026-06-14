@@ -3,8 +3,9 @@ role: data-quantity
 ideal_count: [2, 4]
 data_band: kpi
 comparison: false
-description: 'Four KPI cells in a full-width hairline grid: jumbo number, unit superscript, metric label, and accent caption
-  each'
+description: 'Four KPI cells in a full-width hairline grid: jumbo number, unit superscript, metric label, and accent caption each'
+source: feinschliff
+source_hash: 2394a91cc730
 ---
 # kpi-grid — 2–4 high-level quantitative figures, each with unit + label
 # + optional delta. Cells share a hairline grid border.

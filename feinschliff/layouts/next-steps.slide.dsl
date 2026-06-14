@@ -6,13 +6,10 @@ comparison: false
 narrative_role: close-action
 narrative_act: resolution
 description: 'Action table: up to five rows with accent verb, description, and right-aligned owner+date; eyebrow above title'
-follows_not:
-  - role=title-primary
-  - role=agenda
-  - narrative_act=situation
-follows_well:
-  - layout=recommendation
-  - narrative_act=resolution
+follows_not: [role=title-primary, role=agenda, narrative_act=situation]
+follows_well: [layout=recommendation, narrative_act=resolution]
+source: feinschliff
+source_hash: 9124ffc0d290
 ---
 # next-steps — closing slide. 3–7 immediate actions stacked vertically.
 # Each row leads with a verb in accent, body of what, and right-aligned

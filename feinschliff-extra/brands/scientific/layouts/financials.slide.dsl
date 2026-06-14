@@ -32,6 +32,8 @@ slots:
   text_20: {role: native-text, chars: 8, default: '$200,000'}
   text_21: {role: native-text, chars: 8, default: '$100,000'}
 element_tree: ['text text_1 role=title @202,173 1708x191 32pt', native table]
+source_hash: 4a5d086154b0
+source: scientific
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: financials

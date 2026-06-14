@@ -13,21 +13,17 @@ Per layout (page order):
      data_band badges, description, when_to_use / when_not_to_use, chrome
      notes, slot table (chars budgets, defaults), warnings, element_tree.
 
-Inputs: a deck plan YAML whose slides each reference one layout (the
-showcase plan), e.g. built by brand bootstrap. The script builds the two
-decks itself (defaults + coverage), converts via soffice, and prints the
-final document with headless Chrome at the exact slide page size.
-
-Usage:
-  uv run python scripts/render_brand_annotated.py \\
-      --plan <showcase-plan.yaml> --out <annotated.pdf> \\
-      [--debug-color "#E6007E"] [--workdir <dir>]
+The annotation is auto-emitted by ``feinschliff-builder decompile`` (turn
+off with ``--no-annotate``). Programmatic callers use
+:func:`render_annotated_pdf` directly with a showcase deck-plan YAML
+whose slides each reference one layout.
 
 External tools: soffice, pdftoppm, Google Chrome (headless print).
+
+→ Canonical pipeline: see `feinschliff-builder/README.md`.
 """
 from __future__ import annotations
 
-import argparse
 import base64
 import html
 import re
@@ -280,9 +276,14 @@ def default_bindings(fm: dict) -> dict:
 
 def build_deck(plan_path: Path, out_pptx: Path, extra_args: list[str]) -> None:
     from feinschliff.cli.main import main as feinschliff_main
+    # --workers 1: a 74-layout showcase fan-out through ProcessPoolExecutor
+    # sometimes trips BrokenProcessPool on macOS (semaphore-leak warnings,
+    # spawn-context fork issues). Sequential build is plenty fast for the
+    # annotated PDF — keep it deterministic.
     rc = feinschliff_main(["deck", "build", str(plan_path), "-o", str(out_pptx),
                            "--skip-content-lint", "--allow-missing-assets",
                            "--allow-diagram-warnings", "--no-image-provider",
+                           "--workers", "1",
                            *extra_args])
     if rc not in (0, None):
         sys.exit(f"deck build failed (rc={rc}) for {plan_path}")
@@ -297,24 +298,25 @@ def to_pdf(pptx: Path, outdir: Path) -> Path:
     return outdir / (pptx.stem + ".pdf")
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--plan", required=True, type=Path,
-                    help="Showcase deck plan YAML (one layout per slide)")
-    ap.add_argument("--out", required=True, type=Path)
-    ap.add_argument("--debug-color", default="#E6007E",
-                    help="Slot-coverage colour (default magenta #E6007E)")
-    ap.add_argument("--workdir", type=Path,
-                    help="Working dir for intermediate renders "
-                         "(default: <out>.work/)")
-    ap.add_argument("--metadata-pdf", type=Path,
-                    help="Also write a compact metadata-only PDF (the detail "
-                         "cards without renders) to this path")
-    args = ap.parse_args()
+def render_annotated_pdf(
+    plan_path: Path,
+    out: Path,
+    *,
+    debug_color: str = "#E6007E",
+    workdir: Path | None = None,
+    metadata_pdf: Path | None = None,
+) -> int:
+    """Render the annotated brand-pack PDF described in the module docstring.
 
+    *plan_path*  — showcase deck-plan YAML (one layout per slide).
+    *out*        — final annotated.pdf path.
+    *debug_color* — slot-coverage colour (default magenta ``#E6007E``).
+    *workdir*    — intermediate renders dir (default: ``<out>.work/``).
+    *metadata_pdf* — optional compact metadata-only PDF path.
+    """
     from PIL import Image, ImageDraw, ImageFont
 
-    plan_path = args.plan.resolve()
+    plan_path = plan_path.resolve()
     plan = yaml.safe_load(plan_path.read_text())
     plan_dir = plan_path.parent
     layouts: list[Path] = []
@@ -330,7 +332,7 @@ def main() -> int:
                 sys.exit(f"layout not found: {spec['layout']}")
         layouts.append(lp)
 
-    work = (args.workdir or args.out.with_suffix(".work")).resolve()
+    work = (workdir or out.with_suffix(".work")).resolve()
     work.mkdir(parents=True, exist_ok=True)
     pages_dir = work / "pages"
     pages_dir.mkdir(exist_ok=True)
@@ -364,7 +366,7 @@ def main() -> int:
     build_deck(plan_path, work / "defaults.pptx", [])
     print("building coverage deck (slot-debug-color) …")
     build_deck(cov_plan_path, work / "coverage.pptx",
-               ["--slot-debug-color", args.debug_color])
+               ["--slot-debug-color", debug_color])
     print("converting to PDF …")
     defaults_pdf = to_pdf(work / "defaults.pptx", work)
     coverage_pdf = to_pdf(work / "coverage.pptx", work)
@@ -509,7 +511,7 @@ def main() -> int:
   <div class='strip'>{i:0{digits}d} · {esc(name)} — slots: orange = text · blue = image · violet = chart/diagram data · gray = footer/page · dashes = baked chrome</div>
 </div>
 <div class='page render'><img src='{Path(cov_png).as_uri()}'>
-  <div class='strip'>{i:0{digits}d} · {esc(name)} — slot coverage: {esc(args.debug_color)} text = slot-bound · brand-coloured text = NOT bindable</div>
+  <div class='strip'>{i:0{digits}d} · {esc(name)} — slot coverage: {esc(debug_color)} text = slot-bound · brand-coloured text = NOT bindable</div>
 </div>
 <div class='page detail'>
   <div class='head'><span class='idx'>{i:0{digits}d}</span><h2>{esc(name)}</h2>{badges}</div>
@@ -559,11 +561,11 @@ def main() -> int:
     html_path.write_text(doc, encoding="utf-8")
     subprocess.run([_chrome(), "--headless", "--disable-gpu",
                     "--no-pdf-header-footer", "--allow-file-access-from-files",
-                    f"--print-to-pdf={args.out}", html_path.as_uri()],
+                    f"--print-to-pdf={out}", html_path.as_uri()],
                    check=True, capture_output=True)
-    print(f"wrote {args.out} ({3 * n} pages: render + coverage + detail per layout)")
+    print(f"wrote {out} ({3 * n} pages: render + coverage + detail per layout)")
 
-    if args.metadata_pdf:
+    if metadata_pdf:
         # Compact A4 reference: the detail cards only, several per page —
         # the handover's "what slots exist" document without the renders.
         meta_doc = doc.replace(
@@ -580,11 +582,8 @@ def main() -> int:
         meta_html.write_text(meta_doc, encoding="utf-8")
         subprocess.run([_chrome(), "--headless", "--disable-gpu",
                         "--no-pdf-header-footer", "--allow-file-access-from-files",
-                        f"--print-to-pdf={args.metadata_pdf}", meta_html.as_uri()],
+                        f"--print-to-pdf={metadata_pdf}", meta_html.as_uri()],
                        check=True, capture_output=True)
-        print(f"wrote {args.metadata_pdf} (metadata cards only)")
+        print(f"wrote {metadata_pdf} (metadata cards only)")
     return 0
 
-
-if __name__ == "__main__":
-    sys.exit(main())

@@ -10,7 +10,7 @@ description: 'Split intro: title and subtitle left on cream; content photo right
   corners'
 when_to_use: Section intro with a mood-setting photo — title + subtitle, image carries the emotion.
 chrome_subject: pink and olive geometric band segments at top/bottom corners; brand-neutral
-chrome_note: 'carries native source chrome verbatim: 2 illustration'
+chrome_note: 'carries native source chrome verbatim: 1 illustration, 1 mark'
 slide_index: 4
 slots:
   text_1: {role: title, chars: 68, default: OVERCOMING NERVOUSNESS}
@@ -23,6 +23,8 @@ chrome_bboxes:
 element_tree: ['image image class=replace @1168,65 684x1015', 'text text_1 role=title @144,166 828x393 36pt', 'native mark
     @0,545.489 68.5419x534.511', 'native illustration @907.09,592.829 442.891x534.511', 'text text_2 role=body @144,600 828x405
     24pt']
+source_hash: ac99564d7efc
+source: geometric
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: nervousness

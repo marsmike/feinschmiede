@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -161,18 +162,47 @@ def find_layout(name: str) -> Layout | None:
 _SUFFIX = ".slide.dsl"
 
 
+# One-shot per (name, winner-path) so a long-running process doesn't
+# re-warn every time the picker rebuilds its profile table.
+_WARNED_COLLISIONS: set[tuple[str, str]] = set()
+
+
 def discover_layout_paths() -> dict[str, Path]:
     """Map every discoverable layout name to its ``.slide.dsl`` path.
 
     Scans all discovery sources in priority order; the first source to
     provide a given name wins (same precedence as :func:`find_layout`).
 
+    Emits a one-line ``layout-discovery: shadowed`` warning to stderr the
+    first time a name appears in more than one source — the picker's pool
+    silently uses the priority-winner, which is the canonical source of
+    "slide1 overriding slide1" surprises across an extension-pack stack.
+    Suppress with ``FEINSCHLIFF_QUIET_LAYOUT_SHADOW=1``.
+
     This is the picker's universe: the layout-affinity profiles are built
     from exactly this set, so a layout on disk can never be unpickable.
     """
     paths: dict[str, Path] = {}
+    shadowed_by: dict[str, list[Path]] = {}
     for src in discover_layouts():
         for candidate in sorted(src.path.glob(f"*{_SUFFIX}")):
             name = candidate.name[: -len(_SUFFIX)]
-            paths.setdefault(name, candidate)
+            if name in paths:
+                shadowed_by.setdefault(name, []).append(candidate)
+            else:
+                paths[name] = candidate
+    if shadowed_by and not os.environ.get("FEINSCHLIFF_QUIET_LAYOUT_SHADOW"):
+        for name, losers in shadowed_by.items():
+            winner = paths[name]
+            key = (name, str(winner))
+            if key in _WARNED_COLLISIONS:
+                continue
+            _WARNED_COLLISIONS.add(key)
+            losers_str = ", ".join(str(p) for p in losers)
+            print(
+                f"layout-discovery: '{name}' appears in {len(losers) + 1} "
+                f"sources; using {winner} (shadowed: {losers_str}). "
+                f"Suppress with FEINSCHLIFF_QUIET_LAYOUT_SHADOW=1.",
+                file=sys.stderr,
+            )
     return paths

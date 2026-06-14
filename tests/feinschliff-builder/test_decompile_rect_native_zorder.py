@@ -1,5 +1,5 @@
 """Rects must interleave with native pics in SOURCE z-order. Emitting all
-rects before the pic section painted native-carried background art (Bosch
+rects before the pic section painted native-carried background art (a corporate-pack
 slide 34's banner wave, spTree position BEFORE the content tiles) on top of
 the rects it underlies in the source."""
 from __future__ import annotations

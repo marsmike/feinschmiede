@@ -6,6 +6,8 @@ comparison: true
 narrative_role: custom-viz
 diagram_complexity: simple
 description: Title and eyebrow top-left, SVG infographic occupying central body area, so-what and source lines below
+source: feinschliff
+source_hash: c903e06e3a13
 ---
 # svg-infographic — custom data viz (bars, axes, legends, stat cards) that
 # doesn't fit bar-chart / stacked-bar / kpi-grid / scorecard / funnel.

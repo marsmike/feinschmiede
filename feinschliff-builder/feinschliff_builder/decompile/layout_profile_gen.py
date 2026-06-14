@@ -692,6 +692,16 @@ def classify_layout(
     chrome_bboxes uses the real slide width in EMU.
     """
     _, body = split_frontmatter(dsl_text)  # tolerate re-runs on profiled files
+    # Layout fingerprint: short SHA-1 of the body so the picker / emitter
+    # can detect drift and silent name shadowing across packs. `source` is
+    # the pack name when known. Two `cover.slide.dsl` in different packs
+    # have the same name but different `source_hash` — that tuple is the
+    # unambiguous identity. lstrip() so split_frontmatter's line-number-
+    # preserving padding (it replaces the fence region with blank lines)
+    # doesn't make the hash sensitive to fence size. Cheap (sub-millisecond
+    # per layout).
+    import hashlib as _hashlib
+    source_hash = _hashlib.sha1(body.strip().encode("utf-8")).hexdigest()[:12]
     canvas_w, canvas_h = _parse_canvas(body)
     tokens = None
     width_emu = 0.0
@@ -876,6 +886,9 @@ def classify_layout(
             texts, images, natives, width_emu=width_emu,
             slot_roles=slot_roles, image_classes=image_classes,
             canvas_w=canvas_w)
+    profile["source_hash"] = source_hash
+    if brand_dir is not None:
+        profile["source"] = brand_dir.name
     return profile
 
 
@@ -901,7 +914,14 @@ def _merge_annotations(profile: dict, old_fm: str | None) -> dict:
     generated *profile*: non-empty `description` / `chrome_subject` and
     per-image-slot `class` overrides survive a re-run (a vision-annotation
     pass must never be wiped by regeneration); every mechanical field —
-    role, ideal_count, slots geometry, … — comes from the new profile."""
+    role, ideal_count, slots geometry, … — comes from the new profile.
+
+    Operator-curated picker constraints — `when_not_to_use`, `follows_not`,
+    `follows_well`, `variety_exempt`, and the union family-curation flag —
+    also survive, additively: the classifier-generated list is unioned
+    with the prior list (no duplicates) so heuristics + manual curation
+    compose instead of overwriting each other.
+    """
     if old_fm is None:
         return profile
     try:
@@ -917,6 +937,19 @@ def _merge_annotations(profile: dict, old_fm: str | None) -> dict:
         # illustration that no longer exists must not be resurrected.
         if key in merged and isinstance(val, str) and val.strip():
             merged[key] = val
+    # Operator-curated picker constraints — union with classifier output.
+    for key in ("when_not_to_use", "follows_not", "follows_well"):
+        old_list = old.get(key)
+        if isinstance(old_list, list):
+            new_list = list(merged.get(key) or [])
+            for item in old_list:
+                if isinstance(item, str) and item not in new_list:
+                    new_list.append(item)
+            if new_list:
+                merged[key] = new_list
+    # variety_exempt: operator's `true` is sticky.
+    if old.get("variety_exempt") is True:
+        merged["variety_exempt"] = True
     # Curated slide-type: a vision pass may overrule the heuristic `family`,
     # but only an explicit `family_curated: true` marker survives — a bare
     # hand-edit of `family` is mechanical tampering and regenerates.
@@ -1002,7 +1035,7 @@ def main(argv: list[str] | None = None) -> int:
     <layout.slide.dsl> [--description …] [--chrome-subject …]
     [--image-class slot=keep|replace …]` — update just the annotation fields
     in an EXISTING frontmatter fence. Creating the fence is the generator's
-    job (scripts/slotify_layouts.py), not this command's."""
+    job (feinschliff-builder slotify), not this command's."""
     import argparse
     import sys
 

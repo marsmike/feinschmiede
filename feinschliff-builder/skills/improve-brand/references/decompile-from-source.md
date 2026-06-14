@@ -1,41 +1,12 @@
 # Bootstrap layouts from a source PPTX
 
 `improve-brand` is a polishing loop — it expects layouts to already
-exist. When you have a source PPTX deck and want to bootstrap the
-brand's `.slide.dsl` files in one shot, use the hybrid decompiler.
-
-## Backends
-
-The toolkit ships two decompilers (both accessed via the `feinschliff-builder decompile` CLI,
-or directly as scripts from a dev checkout):
-
-| Backend                          | When to use                                                                                |
-| -------------------------------- | ------------------------------------------------------------------------------------------ |
-| Default (`--no-svg`)             | Primitive-level reverse mapping. Fast, no external deps. Loses chart geometry and master-inherited chrome. |
-| Hybrid (`--with-svg`)            | Combines PPTX XML semantics with optional SVG geometry. Higher fidelity on charts and custGeom. **Use this for brand bootstrap.** |
-
-The hybrid backend is where the higher-fidelity work lives — classifier
-improvements, chart geometry extractor, and `cap="all"` detector all
-sit on this path.
+exist. When you have a source PPTX and want to bootstrap a pack from
+scratch, run the two-step capture pipeline below, then come back here.
 
 ## Bootstrap workflow
 
-### Option A: single-slide spot-check
-
-```bash
-feinschliff-builder decompile path/to/source-deck.pptx \
-    --brand <brand> \
-    --slide 5 \
-    --with-svg \
-    -o brands/<brand>/layouts/
-```
-
-Useful when you want to redo just one layout, or when you're checking
-how the decompiler handles a specific slide before doing a bulk run.
-
-### Option B: bulk decompile via verify-map
-
-This is the path you'll use most often. Requires:
+Requires:
 1. `brands/<brand>/tokens.json` — brand palette + style overrides
 2. `brands/<brand>/verify-map.yaml` — maps layout names to source slide
    numbers:
@@ -50,39 +21,37 @@ This is the path you'll use most often. Requires:
 
 3. Source PPTX path
 
-Then:
+Step 1 — bulk-decompile every layout via the hybrid PPTX+SVG backend:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/scripts/brand_decompile_all.py \
+feinschliff-builder decompile \
     --brand-pack brands/<brand> \
     --source-pptx path/to/source-deck.pptx
 ```
 
-> **Requires dev checkout:** clone the repo and run `uv sync` — this script
-> is not a CLI subcommand and needs the full dev dependency set.
+Writes one `<layout>.slide.dsl` per `verify-map.yaml` entry, snapshotting
+existing files to `layouts.bak/` first. Use `--dry-run` to preview;
+`--only <name> <name>` to restrict.
 
-Output: one `<layout>.slide.dsl` per `verify-map.yaml` entry written to
-`brands/<brand>/layouts/`. Existing files are snapshotted to
-`brands/<brand>/layouts.bak/` first. Use `--dry-run` to preview without
-writing; `--only <name> <name>` to restrict to a subset.
-
-### Option C: index-named slide-by-slide (via CLI)
+Step 2 — slotify + emit picker frontmatter + `deck-map.yaml`:
 
 ```bash
-feinschliff-builder decompile path/to/source-deck.pptx \
-    --brand <brand> -o brands/<brand>/layouts/ --with-svg
+feinschliff-builder slotify \
+    --brand-pack brands/<brand>
 ```
 
-Uses the `feinschliff-builder decompile` CLI with `--with-svg` for
-higher-fidelity output. Writes `slide-NN.slide.dsl` per slide (numeric
-names, not layout-typed). Use this when you don't have a `verify-map.yaml`
-yet and just want a starting set of files.
+Without step 2 the picker silently drops your layouts because the
+profile table builder needs the frontmatter (`role`, `ideal_count`,
+`slots`, etc.).
+
+> **Requires dev checkout:** clone the repo and run `uv sync` — both
+> scripts need the full dev dependency set (numpy/scikit-image for
+> downstream scoring, lxml for the decompiler).
 
 ## After bootstrap
 
 ```bash
 # Measure the first-pass fidelity
-# (requires dev checkout with uv sync for numpy/scikit-image scoring deps)
 python ${CLAUDE_PLUGIN_ROOT}/scripts/brand_verify_loop.py \
     --brand-pack brands/<brand> \
     --source-pptx path/to/source-deck.pptx
@@ -96,18 +65,19 @@ cat out/<brand>/verify-loop/diff/report.json
 
 ## What the hybrid decompiler does *not* do
 
-- **No asset extraction.** Pictures emit as placeholder slot
+- **No asset extraction by default.** Pictures emit as placeholder slot
   expressions (`picture … path:"{{ image | default:'…' }}" cover:true`).
-  If you want extracted images on disk, use `feinschliff-builder decompile`
-  without `--with-svg`; it writes `source-slide-NN-K.<ext>` next to the
-  layout files.
+  Pass `--carry-images` to extract real `<p:pic>` binaries so the verify
+  render shows the source photo (struct-diff then measures *chrome*,
+  not raster noise).
 - **No compound recognition.** Footer-region text emits as N plain
   `text` primitives. If your brand has a `footer(...)` compound,
   manually collapse the lines (or write a brand-specific post-pass).
-- **No SVG geometry pass yet from CLI.** The hybrid module reserves
-  the SVG cross-check path (`pdf_path` arg on `derive()`), but the
-  CLI does not invoke `pdf2svg` automatically. Programmatic callers
-  can wire it in; the CLI default is PPTX-only hybrid mode.
+- **SVG geometry cross-check is internal-only.** The hybrid module
+  reserves the SVG path (`pdf_path` arg on `derive()`), but
+  `feinschliff-builder decompile` defaults to PPTX-only hybrid mode.
+  Programmatic callers can wire `pdf2svg` in for higher fidelity on
+  custGeom shapes.
 
 ## Tuning the classifier
 

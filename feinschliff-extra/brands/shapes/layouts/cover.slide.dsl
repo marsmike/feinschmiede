@@ -11,7 +11,7 @@ description: 'White background cover: large blue circle right with title text; s
   dashes) as chrome'
 when_to_use: Deck cover — short title inside the blue circle; keep it to a few words.
 chrome_subject: scattered coloured geometric shapes — circles, squares, dashes; brand-neutral abstract artwork
-chrome_note: 'carries native source chrome verbatim: 1 illustration'
+chrome_note: 'carries native source chrome verbatim: 2 illustration'
 slide_index: 1
 slots:
   text_1: {role: title, chars: 60, default: Basic presentation}
@@ -20,6 +20,8 @@ chrome_bboxes:
 - [0, 0, 1920, 1305]
 element_tree: ['native illustration @0,0 1920x1305.02', 'native illustration @0,0 1920x1305.02', 'text text_1 role=title @816,465
     986x377 44pt']
+source_hash: 6b56c39e6f0e
+source: shapes
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: cover

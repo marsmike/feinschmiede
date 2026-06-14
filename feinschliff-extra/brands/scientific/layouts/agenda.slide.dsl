@@ -21,6 +21,8 @@ chrome_bboxes:
 - [1356, 0, 564, 1080]
 element_tree: ['native illustration @1356,0 564x1080', 'text text_1 role=title @202,173 684x379 32pt', 'image image class=replace
     @896,226 929x626', 'text text_2 role=body @202,562 684x508 24pt']
+source_hash: 0cdc2b64627d
+source: scientific
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: agenda

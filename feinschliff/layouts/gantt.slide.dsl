@@ -3,8 +3,9 @@ role: data-timeline
 ideal_count: [3, 6]
 data_band: table
 comparison: false
-description: 'Gantt chart: four workstream rows, four quarter columns, milestone bars with diamond markers and a legend strip
-  below'
+description: 'Gantt chart: four workstream rows, four quarter columns, milestone bars with diamond markers and a legend strip below'
+source: feinschliff
+source_hash: 2ca18dcb2e2a
 ---
 # gantt — workstream timeline across 4 quarters with bars and milestones.
 # 4 workstream rows × 4 quarter columns; each bar has start/span driving x/width.

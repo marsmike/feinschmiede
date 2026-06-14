@@ -21,6 +21,8 @@ chrome_bboxes:
 - [0, 0, 897, 1080]
 element_tree: ['native illustration @0,0 897.466x1080', 'text text_1 role=title @980,41 930x575 60pt', 'image image class=replace
     @111,133 728x727', 'text text_2 role=body @980,639 930x431 24pt']
+source_hash: e7b1c781fe75
+source: shapes
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: nervousness

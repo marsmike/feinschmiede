@@ -11,7 +11,7 @@ description: 'Closing slide: THANK YOU title and contact details left on cream; 
   right side'
 when_to_use: Closing slide — thank-you plus contact details; no further content.
 chrome_subject: large pink circle with white concentric arc lines and navy top band; brand-neutral geometric motif
-chrome_note: 'carries native source chrome verbatim: 2 illustration'
+chrome_note: 'carries native source chrome verbatim: 3 illustration'
 slide_index: 13
 slots:
   text_1: {role: title, chars: 72, default: THANK\nYOU}
@@ -22,6 +22,8 @@ chrome_bboxes:
 - [1381, 0, 541, 541]
 element_tree: ['native illustration @0,0 1409.25x1080', 'native illustration @1185.43,0 735.634x1080', 'native illustration
     @1380.56,0 540.503x540.503', 'text text_1 role=title @144,134 900x430 36pt', 'text text_2 role=body @144,601 900x469 24pt']
+source_hash: 9885ac0235a5
+source: geometric
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: thank-you

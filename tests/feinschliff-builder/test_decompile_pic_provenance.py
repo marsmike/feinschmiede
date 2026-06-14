@@ -3,7 +3,7 @@ placeholder pics and JPEG photos stay fillable picture slots; plain
 PNG/SVG pics of ANY size are fixed corporate-design graphics and are
 carried natively (verbatim element + media) so they are not bindable.
 
-Regression for the Bosch pack review: a 1920x426 PNG illustration band
+Regression for a corporate-pack regression: a 1920x426 PNG illustration band
 ("Grafik 27", deliberately NOT a placeholder) decompiled to a replaceable
 image slot, while the audit flagged 142 icon/illustration natives that are
 legitimate CD chrome under the provenance rule.
@@ -98,7 +98,7 @@ def test_placeholder_pic_stays_a_slot():
 
 def test_placeholder_named_pic_stays_a_slot():
     """Filling a content placeholder with a picture may DROP the <p:ph>
-    element entirely (Bosch slide 18's street photo: name 'Content
+    element entirely (a corporate-pack picture region in a regression deck: name 'Content
     Placeholder 5', no ph) — the placeholder-derived shape name is the
     surviving marker and must keep the pic a fillable slot. German UI
     names ('Inhaltsplatzhalter', 'Bildplatzhalter') count too."""

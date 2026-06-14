@@ -25,6 +25,8 @@ element_tree: ['text text_1 role=title @162,157 1748x102 44pt', 'text text_2 rol
     18pt', 'text text_6 role=body @153,525 397x545 14pt', 'text text_7 role=body @560,525 407x545 14pt', 'text text_8 role=body
     @977,525 405x456 14pt', 'text text_9 role=body @1392,525 518x456 14pt', 'text text_10 role=footer @1307,991 231x29 12pt',
   'text text_11 role=footer @1548,991 252x79 12pt', 'text text_12 role=page-number @1810,991 100x29 12pt']
+source_hash: f682598edb2a
+source: annual-review
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: timeline

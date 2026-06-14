@@ -4,6 +4,8 @@ ideal_count: [3, 3]
 data_band: none
 comparison: true
 description: 'Three equal columns with hairline dividers: numbered heading and descriptive body paragraph each; headline above'
+source: feinschliff
+source_hash: 6f2aa315d0ff
 ---
 # three-column — three parallel pillars. Stacked text in three columns
 # without card bg (unlike two-column-cards).

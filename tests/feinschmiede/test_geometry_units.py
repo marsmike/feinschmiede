@@ -9,7 +9,7 @@ def test_baseline_constants():
 
 
 def test_emu_per_px_derived():
-    # bsh-style 12in slide: 10969625 EMU over a 1920px canvas.
+    # corporate-style 12in slide: 10969625 EMU over a 1920px canvas.
     assert abs(units.emu_per_px(10969625, 1920) - 5713.346) < 0.01
 
 

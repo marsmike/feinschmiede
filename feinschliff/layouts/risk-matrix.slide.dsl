@@ -5,6 +5,8 @@ data_band: none
 comparison: true
 narrative_role: risk
 description: 5×5 heat-map grid (impact × probability) with numbered risk bubbles plotted; numbered risk legend list right
+source: feinschliff
+source_hash: 9efc7de12403
 ---
 # risk-matrix — 5×5 probability × impact grid with risks plotted as
 # numbered circles. Companion to risk-register (which gives the full

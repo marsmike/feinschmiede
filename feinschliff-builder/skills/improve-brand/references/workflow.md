@@ -121,7 +121,7 @@ noise, not progress). Classify:
 | ------------------ | ------------ | ------------------------------------------------------------------------------------------------- |
 | `Δ > +0.005`       | improved     | Keep iterating with the standard `per-slide-prompt.md`. Momentum is real.                          |
 | `−0.005 ≤ Δ ≤ +0.005` | plateau   | **Switch to `references/redirection-prompt.md`** for the next round on this layout. Same-direction nudging is what put us here. |
-| `Δ < −0.005`       | regressed    | **Revert the DSL** (the parent re-decompiles just that layout via `brand_decompile_all.py --only <layout>`) AND dispatch with the redirection prompt, noting the reverted attempt in the `PRIOR ATTEMPTS` block. Do not let a wrong move accumulate. |
+| `Δ < −0.005`       | regressed    | **Revert the DSL** (the parent re-decompiles just that layout via `feinschliff-builder decompile --only <layout>`) AND dispatch with the redirection prompt, noting the reverted attempt in the `PRIOR ATTEMPTS` block. Do not let a wrong move accumulate. |
 
 If 2 consecutive rounds plateau OR a regression repeats after a
 revert + retry, stop dispatching the layout — the agent has no

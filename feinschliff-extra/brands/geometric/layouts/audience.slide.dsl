@@ -26,6 +26,8 @@ element_tree: ['native illustration @-1.48268,0 401.353x402.461', 'native illust
     illustration @-1.12079,0 401.73x1080', 'native illustration @400.609,0 403.203x403.203', 'text text_1 role=page-number
     @1631,72 279x74 16pt', 'text text_2 role=title @545,166 1365x157 36pt', 'text text_3 role=body @545,363 1365x707 18pt',
   'native illustration @-1.47858,678.499 401.73x403.219']
+source_hash: 9aaaba1d500d
+source: geometric
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: audience

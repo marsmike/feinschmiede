@@ -3,8 +3,9 @@ role: data-timeline
 ideal_count: [3, 8]
 data_band: chart
 comparison: false
-description: Full-width line chart with two series (accent + ink), five x-axis periods, legend top-right, title and source
-  flanking
+description: Full-width line chart with two series (accent + ink), five x-axis periods, legend top-right, title and source flanking
+source: feinschliff
+source_hash: e3e3b2e5cc90
 ---
 # line-chart — trend over time with 2 series rendered as real polyline traces.
 # Series coordinates are hardcoded in the layout (DSL has no arithmetic over

@@ -20,6 +20,8 @@ element_tree: ['text text_1 role=title @162,157 1748x102 44pt', 'text text_2 rol
     role=body @986,367 924x102 18pt', 'text text_4 role=body @163,479 817x591 18pt', 'text text_5 role=body @990,479 920x502
     18pt', 'text text_6 role=footer @1307,991 231x29 12pt', 'text text_7 role=footer @1548,991 252x79 12pt', 'text text_8
     role=page-number @1810,991 100x29 12pt']
+source_hash: 73434a05c1d5
+source: annual-review
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: goals-q1

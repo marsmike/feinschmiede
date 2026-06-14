@@ -7,7 +7,7 @@ variety_exempt: true
 family: framing
 description: 'Section divider: full-bleed content photo with large white circle overlay bearing section title and subtitle'
 when_to_use: Full-bleed photo divider — title inside the white circle overlay.
-chrome_note: 'carries native source chrome verbatim: 1 illustration'
+chrome_note: 'carries native source chrome verbatim: 1 mark'
 slide_index: 3
 slots:
   text_1: {role: title, chars: 90, default: The power\nof communication}
@@ -17,8 +17,8 @@ chrome_bboxes:
 - [1349, 759, 118, 130]
 element_tree: ['image image class=replace @0,0 1920x1080', 'text text_1 role=title @452,145 1017x789 60pt', 'native mark @1348.85,758.663
     118.097x130.247']
-when_not_to_use: [role=content-columns, role=data-quantity, role=data-comparison]
-chrome_subject: white circle mask centred on a full-bleed photo; brand-neutral layout device
+source_hash: '469167670997'
+source: shapes
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: section-intro

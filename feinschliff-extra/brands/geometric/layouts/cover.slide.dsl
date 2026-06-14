@@ -20,6 +20,8 @@ chrome_bboxes:
 - [424, 0, 1071, 850]
 element_tree: ['native illustration @0,0 834x1083', 'native illustration @424.32,0 1071.36x849.838', 'text text_1 role=title
     @457,128 1007x603 36pt', 'native illustration @236.25,184.741 1447.5x898.389']
+source_hash: 2f2b6e7a45f6
+source: geometric
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: cover

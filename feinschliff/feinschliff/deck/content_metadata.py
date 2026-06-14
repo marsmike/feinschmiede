@@ -3,7 +3,7 @@
 Decompiled brand packs ship planning metadata next to their layouts:
 
 - ``<brand>/deck-map.yaml`` — names the pack's cover / agenda / section /
-  quote / closer layouts (written by the builder's ``slotify_layouts``).
+  quote / closer layouts (written by the builder's ``slotify`` CLI).
 - Per-layout frontmatter ``slots:`` — per-slot ``role`` (title / body /
   footer / page-number / eyebrow / source-note / image), ``chars``, and
   for image slots ``class: keep|replace``; plus a top-level
@@ -45,9 +45,16 @@ from feinschliff.slot_budget import _extract_single_slot
 
 # ── deck-map (Feature: skeleton picks) ───────────────────────────────────────
 
-# Slide role (picker signal) → deck-map key. `content` is deliberately
-# absent: content slides go through normal affinity scoring plus the
-# deck-wide usage budget; the deck-map only pins the framing moments.
+# Slide role (picker signal) → deck-map key. The framing moments
+# (cover / agenda / section / quote / closer) map to single-purpose
+# keys. Every other role (`content-columns`, `content-narrative`,
+# `data-timeline`, etc.) falls back to the deck-map's `content` list
+# inside `deck_map_layouts_for_role` — a brand pack that curates its
+# content vocabulary deserves the same bias as one that pins its cover,
+# otherwise a toolkit affinity score silently outranks the brand's own
+# layouts. (Corporate / auto-decompiled packs typically hit this because
+# their per-layout affinity profiles are weaker than the toolkit's
+# hand-crafted ones.)
 _ROLE_TO_DECK_MAP_KEY: dict[str, str] = {
     "title-primary":  "cover",
     "agenda":         "agenda",
@@ -55,6 +62,7 @@ _ROLE_TO_DECK_MAP_KEY: dict[str, str] = {
     "quote":          "quote",
     "closer":         "closer",
 }
+_CONTENT_FALLBACK_KEY = "content"
 
 # Additive rank bonus for the deck-map default. +4 outranks the +3 role
 # match (so the brand's own cover beats a generic toolkit title layout on
@@ -94,14 +102,22 @@ def deck_map_layouts_for_role(deck_map: dict | None, role: str | None) -> list[s
     """Layout names the deck-map declares for *role* (possibly empty).
 
     ``cover`` / ``agenda`` / ``quote`` / ``closer`` are single names;
-    ``section`` is a list (a pack may ship several dividers). Mistyped
-    entries are dropped (type-or-ignore, like the frontmatter metadata).
+    ``section`` is a list (a pack may ship several dividers). Any role
+    outside the framing-moments map falls back to the deck-map's
+    ``content`` list — content roles (``content-columns``,
+    ``content-narrative``, ``data-timeline``, etc.) inherit the brand's
+    curated content vocabulary. Mistyped entries are dropped
+    (type-or-ignore, like the frontmatter metadata).
     """
     if not deck_map or not role:
         return []
+    # Picker signal names (`title-primary`) → explicit deck-map keys.
+    # Otherwise: if the role itself matches a deck-map key (the planner
+    # emits literal `cover` / `closer`), use it. Else fall back to the
+    # brand's curated `content` list.
     key = _ROLE_TO_DECK_MAP_KEY.get(role)
     if key is None:
-        return []
+        key = role if role in deck_map else _CONTENT_FALLBACK_KEY
     val = deck_map.get(key)
     if isinstance(val, str) and val:
         return [val]
@@ -125,16 +141,31 @@ def apply_deck_map_bonus(
     not mutated. When the deck-map has no entry for *role*, the list is
     returned unchanged.
     """
-    targets = set(deck_map_layouts_for_role(deck_map, role))
+    target_list = deck_map_layouts_for_role(deck_map, role)
+    targets = set(target_list)
     if not targets:
         return candidates
     out: list[dict] = []
+    matched: set[str] = set()
     for cand in candidates:
         if cand["layout"] in targets:
             cand = dict(cand)
             cand["score"] = cand["score"] + bonus
             cand["rationale"] = [*(cand.get("rationale") or []), "deck-map"]
+            matched.add(cand["layout"])
         out.append(cand)
+    # When pick_layout's affinity window misses a deck-map target (auto-
+    # generated brand layouts often have weak role profiles and fall
+    # outside the top-K), synthesize a candidate so the brand's curated
+    # choice still wins on the +bonus alone. Order preserves deck-map list
+    # order so callers see deterministic insertion.
+    for name in target_list:
+        if name not in matched:
+            out.append({
+                "layout":    name,
+                "score":     bonus,
+                "rationale": ["deck-map"],
+            })
     out.sort(key=lambda c: (-c["score"], c["layout"]))
     return out
 

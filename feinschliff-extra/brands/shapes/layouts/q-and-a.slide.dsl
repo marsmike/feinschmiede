@@ -8,7 +8,7 @@ description: 'White content slide: large title, asymmetric two-column layout (sh
   right), geometric accents'
 when_to_use: Asymmetric two-column content — short bullets vs. a longer explanation.
 chrome_subject: blue semicircle top-right, orange triangle outline bottom-right, teal dashes bottom-left; brand-neutral
-chrome_note: 'carries native source chrome verbatim: 2 illustration'
+chrome_note: 'carries native source chrome verbatim: 1 illustration, 1 mark'
 slide_index: 8
 slots:
   text_1: {role: title, chars: 36, default: Navigating Q&A sessions}
@@ -19,6 +19,8 @@ chrome_bboxes:
 - [1275, 880, 359, 200]
 element_tree: ['native mark @1574.01,0 191.284x80.5534', 'text text_1 role=title @132,58 1778x209 44pt', 'text text_2 role=body
     @734,286 1176x784 18pt', 'text text_3 role=body @132,288 592x782 18pt', 'native illustration @1275.2,880.349 359.014x199.651']
+source_hash: 1d182bd50744
+source: shapes
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: q-and-a

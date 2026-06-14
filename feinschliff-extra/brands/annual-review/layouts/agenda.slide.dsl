@@ -17,6 +17,8 @@ slots:
 element_tree: ['text text_1 role=title @162,157 1585x102 44pt', 'text text_2 role=body @162,360 1585x546 28pt', 'text text_3
     role=footer @1307,991 231x29 12pt', 'text text_4 role=footer @1548,991 252x79 12pt', 'text text_5 role=page-number @1810,991
     100x29 12pt']
+source_hash: ad7477d39c3a
+source: annual-review
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: agenda

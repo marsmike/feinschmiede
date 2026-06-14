@@ -16,6 +16,8 @@ slots:
 image_queries: {image: thank you}
 element_tree: ['image image class=replace @780,86 360x360', 'text text_1 role=title @132,498 1778x366 54pt', 'text text_2
     role=body @248,952 1662x118 24pt']
+source_hash: 157f3dc82dc8
+source: scientific
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: thank-you

@@ -83,10 +83,10 @@ You MUST create a task for each of these items and complete them in order:
 
 When iterating to evaluate **the pipeline itself** (e.g. driving the
 hybrid decompiler / verify loop's structural fidelity), pass
-`--carry-images` to the **initial** `brand_decompile_all.py` call:
+`--carry-images` to the **initial** `feinschliff-builder decompile` call:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/scripts/brand_decompile_all.py \
+feinschliff-builder decompile \
     --brand-pack <path> --source-pptx <path> --carry-images
 ```
 > **Requires dev checkout:** clone the repo and run `uv sync` — the script

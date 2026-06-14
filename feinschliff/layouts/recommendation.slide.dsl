@@ -5,15 +5,11 @@ data_band: none
 comparison: false
 narrative_role: recommendation
 narrative_act: resolution
-description: 'Three recommendation cards across: rule, numbered label, bold action headline, bullet evidence, accent impact
-  KPI + owner'
-follows_not:
-  - role=title-primary
-  - role=agenda
-  - role=chapter-opener
-follows_well:
-  - role=content-columns
-  - narrative_act=complication
+description: 'Three recommendation cards across: rule, numbered label, bold action headline, bullet evidence, accent impact KPI + owner'
+follows_not: [role=title-primary, role=agenda, role=chapter-opener]
+follows_well: [role=content-columns, narrative_act=complication]
+source: feinschliff
+source_hash: fbfdfe0e56e7
 ---
 # recommendation — Pyramid Principle closer-but-one. 2–3 named "moves"
 # side by side, each with a verb-led headline, supporting sub-initiatives,

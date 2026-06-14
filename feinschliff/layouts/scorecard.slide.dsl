@@ -4,6 +4,8 @@ ideal_count: [3, 5]
 data_band: table
 comparison: true
 description: 'Workstream × period scorecard table: four rows, four phase columns, plain text status cells, hairline separators'
+source: feinschliff
+source_hash: b908b502e031
 ---
 # scorecard — grid of workstreams × periods with status cells.
 #

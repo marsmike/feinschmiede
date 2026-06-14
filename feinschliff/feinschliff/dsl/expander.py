@@ -444,10 +444,10 @@ def snap_to_rails(nodes: list[DSLNode], tokens) -> list[DSLNode]:
     """
     # Snap is brand-opt-in. Brands declare `slide.rail-snap-enabled: 1`
     # in tokens.json. Decompiled brand packs whose layouts came from a
-    # source PPTX with a different native rail (BSH at x=76, Bosch at
-    # x=85 etc.) stay off until the rail is tuned per-brand. A brand
-    # that opts in but sets no explicit `left-rail` inherits the value
-    # from `slide.padding-x` (default 100).
+    # source PPTX with a different native rail (e.g. x=76 vs x=85 etc.)
+    # stay off until the rail is tuned per-brand. A brand that opts in
+    # but sets no explicit `left-rail` inherits the value from
+    # `slide.padding-x` (default 100).
     try:
         enabled = bool(int(tokens.slide("rail-snap-enabled")))
     except Exception:

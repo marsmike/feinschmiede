@@ -14,6 +14,8 @@ slots:
 image_queries: {image: about us}
 element_tree: ['image image class=replace @0,0 1920x373', 'text text_1 role=title @132,425 1778x410 54pt', 'text text_2 role=body
     @132,952 1778x118 24pt']
+source_hash: 6ef95b0c87c2
+source: scientific
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: about-us

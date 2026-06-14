@@ -14,6 +14,8 @@ slots:
 image_queries: {image: market comparison stands innovative}
 element_tree: ['image image class=replace @202,86 475x475', 'text text_1 role=title @1135,115 775x850 24pt', 'text text_2
     role=body @202,619 844x288 32pt']
+source_hash: 89190efa6b99
+source: scientific
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: market-comparison

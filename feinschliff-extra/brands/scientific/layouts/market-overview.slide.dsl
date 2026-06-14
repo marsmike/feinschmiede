@@ -12,6 +12,8 @@ slots:
   image: {role: image, class: replace}
 image_queries: {image: market overview}
 element_tree: ['image image class=replace @240,233 1440x613', 'text text_1 role=title @312,302 1296x475 54pt']
+source_hash: 8697976fe01d
+source: scientific
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: market-overview

@@ -480,14 +480,69 @@ def pick_layout(
         # should differ unless necessary). Structural layouts are exempt —
         # either by the static `_VARIETY_EXEMPT` set or by declaring
         # `variety_exempt: true` in their frontmatter profile.
+        #
+        # Cooldown is a 4-slide window with decaying weight so the same
+        # layout type really sits out a few slides before re-entering the
+        # race. The strongest hit (-3.0 at the most-recent position)
+        # exceeds the full +3 role-match bonus — a back-to-back repeat
+        # only survives when there is genuinely no alternative. Calibrated
+        # against the brand-content deck-map bonus (+4) + role match (+3)
+        # + concept-count fit (+2) + description bonus (+1.5) stack that
+        # otherwise lets the same brand-content-list layout win every
+        # turn in a thin-pool brand pack.
         exempt = layout_id in _VARIETY_EXEMPT or profile.get("variety_exempt")
         if layout_history and not exempt:
-            if len(layout_history) >= 1 and layout_history[-1] == layout_id:
-                score -= 0.5
-                rationale_parts.append("variety-penalty(last)")
-            elif len(layout_history) >= 2 and layout_history[-2] == layout_id:
-                score -= 0.25
-                rationale_parts.append("variety-penalty(prev)")
+            # Walk the tail of the history; further-back hits cost less.
+            for back, penalty in ((1, 3.0), (2, 2.0), (3, 1.0), (4, 0.5)):
+                if (len(layout_history) >= back
+                        and layout_history[-back] == layout_id):
+                    score -= penalty
+                    rationale_parts.append(
+                        "variety-penalty(last)" if back == 1
+                        else f"variety-penalty(-{back})")
+                    break
+
+        # Image-default bonus: presentations are a visual medium, so when
+        # a content slide can carry an image the picker should prefer the
+        # layout that does. Without this, alphabetical tiebreaks among
+        # same-role / same-deck-map content-columns siblings systematically
+        # favour the text-only `content-N` line over the image-bearing
+        # `slide-NN` siblings (the v3 CookIt symptom: 5 text-only + 2
+        # image-bearing in 11 slides). Suppress for framing roles (cover,
+        # agenda, quote, closer) where text-only chrome is the design.
+        #
+        # Density-aware: a layout's image-slot count is part of the signal,
+        # so 2I/3I/7I layouts can win where 1I would not. Capped at +2.5
+        # so role/concept fit still dominates. When the slide has a
+        # concept_count signal AND it matches the layout's image-slot
+        # count (one image per concept = side-by-side comparison /
+        # product gallery / team intro), an additional +1.0 lands the
+        # right composition.
+        _layout_slots = profile.get("slots") or {}
+        _img_count = (
+            sum(1 for meta in _layout_slots.values()
+                if isinstance(meta, dict) and meta.get("role") == "image")
+            if isinstance(_layout_slots, dict) else 0
+        )
+        _content_role = role in (
+            "content-columns", "content-narrative", "data-comparison",
+            "data-quantity", "data-timeline", "concept-diagram", "evidence",
+            "situation", "complication", "recommendation",
+        )
+        if _img_count and _content_role and not exempt:
+            # Uniform +1.5 for any image-bearing layout — picks should
+            # rotate across the 1I/2I/3I/7I spectrum, not concentrate on
+            # the densest.
+            score += 1.5
+            rationale_parts.append(f"image-default(+1.5, {_img_count}I)")
+            # Concept-count match: one image per concept is a strong
+            # composition signal (side-by-side comparison, gallery, team
+            # intro). +2.0 is decisive — it overcomes the density gap
+            # between competing image-bearing siblings, so the layout
+            # whose image count actually matches the content wins.
+            if concept_count and _img_count == concept_count:
+                score += 0.5
+                rationale_parts.append("image-count==concept-count(+0.5)")
 
         # diagram_kind affinity: steers toward the canonical diagram layout
         # for the requested kind. Applied after existing scoring so it
@@ -541,4 +596,15 @@ def pick_layout(
             })
 
     scored.sort(key=lambda c: (-c["score"], c["layout"]))
+    # Debug trace — when FEINSCHLIFF_DEBUG_PICKER=1 set, emit the considered
+    # set + scores + rationale. Tightly scoped: small N (top_k usually 3-20)
+    # and one line per candidate, so even verbose runs stay readable.
+    import os as _os
+    import sys as _sys
+    if _os.environ.get("FEINSCHLIFF_DEBUG_PICKER"):
+        sig = f"role={role!r} concept_count={concept_count} data_quantity={data_quantity}"
+        print(f"[picker] {sig} → {len(scored)} candidates", file=_sys.stderr)
+        for c in scored[:top_k]:
+            print(f"  {c['score']:+.2f}  {c['layout']:30s}  {c['rationale']}",
+                  file=_sys.stderr)
     return scored[:top_k]

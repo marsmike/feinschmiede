@@ -34,6 +34,8 @@ slots:
   text_23: {role: native-text, chars: 1, default: '5'}
 element_tree: ['text text_1 role=title @162,157 1590x102 44pt', 'text text_2 role=footer @1307,991 231x29 12pt', 'text text_3
     role=footer @1548,991 252x79 12pt', 'text text_4 role=page-number @1810,991 100x29 12pt', native table]
+source_hash: cb2cf8575b98
+source: annual-review
 ---
 # auto-derived from PPTX+SVG hybrid — review before use
 # layout: growth-table

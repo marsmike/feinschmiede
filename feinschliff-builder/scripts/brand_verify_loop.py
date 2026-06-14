@@ -38,6 +38,10 @@ Drop-in usage:
 The pipeline is brand-agnostic; it only assumes the brand pack has a
 `verify-map.yaml` mapping `<layout-name>: <source-slide-number>` and that
 each layout exists at `<brand>/layouts/<layout-name>.slide.dsl`.
+
+Step 3 of the brand-bootstrap pipeline — score the scaffold + drive
+`/feinschliff-builder:improve-brand` if anything is above threshold.
+→ Canonical pipeline: see `feinschliff-builder/README.md`.
 """
 from __future__ import annotations
 
