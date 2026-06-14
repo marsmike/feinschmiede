@@ -502,6 +502,30 @@ def pick_layout(
                         else f"variety-penalty(-{back})")
                     break
 
+        # Image-default bonus: presentations are a visual medium, so when
+        # a content slide can carry an image the picker should prefer the
+        # layout that does. Without this, alphabetical tiebreaks among
+        # same-role / same-deck-map content-columns siblings systematically
+        # favour the text-only `content-N` line over the image-bearing
+        # `slide-NN` siblings (the v3 CookIt symptom: 5 text-only + 2
+        # image-bearing in 11 slides). +1.5 fits inside one role-match
+        # increment so it nudges the tiebreak without overriding clearer
+        # affinity differences. Suppress for framing roles (cover, agenda,
+        # quote, closer) where text-only chrome is the design.
+        _layout_slots = profile.get("slots") or {}
+        _has_image_slot = isinstance(_layout_slots, dict) and any(
+            isinstance(meta, dict) and meta.get("role") == "image"
+            for meta in _layout_slots.values()
+        )
+        _content_role = role in (
+            "content-columns", "content-narrative", "data-comparison",
+            "data-quantity", "data-timeline", "concept-diagram", "evidence",
+            "situation", "complication", "recommendation",
+        )
+        if _has_image_slot and _content_role and not exempt:
+            score += 1.5
+            rationale_parts.append("image-default(+1.5)")
+
         # diagram_kind affinity: steers toward the canonical diagram layout
         # for the requested kind. Applied after existing scoring so it
         # overrides ties without disturbing the base signals.
