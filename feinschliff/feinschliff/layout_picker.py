@@ -508,23 +508,41 @@ def pick_layout(
         # same-role / same-deck-map content-columns siblings systematically
         # favour the text-only `content-N` line over the image-bearing
         # `slide-NN` siblings (the v3 CookIt symptom: 5 text-only + 2
-        # image-bearing in 11 slides). +1.5 fits inside one role-match
-        # increment so it nudges the tiebreak without overriding clearer
-        # affinity differences. Suppress for framing roles (cover, agenda,
-        # quote, closer) where text-only chrome is the design.
+        # image-bearing in 11 slides). Suppress for framing roles (cover,
+        # agenda, quote, closer) where text-only chrome is the design.
+        #
+        # Density-aware: a layout's image-slot count is part of the signal,
+        # so 2I/3I/7I layouts can win where 1I would not. Capped at +2.5
+        # so role/concept fit still dominates. When the slide has a
+        # concept_count signal AND it matches the layout's image-slot
+        # count (one image per concept = side-by-side comparison /
+        # product gallery / team intro), an additional +1.0 lands the
+        # right composition.
         _layout_slots = profile.get("slots") or {}
-        _has_image_slot = isinstance(_layout_slots, dict) and any(
-            isinstance(meta, dict) and meta.get("role") == "image"
-            for meta in _layout_slots.values()
+        _img_count = (
+            sum(1 for meta in _layout_slots.values()
+                if isinstance(meta, dict) and meta.get("role") == "image")
+            if isinstance(_layout_slots, dict) else 0
         )
         _content_role = role in (
             "content-columns", "content-narrative", "data-comparison",
             "data-quantity", "data-timeline", "concept-diagram", "evidence",
             "situation", "complication", "recommendation",
         )
-        if _has_image_slot and _content_role and not exempt:
+        if _img_count and _content_role and not exempt:
+            # Uniform +1.5 for any image-bearing layout — picks should
+            # rotate across the 1I/2I/3I/7I spectrum, not concentrate on
+            # the densest.
             score += 1.5
-            rationale_parts.append("image-default(+1.5)")
+            rationale_parts.append(f"image-default(+1.5, {_img_count}I)")
+            # Concept-count match: one image per concept is a strong
+            # composition signal (side-by-side comparison, gallery, team
+            # intro). +2.0 is decisive — it overcomes the density gap
+            # between competing image-bearing siblings, so the layout
+            # whose image count actually matches the content wins.
+            if concept_count and _img_count == concept_count:
+                score += 0.5
+                rationale_parts.append("image-count==concept-count(+0.5)")
 
         # diagram_kind affinity: steers toward the canonical diagram layout
         # for the requested kind. Applied after existing scoring so it
