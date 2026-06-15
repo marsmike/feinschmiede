@@ -766,7 +766,7 @@ def _layout_placeholder_line_spacing(slide, ph_type: str | None,
     """Effective INHERITED paragraph line spacing for a placeholder: the
     layout / master placeholder's lvl1pPr lnSpc, then the master txStyles
     (titleStyle for titles, bodyStyle for everything else). Corporate
-    masters routinely set spacing ONLY here (Bosch: bodyStyle 107%,
+    masters routinely set spacing ONLY here (e.g. bodyStyle 107%,
     titleStyle 89%) — a slide paragraph with no own lnSpc must inherit it,
     not fall through to `linespacing:native`. Returns the multiplier or
     None when no ancestor specifies one (true native single spacing)."""
@@ -1938,7 +1938,7 @@ def _emit_sp(ch, offset, shapes, slide, cmap, theme, palette):
         autoshrink = _layout_placeholder_autofit(slide, ph_type, ph_idx)
     # Line spacing inherits like anchor / autofit / insets: a placeholder
     # paragraph with no own lnSpc takes the layout/master placeholder value,
-    # then the master txStyles (Bosch: bodyStyle 107%, titleStyle 89%).
+    # then the master txStyles (e.g. bodyStyle 107%, titleStyle 89%).
     if line_spacing is None and (ph_type or ph_idx):
         line_spacing = _layout_placeholder_line_spacing(slide, ph_type, ph_idx)
     # Convert insets EMU → design-px for the Shape (CanvasMap-relative).
@@ -2064,7 +2064,7 @@ def _emit_sp(ch, offset, shapes, slide, cmap, theme, palette):
         ))
         return
 
-    # FILLED rect carrying multi-style text (Bosch tile cards: bold 18pt
+    # FILLED rect carrying multi-style text (e.g. tile cards: bold 18pt
     # "Placeholder" lead-in over regular 12pt body inside one filled
     # shape). Collapsing to a single text primitive emits the body at the
     # lead-in's max size and bold weight. Split exactly like the fill-None
@@ -4047,9 +4047,9 @@ def emit_dsl(shapes: list[Shape], cmap: CanvasMap, layout_name: str,
     # Only a near-full-bleed background rect is still forced to the bottom.
     # Rects interleave with shapes / pics / natives via the shared `_layers`
     # stream below — emitting ALL rects before the pic section painted
-    # native-carried background art (Bosch slide 34's banner wave, spTree
-    # position BEFORE the tiles) on top of the content rects it underlies
-    # in the source.
+    # native-carried background art (e.g. a banner wave whose spTree
+    # position sits BEFORE the tiles) on top of the content rects it
+    # underlies in the source.
     # Stroke / dash / radius are captured so framed cards + dividers round-trip.
     _canvas_area = max(1, cmap.cw * cmap.ch)
     _src_pos = {id(_s): _i for _i, _s in enumerate(shapes)}
@@ -4088,8 +4088,8 @@ def emit_dsl(shapes: list[Shape], cmap: CanvasMap, layout_name: str,
     # so the DSL still builds.
     # Custom shapes / graphic frames / ovals / pictures interleave in SOURCE
     # z-order: PowerPoint draws them as one stream, and grouping by kind put
-    # e.g. the BSH parallelogram OUTLINE (a custGeom drawn ON TOP of the
-    # photo) underneath the picture slot. Each shape's lines collect into a
+    # e.g. a custGeom outline drawn ON TOP of a photo would sink underneath
+    # the picture slot when grouped by kind. Each shape's lines collect into a
     # chunk tagged with its position in `shapes` (already spTree order);
     # the chunks emit sorted at the end. (`_src_pos` / `_layers` are
     # initialised above the rect loop, which feeds the same stream.)

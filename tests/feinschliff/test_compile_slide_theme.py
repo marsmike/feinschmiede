@@ -1,6 +1,6 @@
 """Regression guard: compile_slide must resolve colors from the theme layer.
 
-BSH-style packs carry color tokens ONLY in themes/<name>/tokens.json, with
+Theme-only packs carry color tokens ONLY in themes/<name>/tokens.json, with
 no color block at brand level.  Before the fix, compile_slide called
 load_tokens(brand_dir) and ignored the theme entirely — rendering failed
 with a KeyError on color lookups, or silently used a wrong palette.
