@@ -203,9 +203,8 @@ def cmd_plan_budgets(args) -> int:
 
     Exits 0 on success, 2 on fatal input errors.
     """
-    import json as _json
 
-    from feinschliff.deck.orchestrate import slot_budgets_for_layout, resolve_layout_path
+    from feinschliff.deck.orchestrate import slot_budgets_for_layout
     from feinschmiede.brand_discovery import find_brand
     from feinschmiede.dsl.tokens import load_tokens
 

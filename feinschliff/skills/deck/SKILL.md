@@ -27,18 +27,15 @@ See [`references/quick-start.md`](references/quick-start.md) for examples.
 
 ## Pipeline
 
-`ask → intake → commit → ingest → approve → plan → ghost-deck → pick layouts → build → verify → revise`.
-Full step-by-step: [`references/pipeline.md`](references/pipeline.md).
+`ask → intake → commit → ingest → approve → plan → ghost-deck → pick layouts → build → verify → revise`. Full step-by-step: [`references/pipeline.md`](references/pipeline.md).
 
-**MANDATORY artifacts — every one must exist on disk before declaring done:** `deck_brief.yaml` · `commitment.yaml` · `content_plan.json` · `ghost_deck_report.md` · `title_lint_report.md` · `picker_report.json` · `plan.yaml` · `craft_report.md` · `verify_report.md`. **Do NOT print "Verdict: clean" without first writing `verify_report.md` to disk.** If any artifact is missing, the deck is **not done** — go back and run the missing gate.
+**MANDATORY artifacts — every one on disk before declaring done:** `deck_brief.yaml` · `commitment.yaml` · `content_plan.json` · `ghost_deck_report.md` · `title_lint_report.md` · `picker_report.json` · `plan.yaml` · `craft_report.md` · `verify_report.md`. **Do NOT print "Verdict: clean" without writing `verify_report.md` to disk first.** Missing artifact → not done; run the gate.
 
 **All gates ship in `feinschliff` core. `feinschliff-builder` is NOT required.** `deck title-lint`, `deck ghost-deck`, `deck claim-evidence`, `deck commitment-validate`, `deck storyline`, `deck verify-aspect notes-coherence`, `deck pick-deck` — these all run from the `feinschliff` venv alone. **Never tell the user "the builder is missing, so I skipped them"** — that excuse is forbidden because it is wrong. If a gate command crashes, surface the actual error; do not paper over it with a fabricated reason. Only `wireframe`, `polish redesign mode`, `book`, `verify-static`, `apply-fixes` need the builder.
 
 **Images by default.** Any slide that can carry an image SHOULD carry one — pick a `content-with-visual`, `kpi-photo`, `chart-photo`, `picture-full`, `text-picture`, or `picture-text` layout instead of a text-only twin when the content suits it. A no-image deck is the exception (data-only, all-chart), not the norm. The `image_style` field in `deck_brief.yaml` (`rich-imagery` / `mixed` / `process-flow` / `data-dense` / `concept-text` / `minimal`) governs density.
 
-**Picker** — for brand packs with per-layout semantic annotations, pick by progressive disclosure over the brand manifest: see [`references/picking.md`](references/picking.md). The deterministic `pick_layout` is the optional Pass 5 tie-breaker. Every cascade writes `out/pick_trace.md`. `--strict-craft` for Knaflic rules; `--strict-visual` for PIL post-render metrics. **Fan-out is the default at ≥10 slides** (`--no-fanout` to opt out).
-
-**Chart slots** — when `_meta.slot_budgets` lists `chart_*` slots with `must_bind: true`, you MUST bind them; the baked source data (e.g. "Q1: 8.2") will otherwise ship verbatim in the final deck.
+**Picker** — for brand packs with per-layout semantic annotations, pick by progressive disclosure over the manifest: see [`references/picking.md`](references/picking.md). Every cascade writes `out/pick_trace.md`. **Bind any `chart_*` slot with `must_bind: true` in `_meta.slot_budgets`** — unbound, the layout's baked source data ("Q1: 8.2") ships verbatim. **Fan-out is default at ≥10 slides** (`--no-fanout` to opt out).
 
 ## References
 

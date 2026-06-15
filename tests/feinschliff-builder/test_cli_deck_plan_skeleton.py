@@ -81,19 +81,19 @@ def test_plan_skeleton_slides_have_slot_budgets(tmp_path):
         assert isinstance(budgets, dict), f"slide {i}: slot_budgets should be a dict"
 
 
-def test_plan_skeleton_at_least_one_slide_has_nonempty_budgets(tmp_path):
-    """At least one slide must have a non-empty slot_budgets dict."""
+def test_plan_skeleton_emits_empty_budgets_for_cascade_picker(tmp_path):
+    """Post-#118: plan-skeleton emits empty slot_budgets per slide.
+    The cascade orchestrator picks layouts, then `plan-budgets` enriches
+    `_meta.slot_budgets` (including chart_* slots — see test_plan_budgets.py).
+    """
     rc, stdout, stderr, out = _run_skeleton(tmp_path)
     assert rc == 0, f"plan-skeleton failed:\nstdout={stdout}\nstderr={stderr}"
     skel = yaml.safe_load(out.read_text())
-    nonempty = [
-        s for s in skel["slides"]
-        if s.get("_meta", {}).get("slot_budgets")
-    ]
-    assert nonempty, (
-        "Expected at least one slide with non-empty slot_budgets, "
-        "but all were empty dicts."
-    )
+    for i, slide in enumerate(skel["slides"]):
+        assert slide["layout"] is None, f"slide {i}: cascade should pick, not skeleton"
+        assert slide["_meta"]["slot_budgets"] == {}, (
+            f"slide {i}: skeleton must emit empty budgets; plan-budgets fills them"
+        )
 
 
 def test_plan_skeleton_budget_entries_have_expected_keys(tmp_path):

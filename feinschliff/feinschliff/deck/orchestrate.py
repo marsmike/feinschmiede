@@ -272,8 +272,8 @@ def _chart_slot_budgets_from_nodes(nodes: list) -> dict[str, dict]:
             "capacity": cols_cap,
             "must_bind": False,
             "hint": (
-                f"Hex colors (no #) per data point. "
-                f"Optional — leave unbound to keep baked palette."
+                "Hex colors (no #) per data point. "
+                "Optional — leave unbound to keep baked palette."
             ),
         }
 
