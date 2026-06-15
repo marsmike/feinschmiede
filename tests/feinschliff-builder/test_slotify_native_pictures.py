@@ -184,6 +184,40 @@ def test_small_pic_stays_in_native():
 
 
 # ---------------------------------------------------------------------------
+# Tile-grid content: pics at 2–4 % canvas DO promote at default threshold
+# ---------------------------------------------------------------------------
+
+
+def test_tile_grid_content_pics_promote_at_default_threshold():
+    """Decompiled brand packs often ship content layouts as a 4–5 tile grid
+    (product cards, feature strips). Each tile carries a content photo
+    around 277×215 px = ~2.9 % of canvas — clearly content, not chrome.
+
+    The original 5 % default treated these as small/decorative and left
+    every tile baked inside the native, robbing the picker of a whole
+    class of image-bearing content-role layouts. Default is now 1.5 %.
+    """
+    # Four tiles in a 2×2 grid, each 277 × 215 (≈ 2.9 % canvas).
+    pic_xml = "".join(
+        _make_pic_xml(x * _EMU, y * _EMU, 277 * _EMU, 215 * _EMU, name=f"Grafik {i}", r_embed=f"rId{i}")
+        for i, (x, y) in enumerate(
+            [(200, 200), (600, 200), (200, 500), (600, 500)], start=1
+        )
+    )
+    payload = f'<root xmlns:p="{_NS_P}">{pic_xml}</root>'
+    dsl = f'native graphic1 b64:"{_b64(payload)}"\n'
+
+    new_dsl, slots, _ = slotify_native_pictures(
+        dsl, None,
+        canvas_w_px=_CANVAS_W_PX, canvas_h_px=_CANVAS_H_PX,
+    )
+
+    assert len(slots) == 4, f"expected 4 promoted tiles, got {len(slots)}"
+    # All four should emit picture lines (the engine's actual primitive).
+    assert new_dsl.count("picture ") == 4
+
+
+# ---------------------------------------------------------------------------
 # Skip: pic with logo-matching name stays in native
 # ---------------------------------------------------------------------------
 

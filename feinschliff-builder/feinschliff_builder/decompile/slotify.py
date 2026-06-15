@@ -502,7 +502,7 @@ def slotify_native_pictures(
     asset_root: Path | None,
     canvas_w_px: int = 1920,
     canvas_h_px: int = 1080,
-    area_threshold: float = 0.05,
+    area_threshold: float = 0.015,
     next_idx: int = 1,
 ) -> tuple[str, list[dict], list[str]]:
     """Promote qualifying content ``<p:pic>`` elements inside native payloads
@@ -526,7 +526,11 @@ def slotify_native_pictures(
     in their ``slots:`` block.
 
     Skip conditions (any one causes the pic to stay in the native payload):
-    - Area ratio below ``area_threshold`` (small chrome / decorative).
+    - Area ratio below ``area_threshold`` (default 1.5%; small chrome /
+      decorative). Tiled content grids — 4-card product rows, 5-tile
+      feature strips, n×m photo galleries — typically sit at 2-4% per
+      tile, well above the 1.5% floor. Logos (~0.1%) and supergraphic
+      strips (~0.4%) stay below it.
     - Name matches ``logo|mark|icon|signet`` (case-insensitive).
     - Carries ``<adec:decorative val="1">``.
     - Has no ``<a:blip r:embed="…">`` (no actual image data).
