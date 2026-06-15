@@ -8,7 +8,7 @@ from pathlib import Path
 
 from feinschliff_builder.verify.cache import VerifyCache
 from feinschliff_builder.verify.llm.rubric import (
-    RubricResult, result_to_defects,
+    result_to_defects,
     run_bullet_dump, run_claim_title, run_squint, run_title_body,
 )
 

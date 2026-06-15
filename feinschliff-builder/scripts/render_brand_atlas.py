@@ -38,7 +38,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
-from feinschmiede.master_template import ClonePlan, FillPlan, render
+from feinschmiede.master_template import ClonePlan, render
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
