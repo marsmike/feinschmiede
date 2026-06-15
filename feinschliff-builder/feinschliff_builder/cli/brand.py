@@ -6,9 +6,15 @@ import json
 import sys
 from pathlib import Path
 
+import yaml
+
 from feinschmiede.brand_discovery import discover_brands
 from feinschliff.layout_discovery import discover_layout_paths
 
+from feinschliff_builder.decompile.annotate_layouts import (
+    apply_annotation,
+    manifest_for_pack,
+)
 from feinschliff_builder.decompile.fixtures import emit_fixture
 
 
@@ -33,6 +39,39 @@ def register(parser: argparse.ArgumentParser) -> None:
     p_fixtures.add_argument("--force", action="store_true",
                             help="Overwrite existing fixtures")
     p_fixtures.set_defaults(func=cmd_derive_fixtures)
+
+    p_describe = sub.add_parser(
+        "describe-layouts",
+        help="Print the full layout manifest for a brand pack as JSON or YAML",
+    )
+    p_describe.add_argument(
+        "--brand-pack", required=True, type=Path,
+        help="Path to the brand pack directory",
+    )
+    p_describe.add_argument(
+        "--format", choices=["json", "yaml"], default="json",
+        help="Output format (default: json)",
+    )
+    p_describe.set_defaults(func=cmd_describe_layouts)
+
+    p_annotate = sub.add_parser(
+        "annotate-layout",
+        help="Write semantic annotation fields into a layout's frontmatter",
+    )
+    p_annotate.add_argument(
+        "--brand-pack", required=True, type=Path,
+        help="Path to the brand pack directory",
+    )
+    p_annotate.add_argument(
+        "--layout", required=True,
+        help="Layout stem (filename without .slide.dsl)",
+    )
+    p_annotate.add_argument("--description", default=None)
+    p_annotate.add_argument("--when-to-use", default=None, dest="when_to_use")
+    p_annotate.add_argument("--when-not-to-use", default=None, dest="when_not_to_use")
+    p_annotate.add_argument("--chrome-subject", default=None, dest="chrome_subject")
+    p_annotate.add_argument("--primary-message", default=None, dest="primary_message")
+    p_annotate.set_defaults(func=cmd_annotate_layout)
 
 
 def cmd_list(_args) -> int:
@@ -154,4 +193,64 @@ def cmd_derive_fixtures(args) -> int:
         written += 1
     print(f"\n{written} fixture(s) written, {skipped_existing} kept, "
           f"{skipped_empty} layout(s) without derivable defaults")
+    return 0
+
+
+def cmd_describe_layouts(args) -> int:
+    """Print the full layout manifest for a brand pack.
+
+    Output is a JSON array (default) or YAML list on stdout.  Each element
+    describes one layout: slot inventory, existing annotation values, and
+    candidate thumbnail / PDF paths.  Intended for consumption by an
+    orchestrating session that decides what to annotate.
+    """
+    brand_pack: Path = args.brand_pack.resolve()
+    if not (brand_pack / "layouts").is_dir():
+        print(
+            f"brand describe-layouts: no layouts/ directory in {args.brand_pack}",
+            file=sys.stderr,
+        )
+        return 1
+    manifest = manifest_for_pack(brand_pack)
+    if args.format == "yaml":
+        print(yaml.safe_dump(manifest, sort_keys=False, allow_unicode=True), end="")
+    else:
+        print(json.dumps(manifest, indent=2, ensure_ascii=False))
+    return 0
+
+
+def cmd_annotate_layout(args) -> int:
+    """Write semantic annotation fields into a single layout's frontmatter.
+
+    Only fields explicitly passed on the command line are written; everything
+    else (mechanical fields, other annotation fields) is preserved unchanged.
+    """
+    brand_pack: Path = args.brand_pack.resolve()
+    layout_path = brand_pack / "layouts" / f"{args.layout}.slide.dsl"
+    if not layout_path.is_file():
+        print(
+            f"brand annotate-layout: layout not found: {layout_path}",
+            file=sys.stderr,
+        )
+        return 1
+
+    annotation: dict = {}
+    for key in ("description", "when_to_use", "when_not_to_use",
+                "chrome_subject", "primary_message"):
+        val = getattr(args, key, None)
+        if val is not None:
+            annotation[key] = val
+
+    if not annotation:
+        print("brand annotate-layout: no annotation fields supplied — nothing to do",
+              file=sys.stderr)
+        return 1
+
+    try:
+        apply_annotation(layout_path, annotation)
+    except (ValueError, OSError) as exc:
+        print(f"brand annotate-layout: {exc}", file=sys.stderr)
+        return 1
+
+    print(f"annotated {layout_path.relative_to(brand_pack)}")
     return 0
