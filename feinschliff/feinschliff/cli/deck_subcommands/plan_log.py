@@ -131,7 +131,10 @@ def cmd_plan_skeleton(args) -> int:
         deck_map = load_deck_map(brand_root)
 
     signals = [_signals_from_slide_fn(s) for s in plan["slides"]]
-    assignments = plan_deck_layouts(signals, profiles=profiles, deck_map=deck_map)
+    visual_style = plan.get("visual_style") or None
+    assignments = plan_deck_layouts(
+        signals, profiles=profiles, deck_map=deck_map, visual_style=visual_style
+    )
 
     skeleton_slides: list[dict] = []
     for slide, assignment in zip(plan["slides"], assignments):

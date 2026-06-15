@@ -83,6 +83,7 @@ def plan_deck_layouts(
     candidate_window: int = _CANDIDATE_WINDOW,
     profiles: dict[str, dict] | None = None,
     deck_map: dict | None = None,
+    visual_style: str | None = None,
 ) -> list[dict]:
     """Pick a layout for every slide using two-pass budget planning.
 
@@ -111,6 +112,12 @@ def plan_deck_layouts(
         that layout gets the additive
         :data:`feinschliff.deck.content_metadata.DECK_MAP_BONUS` so it
         ranks first by default — never a hard override.
+    visual_style
+        Optional deck-brief ``visual_style`` value passed through to
+        `pick_layout` unchanged for every slide. ``None`` is the neutral
+        default (no change to existing scoring). See
+        :func:`feinschliff.layout_picker.pick_layout` for the full
+        enum and per-value semantics.
 
     Returns
     -------
@@ -186,6 +193,7 @@ def plan_deck_layouts(
             predecessor=predecessor_signals,
             top_k=candidate_window,
             profiles=profiles,
+            visual_style=visual_style,
         )
         if deck_map is not None:
             # Deck-map default: additive bonus on the brand's declared
