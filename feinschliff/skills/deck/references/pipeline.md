@@ -468,8 +468,21 @@ just later in the loop.
 
 ## Step 2 — Plan
 
-Score candidate layouts using `feinschmiede.layout_picker.pick_layout`. The picker
-consumes the planning-time signals you already have on each slide:
+**Pick layouts by progressive disclosure over the brand manifest.** Read
+[`picking.md`](picking.md) for the full cascade — five passes (concept match
+→ anti-pattern filter → shape filter → variety → optional tie-break) each
+reading one annotation field across the survivors of the previous pass via
+`feinschliff-builder brand describe-layouts --fields … --stems …`. Every
+slide's cascade decisions **must** be logged to `out/pick_trace.md` so the
+next session can see why a layout won.
+
+The deterministic `feinschmiede.layout_picker.pick_layout` below is now the
+optional **Pass 5 tie-breaker** — call it only to rerank the cascade's final
+survivors, never as the primary signal. Brand packs without per-layout
+semantic annotations (`primary_message`, `when_to_use`, `when_not_to_use`,
+`chrome_subject`, `description`) still fall back to it as the sole picker.
+
+For the legacy single-call path:
 
 ```python
 from feinschmiede.layout_picker import pick_layout

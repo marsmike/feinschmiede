@@ -40,6 +40,7 @@ from feinschliff_builder.decompile.slotify import (
     slotify_native_pictures,
     slotify_native_text,
 )
+from feinschliff_builder.decompile.slotify_native_charts import slotify_native_charts
 from feinschliff_builder.verify.verify_map import load_verify_map
 
 _DECK_MAP_HEADER = (
@@ -150,6 +151,13 @@ def cmd_slotify(args) -> int:
             for line in pic_logs:
                 print(f"  {path.name}: {line}")
             slots = slots + [ps["name"] for ps in pic_slots]
+            # Expose chart values / category labels / colours as bindable slots.
+            # The OOXML chart shell is left verbatim — only the data binding
+            # kwargs are added so a bare build renders identically to the source.
+            new_text, chart_logs = slotify_native_charts(
+                new_text, brand_pack / "assets")
+            for line in chart_logs:
+                print(f"  {path.name}: {line}")
         if clip_enabled:
             new_text, clips = clip_text_to_images(
                 new_text,

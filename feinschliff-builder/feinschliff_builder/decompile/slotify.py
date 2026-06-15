@@ -491,10 +491,101 @@ _PIC_DECORATIVE_RE = re.compile(r'<adec:decorative\s+val="1"')
 _PIC_LOGO_NAME_RE = re.compile(r"logo|mark|icon|signet", re.IGNORECASE)
 # Split a native payload XML into individual <p:pic>…</p:pic> blocks.
 _PIC_ELEMENT_RE = re.compile(r"<p:pic\b.*?</p:pic>", re.DOTALL)
+# Detect presence of <p:grpSp> to trigger ElementTree descent.
+_GRPSP_RE = re.compile(r"<p:grpSp\b")
 # Relationship block: maps rId -> target filename + ext
 _REL_BLOCK_RE = re.compile(r'<Relationship\s[^>]*\bId="([^"]*)"[^>]*\bTarget="([^"]*)"')
 
 _EMU_PER_PX = 9525  # PowerPoint standard: 1 design-px = 9525 EMU
+
+# XML namespace map used for ElementTree queries in the group-descent pass.
+_ET_NS = {
+    "p": "http://schemas.openxmlformats.org/presentationml/2006/main",
+    "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
+    "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+    "adec": "http://schemas.microsoft.com/office/drawing/2017/decorative",
+}
+
+# Clark-notation tag constants for ElementTree (avoids repeated f-string noise).
+_TAG_PIC = "{http://schemas.openxmlformats.org/presentationml/2006/main}pic"
+_TAG_GRPSP = "{http://schemas.openxmlformats.org/presentationml/2006/main}grpSp"
+_TAG_GRPSPPR = "{http://schemas.openxmlformats.org/presentationml/2006/main}grpSpPr"
+_TAG_SPPR = "{http://schemas.openxmlformats.org/presentationml/2006/main}spPr"
+_TAG_XFRM = "{http://schemas.openxmlformats.org/drawingml/2006/main}xfrm"
+_TAG_OFF = "{http://schemas.openxmlformats.org/drawingml/2006/main}off"
+_TAG_EXT = "{http://schemas.openxmlformats.org/drawingml/2006/main}ext"
+_TAG_CHOFF = "{http://schemas.openxmlformats.org/drawingml/2006/main}chOff"
+_TAG_CHEXT = "{http://schemas.openxmlformats.org/drawingml/2006/main}chExt"
+_TAG_BLIP = "{http://schemas.openxmlformats.org/drawingml/2006/main}blip"
+_TAG_CNVPR = "{http://schemas.openxmlformats.org/presentationml/2006/main}cNvPr"
+_TAG_NVPICPR = "{http://schemas.openxmlformats.org/presentationml/2006/main}nvPicPr"
+_TAG_NVPR = "{http://schemas.openxmlformats.org/presentationml/2006/main}nvPr"
+_TAG_BFILL = "{http://schemas.openxmlformats.org/presentationml/2006/main}blipFill"
+_ATTR_EMBED = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed"
+_ATTR_DECORATIVE = "{http://schemas.microsoft.com/office/drawing/2017/decorative}decorative"
+
+
+def _et_collect_grouped_pics(root_el, parent_map):
+    """Walk all ``<p:grpSp>`` elements in *root_el*, yielding
+    ``(pic_el, offset_x_emu, offset_y_emu)`` for each ``<p:pic>`` found
+    inside a group.  Top-level ``<p:pic>`` children are NOT yielded here
+    (they are handled by the existing regex pass).
+
+    Nested groups are descended recursively; offsets accumulate following
+    the same pure-translation formula used in
+    ``pptx_svg_decompile._walk``:
+
+        child_off = parent_off + group.<a:off> − group.<a:chOff>
+
+    Scaled groups (ext ≠ chExt) are skipped (offset-only carry, consistent
+    with the decompiler's own skip logic).
+    """
+    def _walk_group(grp_el, ox_emu: int, oy_emu: int):
+        """Yield (pic_el, canvas_x_emu, canvas_y_emu) for pics inside grp_el."""
+        # Compute this group's translation offset.
+        grp_xfrm = grp_el.find(f"{_TAG_GRPSPPR}/{_TAG_XFRM}")
+        child_ox, child_oy = ox_emu, oy_emu
+        if grp_xfrm is not None:
+            off_el = grp_xfrm.find(_TAG_OFF)
+            ext_el = grp_xfrm.find(_TAG_EXT)
+            choff_el = grp_xfrm.find(_TAG_CHOFF)
+            chext_el = grp_xfrm.find(_TAG_CHEXT)
+            if off_el is not None and choff_el is not None:
+                try:
+                    gox = int(off_el.get("x", "0"))
+                    goy = int(off_el.get("y", "0"))
+                    chox = int(choff_el.get("x", "0"))
+                    choy = int(choff_el.get("y", "0"))
+                    if ext_el is not None and chext_el is not None:
+                        # Check for scaling — skip scaled groups (same as decompiler).
+                        cx = int(ext_el.get("cx", "0"))
+                        cy = int(ext_el.get("cy", "0"))
+                        chcx = int(chext_el.get("cx", "0"))
+                        chcy = int(chext_el.get("cy", "0"))
+                        if chcx > 0 and chcy > 0:
+                            sx = cx / chcx
+                            sy = cy / chcy
+                            if abs(sx - 1.0) > 0.001 or abs(sy - 1.0) > 0.001:
+                                # Scaled group: skip (can't apply pure translation).
+                                return
+                    # Pure translation: formula from pptx_svg_decompile._walk
+                    child_ox = ox_emu + gox - chox
+                    child_oy = oy_emu + goy - choy
+                except (ValueError, TypeError):
+                    pass
+
+        for child in grp_el:
+            if child.tag == _TAG_PIC:
+                yield (child, child_ox, child_oy)
+            elif child.tag == _TAG_GRPSP:
+                yield from _walk_group(child, child_ox, child_oy)
+
+    # Walk only DIRECT children of root_el that are grpSp (top-level groups).
+    # Nested groups are handled recursively inside _walk_group — calling
+    # _walk_group on every grpSp via iter() would double-yield nested pics.
+    for child in root_el:
+        if child.tag == _TAG_GRPSP:
+            yield from _walk_group(child, 0, 0)
 
 
 def slotify_native_pictures(
@@ -586,109 +677,263 @@ def slotify_native_pictures(
             ext = posixpath.splitext(target)[1].lstrip(".")
             rid_map[rid] = (target, ext or "bin")
 
-        pics = _PIC_ELEMENT_RE.findall(xml)
-        if not pics:
-            out_lines.append(line)
-            continue
+        # Check whether the payload has any <p:grpSp> containers.  When it
+        # does, we use an ElementTree-based walk so we can (a) apply the
+        # group-to-canvas offset translation and (b) surgically remove just
+        # the promoted <p:pic> from its parent group rather than from the
+        # whole XML string.  When there are no groups the fast regex path is
+        # kept unchanged for backward compatibility.
+        has_groups = bool(_GRPSP_RE.search(xml))
 
-        image_lines: list[str] = []
-        slot_dicts: list[dict] = []
+        if has_groups:
+            import xml.etree.ElementTree as ET
 
-        for pic_xml in pics:
-            # --- Skip conditions ---
-            if _PIC_DECORATIVE_RE.search(pic_xml):
-                continue
-            blip_m = _PIC_BLIP_RE.search(pic_xml)
-            if blip_m is None:
-                continue
-            name_m = _PIC_NAME_RE.search(pic_xml)
-            if name_m and _PIC_LOGO_NAME_RE.search(name_m.group(1)):
-                continue
-
-            # --- Geometry ---
-            off_m = _PIC_XFRM_OFF_RE.search(pic_xml)
-            ext_m = _PIC_XFRM_EXT_RE.search(pic_xml)
-            if not (off_m and ext_m):
-                continue
-            x_px = int(off_m.group(1)) // _EMU_PER_PX
-            y_px = int(off_m.group(2)) // _EMU_PER_PX
-            w_px = int(ext_m.group(1)) // _EMU_PER_PX
-            h_px = int(ext_m.group(2)) // _EMU_PER_PX
-
-            if w_px <= 0 or h_px <= 0:
-                continue
-            area_ratio = (w_px * h_px) / canvas_area
-            if area_ratio < area_threshold:
-                continue
-
-            # --- Image bytes extraction (best-effort) ---
-            asset_path: str | None = None
-            r_id = blip_m.group(1)
-            if asset_root is not None and r_id in rid_map:
-                _target, ext = rid_map[r_id]
-                # For sidecar payloads the image file lives under asset_root.
-                # Try to locate it relative to the sidecar directory.
-                candidate = asset_root / _target.lstrip("/")
-                if candidate.is_file():
-                    img_bytes = candidate.read_bytes()
-                    sha8 = hashlib.sha1(img_bytes).hexdigest()[:8]
-                    dest = asset_root / f"native_pic_{sha8}.{ext}"
-                    if not dest.exists():
-                        dest.write_bytes(img_bytes)
-                    asset_path = str(dest)
-
-            # --- Slot allocation ---
-            slot_name = f"image_{current_idx}"
-            current_idx += 1
-            # Emit as a `picture` primitive (the engine's only image-rendering
-            # primitive — see feinschliff/dsl/parser.py and the existing
-            # decompiler emission for slot-typed pictures). `path:` carries
-            # the Jinja-bound slot with a default that points at the
-            # extracted asset when one was found; otherwise the slot's
-            # default empty string lets a bare build leave the slot blank.
-            default_path = asset_path or ""
-            # The path expression is `path:"{{ slot | default(\"…\") }}"`
-            # mirroring the convention used by hand-authored layouts (e.g.
-            # bsh `text-picture.slide.dsl`). `cover:true` matches the
-            # `class=replace` semantic (fill, do not crop).
-            image_lines.append(
-                f'picture {x_px},{y_px} {w_px}x{h_px} '
-                f'path:"{{{{ {slot_name} | default(\\"{default_path}\\") }}}}" '
-                f'cover:true'
+            # Register all namespaces so ET round-trips them cleanly.
+            for _pfx, _uri in _ET_NS.items():
+                ET.register_namespace(_pfx, _uri)
+            # Also pre-register the decorative namespace if present.
+            ET.register_namespace(
+                "adec",
+                "http://schemas.microsoft.com/office/drawing/2017/decorative",
             )
-            slot_dicts.append({
-                "name": slot_name,
-                "native_id": native_id,
-                "x": x_px, "y": y_px,
-                "w": w_px, "h": h_px,
-                "asset_path": asset_path,
-            })
 
-        if not slot_dicts:
-            # No pics qualified — leave the line unchanged.
-            out_lines.append(line)
-            continue
-
-        # Remove promoted <p:pic> elements from the XML.
-        # Cross-check by geometry to identify which pic_xml strings to drop.
-        promoted_set: set[str] = set()
-        for pic_xml in pics:
-            off_m = _PIC_XFRM_OFF_RE.search(pic_xml)
-            ext_m = _PIC_XFRM_EXT_RE.search(pic_xml)
-            if not (off_m and ext_m):
+            try:
+                root_el = ET.fromstring(xml)
+            except ET.ParseError:
+                # Malformed XML — fall back to skipping this native block.
+                out_lines.append(line)
                 continue
-            x_px = int(off_m.group(1)) // _EMU_PER_PX
-            y_px = int(off_m.group(2)) // _EMU_PER_PX
-            w_px = int(ext_m.group(1)) // _EMU_PER_PX
-            h_px = int(ext_m.group(2)) // _EMU_PER_PX
-            for d in slot_dicts:
-                if d["x"] == x_px and d["y"] == y_px and d["w"] == w_px and d["h"] == h_px:
-                    promoted_set.add(pic_xml)
-                    break
 
-        new_xml = xml
-        for pic_xml in promoted_set:
-            new_xml = new_xml.replace(pic_xml, "", 1)
+            # Build a parent-map so we can remove children by reference.
+            parent_map = {c: p for p in root_el.iter() for c in p}
+
+            # Collect (pic_el, offset_x_emu, offset_y_emu) for ALL pics:
+            #   • Direct children: offset = (0, 0).
+            #   • Pics inside <p:grpSp>: offset from _et_collect_grouped_pics.
+            all_pic_entries: list[tuple] = []  # (pic_el, ox_emu, oy_emu)
+            for direct_pic in root_el:
+                if direct_pic.tag == _TAG_PIC:
+                    all_pic_entries.append((direct_pic, 0, 0))
+            for grouped_entry in _et_collect_grouped_pics(root_el, parent_map):
+                all_pic_entries.append(grouped_entry)
+
+            if not all_pic_entries:
+                out_lines.append(line)
+                continue
+
+            image_lines: list[str] = []
+            slot_dicts: list[dict] = []
+            pics_to_remove: list = []  # pic_el references for ET removal
+
+            for pic_el, grp_ox_emu, grp_oy_emu in all_pic_entries:
+                # --- Skip: decorative ---
+                nvpr = pic_el.find(f"{_TAG_NVPICPR}/{_TAG_NVPR}")
+                if nvpr is not None:
+                    dec = nvpr.find(
+                        "{http://schemas.microsoft.com/office/drawing/2017/decorative}decorative"
+                    )
+                    if dec is not None and dec.get("val") == "1":
+                        continue
+
+                # --- Skip: no blip ---
+                bfill = pic_el.find(_TAG_BFILL)
+                blip_el = bfill.find(_TAG_BLIP) if bfill is not None else None
+                r_id = blip_el.get(_ATTR_EMBED) if blip_el is not None else None
+                if r_id is None:
+                    continue
+
+                # --- Skip: logo/mark name ---
+                cnvpr = pic_el.find(f"{_TAG_NVPICPR}/{_TAG_CNVPR}")
+                if cnvpr is not None:
+                    pic_name = cnvpr.get("name", "")
+                    if _PIC_LOGO_NAME_RE.search(pic_name):
+                        continue
+
+                # --- Geometry: pic-local coords + group translation ---
+                sppr = pic_el.find(_TAG_SPPR)
+                xfrm = sppr.find(_TAG_XFRM) if sppr is not None else None
+                if xfrm is None:
+                    continue
+                off_el = xfrm.find(_TAG_OFF)
+                ext_el = xfrm.find(_TAG_EXT)
+                if off_el is None or ext_el is None:
+                    continue
+                try:
+                    pic_x_emu = int(off_el.get("x", "0"))
+                    pic_y_emu = int(off_el.get("y", "0"))
+                    cx_emu = int(ext_el.get("cx", "0"))
+                    cy_emu = int(ext_el.get("cy", "0"))
+                except (ValueError, TypeError):
+                    continue
+
+                # Canvas coords: apply group translation offset.
+                canvas_x_emu = pic_x_emu + grp_ox_emu
+                canvas_y_emu = pic_y_emu + grp_oy_emu
+
+                x_px = canvas_x_emu // _EMU_PER_PX
+                y_px = canvas_y_emu // _EMU_PER_PX
+                w_px = cx_emu // _EMU_PER_PX
+                h_px = cy_emu // _EMU_PER_PX
+
+                if w_px <= 0 or h_px <= 0:
+                    continue
+                area_ratio = (w_px * h_px) / canvas_area
+                if area_ratio < area_threshold:
+                    continue
+
+                # --- Image bytes extraction (best-effort) ---
+                asset_path: str | None = None
+                if asset_root is not None and r_id in rid_map:
+                    _target, _ext = rid_map[r_id]
+                    candidate = asset_root / _target.lstrip("/")
+                    if candidate.is_file():
+                        img_bytes = candidate.read_bytes()
+                        sha8 = hashlib.sha1(img_bytes).hexdigest()[:8]
+                        dest = asset_root / f"native_pic_{sha8}.{_ext}"
+                        if not dest.exists():
+                            dest.write_bytes(img_bytes)
+                        asset_path = str(dest)
+
+                # --- Slot allocation ---
+                slot_name = f"image_{current_idx}"
+                current_idx += 1
+                default_path = asset_path or ""
+                image_lines.append(
+                    f'picture {x_px},{y_px} {w_px}x{h_px} '
+                    f'path:"{{{{ {slot_name} | default(\\"{default_path}\\") }}}}" '
+                    f'cover:true'
+                )
+                slot_dicts.append({
+                    "name": slot_name,
+                    "native_id": native_id,
+                    "x": x_px, "y": y_px,
+                    "w": w_px, "h": h_px,
+                    "asset_path": asset_path,
+                })
+                pics_to_remove.append(pic_el)
+
+            if not slot_dicts:
+                out_lines.append(line)
+                continue
+
+            # Remove promoted <p:pic> elements via ElementTree (surgical:
+            # removes just the pic from its parent, leaving sibling shapes
+            # inside groups intact).
+            for pic_el in pics_to_remove:
+                parent_el = parent_map.get(pic_el)
+                if parent_el is not None:
+                    try:
+                        parent_el.remove(pic_el)
+                    except ValueError:
+                        pass  # already removed (shouldn't happen)
+
+            new_xml = ET.tostring(root_el, encoding="unicode")
+
+        else:
+            # --- Fast regex path (no groups present) ---
+            pics = _PIC_ELEMENT_RE.findall(xml)
+            if not pics:
+                out_lines.append(line)
+                continue
+
+            image_lines = []
+            slot_dicts = []
+
+            for pic_xml in pics:
+                # --- Skip conditions ---
+                if _PIC_DECORATIVE_RE.search(pic_xml):
+                    continue
+                blip_m = _PIC_BLIP_RE.search(pic_xml)
+                if blip_m is None:
+                    continue
+                name_m = _PIC_NAME_RE.search(pic_xml)
+                if name_m and _PIC_LOGO_NAME_RE.search(name_m.group(1)):
+                    continue
+
+                # --- Geometry ---
+                off_m = _PIC_XFRM_OFF_RE.search(pic_xml)
+                ext_m = _PIC_XFRM_EXT_RE.search(pic_xml)
+                if not (off_m and ext_m):
+                    continue
+                x_px = int(off_m.group(1)) // _EMU_PER_PX
+                y_px = int(off_m.group(2)) // _EMU_PER_PX
+                w_px = int(ext_m.group(1)) // _EMU_PER_PX
+                h_px = int(ext_m.group(2)) // _EMU_PER_PX
+
+                if w_px <= 0 or h_px <= 0:
+                    continue
+                area_ratio = (w_px * h_px) / canvas_area
+                if area_ratio < area_threshold:
+                    continue
+
+                # --- Image bytes extraction (best-effort) ---
+                asset_path: str | None = None
+                r_id = blip_m.group(1)
+                if asset_root is not None and r_id in rid_map:
+                    _target, ext = rid_map[r_id]
+                    # For sidecar payloads the image file lives under asset_root.
+                    # Try to locate it relative to the sidecar directory.
+                    candidate = asset_root / _target.lstrip("/")
+                    if candidate.is_file():
+                        img_bytes = candidate.read_bytes()
+                        sha8 = hashlib.sha1(img_bytes).hexdigest()[:8]
+                        dest = asset_root / f"native_pic_{sha8}.{ext}"
+                        if not dest.exists():
+                            dest.write_bytes(img_bytes)
+                        asset_path = str(dest)
+
+                # --- Slot allocation ---
+                slot_name = f"image_{current_idx}"
+                current_idx += 1
+                # Emit as a `picture` primitive (the engine's only image-rendering
+                # primitive — see feinschliff/dsl/parser.py and the existing
+                # decompiler emission for slot-typed pictures). `path:` carries
+                # the Jinja-bound slot with a default that points at the
+                # extracted asset when one was found; otherwise the slot's
+                # default empty string lets a bare build leave the slot blank.
+                default_path = asset_path or ""
+                # The path expression is `path:"{{ slot | default(\"…\") }}"`
+                # mirroring the convention used by hand-authored layouts (e.g.
+                # bsh `text-picture.slide.dsl`). `cover:true` matches the
+                # `class=replace` semantic (fill, do not crop).
+                image_lines.append(
+                    f'picture {x_px},{y_px} {w_px}x{h_px} '
+                    f'path:"{{{{ {slot_name} | default(\\"{default_path}\\") }}}}" '
+                    f'cover:true'
+                )
+                slot_dicts.append({
+                    "name": slot_name,
+                    "native_id": native_id,
+                    "x": x_px, "y": y_px,
+                    "w": w_px, "h": h_px,
+                    "asset_path": asset_path,
+                })
+
+            if not slot_dicts:
+                # No pics qualified — leave the line unchanged.
+                out_lines.append(line)
+                continue
+
+            # Remove promoted <p:pic> elements from the XML.
+            # Cross-check by geometry to identify which pic_xml strings to drop.
+            promoted_set: set[str] = set()
+            for pic_xml in pics:
+                off_m = _PIC_XFRM_OFF_RE.search(pic_xml)
+                ext_m = _PIC_XFRM_EXT_RE.search(pic_xml)
+                if not (off_m and ext_m):
+                    continue
+                x_px = int(off_m.group(1)) // _EMU_PER_PX
+                y_px = int(off_m.group(2)) // _EMU_PER_PX
+                w_px = int(ext_m.group(1)) // _EMU_PER_PX
+                h_px = int(ext_m.group(2)) // _EMU_PER_PX
+                for d in slot_dicts:
+                    if d["x"] == x_px and d["y"] == y_px and d["w"] == w_px and d["h"] == h_px:
+                        promoted_set.add(pic_xml)
+                        break
+
+            new_xml = xml
+            for pic_xml in promoted_set:
+                new_xml = new_xml.replace(pic_xml, "", 1)
 
         # Re-encode the modified native payload.
         new_native_line: str
