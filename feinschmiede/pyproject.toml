@@ -10,6 +10,8 @@ dependencies = [
     "pyyaml>=6.0.3",
     "cairosvg>=2.9.0",
     "rough>=1.6",
+    "python-pptx>=1.0.2",
+    "lxml>=6.1.1",
 ]
 
 [build-system]

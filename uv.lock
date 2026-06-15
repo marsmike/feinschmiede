@@ -603,6 +603,8 @@ source = { editable = "feinschmiede" }
 dependencies = [
     { name = "cairosvg" },
     { name = "jsonschema" },
+    { name = "lxml" },
+    { name = "python-pptx" },
     { name = "pyyaml" },
     { name = "rough" },
 ]
@@ -611,6 +613,8 @@ dependencies = [
 requires-dist = [
     { name = "cairosvg", specifier = ">=2.9.0" },
     { name = "jsonschema", specifier = ">=4.26.0" },
+    { name = "lxml", specifier = ">=6.1.1" },
+    { name = "python-pptx", specifier = ">=1.0.2" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "rough", specifier = ">=1.6" },
 ]
