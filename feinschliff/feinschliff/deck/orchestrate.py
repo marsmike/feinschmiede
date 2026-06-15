@@ -170,16 +170,129 @@ def resolve_layout_path(brand_root: Path, layout_name: str) -> Path | None:
 
 # ── slot_budgets_for_layout ───────────────────────────────────────────────────
 
+def _chart_slot_budgets_from_nodes(nodes: list) -> dict[str, dict]:
+    """Scan DSL nodes for ``native`` lines carrying chart kwargs and emit
+    chart slot budget entries.
+
+    For each ``native`` node that carries ``chart_categories`` / ``chart_values``
+    / ``chart_colors`` kw_args (as emitted by ``slotify_native_charts``), three
+    slots are produced:
+
+    - ``chart_N_values``      — ``{kind, item_type, capacity, must_bind, hint}``
+    - ``chart_N_categories``  — same shape
+    - ``chart_N_colors``      — same shape but ``must_bind: false``
+
+    ``capacity`` is decoded from the base64-encoded JSON default list carried in
+    the kw_arg's Jinja default filter, e.g.::
+
+        chart_values:"{{ chart_1_values | default('WzguMiwgMy4yXQ==') }}"
+
+    The base64 is decoded → json.loads → len().  On any decode failure the
+    capacity falls back to 0.
+    """
+    import base64
+    import json
+    import re
+
+    _DEFAULT_RE = re.compile(r"default\('([^']+)'\)")
+
+    def _cap_from_kwarg(raw_value: str) -> int:
+        """Decode base64 JSON list from a Jinja default filter and return len."""
+        m = _DEFAULT_RE.search(raw_value)
+        if not m:
+            return 0
+        try:
+            lst = json.loads(base64.b64decode(m.group(1)).decode("utf-8"))
+            return len(lst) if isinstance(lst, list) else 0
+        except Exception:
+            return 0
+
+    out: dict[str, dict] = {}
+    chart_counter = 0
+
+    for node in nodes:
+        if node.kind != "native":
+            continue
+        kw = node.kw_args
+        if "chart_categories" not in kw:
+            continue
+
+        chart_counter += 1
+        n = chart_counter
+
+        cats_raw = kw.get("chart_categories", "")
+        vals_raw = kw.get("chart_values", "")
+        cols_raw = kw.get("chart_colors", "")
+
+        cats_cap = _cap_from_kwarg(cats_raw)
+        vals_cap = _cap_from_kwarg(vals_raw)
+        cols_cap = _cap_from_kwarg(cols_raw)
+
+        # Derive default sample values from the base64 payload for the hint.
+        def _sample(raw: str, limit: int = 3) -> str:
+            m2 = _DEFAULT_RE.search(raw)
+            if not m2:
+                return ""
+            try:
+                lst = json.loads(base64.b64decode(m2.group(1)).decode("utf-8"))
+                sample = lst[:limit]
+                tail = "…" if len(lst) > limit else ""
+                return repr(sample) + tail
+            except Exception:
+                return ""
+
+        vals_sample = _sample(vals_raw)
+        cats_sample = _sample(cats_raw)
+
+        out[f"chart_{n}_values"] = {
+            "kind": "list",
+            "item_type": "number",
+            "capacity": vals_cap,
+            "must_bind": True,
+            "hint": (
+                f"Numeric values, one per category. "
+                f"Baked default: {vals_sample}. "
+                f"MUST override — stock data ships if unbound."
+            ),
+        }
+        out[f"chart_{n}_categories"] = {
+            "kind": "list",
+            "item_type": "string",
+            "capacity": cats_cap,
+            "must_bind": True,
+            "hint": (
+                f"Category labels, one per data point. "
+                f"Baked default: {cats_sample}. "
+                f"MUST override — stock labels ship if unbound."
+            ),
+        }
+        out[f"chart_{n}_colors"] = {
+            "kind": "list",
+            "item_type": "hex_color",
+            "capacity": cols_cap,
+            "must_bind": False,
+            "hint": (
+                f"Hex colors (no #) per data point. "
+                f"Optional — leave unbound to keep baked palette."
+            ),
+        }
+
+    return out
+
+
 def slot_budgets_for_layout(
     layout_name: str,
     brand_root: Path,
     tokens: "Tokens",
-) -> dict[str, dict[str, int]]:
+) -> dict[str, dict]:
     """Compute slot budgets for *layout_name*.
 
-    Returns a plain serialisable dict mapping slot names to
-    ``{chars_per_line, max_lines, max_chars}``.  Returns an empty dict
-    and logs a warning on any error so the caller never crashes.
+    Returns a plain serialisable dict mapping slot names to budget dicts.
+    Text slots carry ``{chars_per_line, max_lines, max_chars}``; chart slots
+    carry ``{kind, item_type, capacity, must_bind, hint}``.
+
+    Returns an empty dict and logs a warning on any error so the caller
+    never crashes.
 
     Parameters
     ----------
@@ -213,7 +326,8 @@ def slot_budgets_for_layout(
             file=sys.stderr,
         )
         return {}
-    return {
+
+    result: dict[str, dict] = {
         slot: {
             "chars_per_line": b.chars_per_line,
             "max_lines": b.max_lines,
@@ -221,6 +335,9 @@ def slot_budgets_for_layout(
         }
         for slot, b in budgets.items()
     }
+    # Augment with chart slot entries from native nodes.
+    result.update(_chart_slot_budgets_from_nodes(nodes))
+    return result
 
 
 # ── build_primitives_for_layout ───────────────────────────────────────────────
