@@ -513,10 +513,17 @@ def slotify_native_pictures(
 
     1. Decodes the XML (b64 inline or xml_file sidecar).
     2. Inspects each ``<p:pic>`` for geometry and skip conditions.
-    3. For qualifying pics, emits an ``image image_<N> class=replace @x,y wxh``
-       DSL line, saves extracted image bytes when resolvable, and removes the
-       ``<p:pic>`` from the payload.
+    3. For qualifying pics, emits a ``picture x,y wxh path:"{{ image_<N>
+       | default(\"…\") }}" cover:true`` DSL line, saves extracted image
+       bytes when resolvable, and removes the ``<p:pic>`` from the payload.
     4. Re-encodes the modified XML and updates the native line.
+
+    ``picture`` is the engine's only image-rendering primitive (see
+    ``feinschliff/dsl/parser.py``); an earlier version emitted a non-existent
+    ``image image_N class=replace …`` line that crashed the build with
+    ``unknown-compound`` errors. The slot itself is still ``image_<N>``,
+    consistent with hand-authored layouts that declare image-bearing slots
+    in their ``slots:`` block.
 
     Skip conditions (any one causes the pic to stay in the native payload):
     - Area ratio below ``area_threshold`` (small chrome / decorative).
@@ -629,8 +636,21 @@ def slotify_native_pictures(
             # --- Slot allocation ---
             slot_name = f"image_{current_idx}"
             current_idx += 1
+            # Emit as a `picture` primitive (the engine's only image-rendering
+            # primitive — see feinschliff/dsl/parser.py and the existing
+            # decompiler emission for slot-typed pictures). `path:` carries
+            # the Jinja-bound slot with a default that points at the
+            # extracted asset when one was found; otherwise the slot's
+            # default empty string lets a bare build leave the slot blank.
+            default_path = asset_path or ""
+            # The path expression is `path:"{{ slot | default(\"…\") }}"`
+            # mirroring the convention used by hand-authored layouts (e.g.
+            # bsh `text-picture.slide.dsl`). `cover:true` matches the
+            # `class=replace` semantic (fill, do not crop).
             image_lines.append(
-                f"image {slot_name} class=replace @{x_px},{y_px} {w_px}x{h_px}"
+                f'picture {x_px},{y_px} {w_px}x{h_px} '
+                f'path:"{{{{ {slot_name} | default(\\"{default_path}\\") }}}}" '
+                f'cover:true'
             )
             slot_dicts.append({
                 "name": slot_name,
