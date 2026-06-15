@@ -643,15 +643,17 @@ entries that `feinschliff deck build` consumes directly (see Step 3).
 **Parent (orchestrator) flow:**
 
 1. Mark phase: `feinschliff deck log-event step:2a-fanout start --dir <deck-dir>`.
-2. Run centralized layout pick:
+2. Emit an unpicked skeleton:
    ```bash
    feinschliff deck plan-skeleton \
      <deck-dir>/content_plan.json \
      -o <deck-dir>/plan.skeleton.yaml \
      --out-pptx <deck-dir>/deck.pptx
    ```
-   This consumes the same `layout_history` discipline as a serial pass.
-   Resulting file has `layout:` filled and `content: {}` empty per slide.
+   The skeleton has `layout: null` per slide. Run the cascade from
+   [`picking.md`](picking.md) to fill each slide's `layout:` by reading
+   the per-layout semantic annotations. Emit `out/pick_trace.md` as you
+   go. The deterministic picker is gone — it was blind to semantics.
 3. Emit a one-page **color contract** (`<deck-dir>/color_contract.md`)
    that pins semantic→token mappings so subagents don't pick divergent
    colors. Sample contract:
