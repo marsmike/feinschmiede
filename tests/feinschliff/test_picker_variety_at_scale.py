@@ -1,4 +1,4 @@
-"""Picker variety probe at scale — synthetic 100-slide BSH-style deck
+"""Picker variety probe at scale — synthetic 100-slide deck
 exercising the brand-aware deck-map bias + cooldown together. Measures
 back-to-back streaks and Gini concentration so a future regression
 that makes a strong layout dominate again surfaces immediately.

@@ -15,8 +15,8 @@ Layout matching, in order:
   2. same file name in both packs.
 
 Convention: keep a `curation-map.yaml` in the pack root whenever the pack
-derives from a renamed/reordered template generation (the BSH combined
-template maps `slide-N` → v3 `slide-(N-13)` for N=15…70).
+derives from a renamed/reordered template generation (e.g. when a newer
+master-template export shifts slide numbers vs the curated version).
 
 Usage:
   uv run python scripts/brand_port_curation.py \\

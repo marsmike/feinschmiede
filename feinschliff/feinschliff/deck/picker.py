@@ -56,7 +56,7 @@ def _resolve_layout_path(layouts_path: Path | None, name: str) -> Path | None:
     under the same ``brands/`` parent (see
     :func:`feinschliff.layout_discovery.resolve_brand_prefixed`), so plans
     can address a specific brand's layout unambiguously when two packs
-    ship the same stem (``bosch-slide-25`` vs ``bsh-slide-25``).
+    ship the same stem (e.g. ``acme-slide-25`` vs ``globex-slide-25``).
     """
     if layouts_path is not None:
         candidate = layouts_path / f"{name}.slide.dsl"

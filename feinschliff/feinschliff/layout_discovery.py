@@ -166,14 +166,14 @@ def resolve_brand_prefixed(brand_root: Path | None, name: str) -> Path | None:
     """Resolve a ``<brand>-<stem>`` layout name against sibling brand packs.
 
     Brand packs live at ``<packs_root>/<brand>/layouts/<stem>.slide.dsl``.
-    When a plan references ``bsh-slide-25`` from inside the ``bosch`` brand,
-    this helper walks to ``bsh``'s sibling ``layouts/`` directory and looks
+    When a plan references ``acme-slide-25`` from inside the ``globex`` brand,
+    this helper walks to ``acme``'s sibling ``layouts/`` directory and looks
     up the bare stem there. Returns ``None`` when *brand_root* is missing,
     *name* has no ``-`` separator, the prefix does not match a sibling
     directory, or the resolved file is absent.
 
     The split is greedy on the **leftmost** ``-`` so brand names without
-    a ``-`` work (e.g. ``bsh-slide-25`` → ``bsh`` / ``slide-25``). Brand
+    a ``-`` work (e.g. ``acme-slide-25`` → ``acme`` / ``slide-25``). Brand
     names containing ``-`` (``gs-ramspau-slide-01``) are resolved by
     falling through to the first prefix that names a sibling on disk.
     """

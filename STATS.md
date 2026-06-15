@@ -139,9 +139,9 @@ Layouts are `.slide.dsl` files (1–5 KB each).
   under the `feinschliff` brand.
 - Toolkit layouts moved from `feinschliff/layouts/` to
   `brands/feinschliff/layouts/` so the feinschliff brand is structurally
-  identical to BSH / Bosch and any private corporate pack.
+  identical to any downstream corporate pack.
 - `compile_slide()` + `static_verify` now thread `theme` so brands whose
-  colors live only in a theme overlay (e.g. BSH-orange) render correctly.
+  colors live only in a theme overlay render correctly.
 - Brand gallery is now theme-aware: feinschliff section shows a theme switcher
   (8 chips); palette swatches + typography swap on click via CSS-var/JS toggle,
   no re-render. Gallery subtitle reads "6 brands · 8 themes · 108 layouts".
