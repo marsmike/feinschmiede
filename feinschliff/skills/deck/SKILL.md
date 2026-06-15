@@ -38,6 +38,8 @@ Full step-by-step: [`references/pipeline.md`](references/pipeline.md).
 
 **Picker** — for brand packs with per-layout semantic annotations, pick by progressive disclosure over the brand manifest: see [`references/picking.md`](references/picking.md). The deterministic `pick_layout` is the optional Pass 5 tie-breaker. Every cascade writes `out/pick_trace.md`. `--strict-craft` for Knaflic rules; `--strict-visual` for PIL post-render metrics. **Fan-out is the default at ≥10 slides** (`--no-fanout` to opt out).
 
+**Chart slots** — when `_meta.slot_budgets` lists `chart_*` slots with `must_bind: true`, you MUST bind them; the baked source data (e.g. "Q1: 8.2") will otherwise ship verbatim in the final deck.
+
 ## References
 
 **Recipe:** [`references/pipeline.md`](references/pipeline.md) · [`references/picking.md`](references/picking.md) · [`references/modes.md`](references/modes.md) · [`references/quick-start.md`](references/quick-start.md) · [`references/iteration-loop.md`](references/iteration-loop.md). **Slot authoring rules (pgmeta, footer, slide counter):** [`references/pipeline.md`](references/pipeline.md).
