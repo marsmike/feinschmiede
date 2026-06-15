@@ -368,6 +368,84 @@ class TestCLIDescribeLayouts:
         assert inv["text_slots"] == 3
         assert inv["image_slots"] == 1
 
+    def test_compact_drops_diagnostic_fields(self, tmp_path, capsys):
+        """--compact emits only the LLM-decision fields, not thumbnails/path/etc."""
+        pack = _make_pack(tmp_path, frontmatter={
+            "role": "content-columns",
+            "ideal_count": [3, 5],
+            "description": "a layout",
+        })
+        rc = main(["brand", "describe-layouts", "--brand-pack", str(pack),
+                   "--compact"])
+        assert rc == 0
+        data = json.loads(capsys.readouterr().out)
+        entry = data[0]
+        # Kept
+        assert entry["stem"] == "acme-slide"
+        assert entry["current_role"] == "content-columns"
+        assert entry["ideal_count"] == [3, 5]
+        assert entry["current_description"] == "a layout"
+        assert "slot_inventory" in entry
+        assert "current_primary_message" in entry  # field present even when empty
+        # Dropped
+        assert "path" not in entry
+        assert "thumbnail_candidates" not in entry
+        assert "annotated_pdf" not in entry
+
+    def test_fields_projection_returns_only_named_fields(self, tmp_path, capsys):
+        """--fields foo,bar returns just {stem, foo, bar} per layout."""
+        pack = _make_pack(tmp_path, frontmatter={
+            "role": "reference",
+            "primary_message": "compare 5 items",
+        })
+        rc = main(["brand", "describe-layouts", "--brand-pack", str(pack),
+                   "--fields", "current_primary_message"])
+        assert rc == 0
+        entry = json.loads(capsys.readouterr().out)[0]
+        # stem auto-included as the join key
+        assert set(entry.keys()) == {"stem", "current_primary_message"}
+        assert entry["current_primary_message"] == "compare 5 items"
+
+    def test_stems_filter_narrows_output(self, tmp_path, capsys):
+        """--stems s1,s2 returns only the named layouts; others omitted."""
+        layouts = tmp_path / "pack" / "layouts"
+        layouts.mkdir(parents=True)
+        for name in ("alpha", "beta", "gamma"):
+            (layouts / f"{name}.slide.dsl").write_text(
+                f"---\nrole: content-columns\nideal_count: [1, 1]\n---\n"
+                f"canvas 1920x1080\ntext 0,0 \"{{{{ text_1 }}}}\"\n"
+            )
+        rc = main(["brand", "describe-layouts",
+                   "--brand-pack", str(tmp_path / "pack"),
+                   "--stems", "alpha,gamma"])
+        assert rc == 0
+        data = json.loads(capsys.readouterr().out)
+        stems = sorted(e["stem"] for e in data)
+        assert stems == ["alpha", "gamma"]
+
+    def test_fields_implies_compact(self, tmp_path, capsys):
+        """--fields supersedes --compact's default field set."""
+        pack = _make_pack(tmp_path, frontmatter={"role": "reference"})
+        rc = main(["brand", "describe-layouts", "--brand-pack", str(pack),
+                   "--fields", "current_role"])
+        assert rc == 0
+        entry = json.loads(capsys.readouterr().out)[0]
+        # Only the requested field + stem
+        assert set(entry.keys()) == {"stem", "current_role"}
+        assert "slot_inventory" not in entry  # would be in --compact
+
+    def test_compact_includes_ideal_count(self, tmp_path, capsys):
+        """ideal_count is a critical concept-count signal; --compact must keep it."""
+        pack = _make_pack(tmp_path, frontmatter={
+            "role": "content-columns",
+            "ideal_count": [4, 6],
+        })
+        rc = main(["brand", "describe-layouts", "--brand-pack", str(pack),
+                   "--compact"])
+        assert rc == 0
+        entry = json.loads(capsys.readouterr().out)[0]
+        assert entry["ideal_count"] == [4, 6]
+
 
 class TestCLIAnnotateLayout:
     def test_writes_description(self, tmp_path, capsys):

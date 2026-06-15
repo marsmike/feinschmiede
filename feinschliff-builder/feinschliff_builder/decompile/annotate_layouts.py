@@ -207,6 +207,7 @@ def manifest_for_pack(pack_dir: Path) -> list[dict[str, Any]]:
             "current_role": fm.get("role", ""),
             "current_family": fm.get("family", ""),
             "current_data_band": fm.get("data_band", ""),
+            "ideal_count": fm.get("ideal_count"),  # [lo, hi] concept-count window
             # Annotation fields
             "current_description": fm.get("description", ""),
             "current_when_to_use": fm.get("when_to_use", ""),

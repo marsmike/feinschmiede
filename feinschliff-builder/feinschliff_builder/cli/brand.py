@@ -52,6 +52,28 @@ def register(parser: argparse.ArgumentParser) -> None:
         "--format", choices=["json", "yaml"], default="json",
         help="Output format (default: json)",
     )
+    p_describe.add_argument(
+        "--compact", action="store_true",
+        help="Emit only the LLM-decision fields (stem, role, ideal_count, "
+             "slot_inventory, the 5 semantic annotations). Drops thumbnails "
+             "and other diagnostic fields. Use for cheap multi-pass picking.",
+    )
+    p_describe.add_argument(
+        "--fields", default=None,
+        help="Comma-separated list of fields to include. Always includes "
+             "`stem`. Use for progressive-disclosure picking — fetch one "
+             "field at a time, narrow, fetch the next. Examples: "
+             "`--fields current_primary_message`, "
+             "`--fields current_when_not_to_use,ideal_count`. "
+             "When set, --compact is implied.",
+    )
+    p_describe.add_argument(
+        "--stems", default=None,
+        help="Comma-separated list of layout stems to include. Narrows the "
+             "output to just the named layouts. Use to project later passes "
+             "of progressive disclosure onto the candidates that survived "
+             "earlier passes.",
+    )
     p_describe.set_defaults(func=cmd_describe_layouts)
 
     p_annotate = sub.add_parser(
@@ -212,6 +234,31 @@ def cmd_describe_layouts(args) -> int:
         )
         return 1
     manifest = manifest_for_pack(brand_pack)
+    # --stems narrows the layouts; apply first so subsequent projections
+    # only run over the survivors.
+    if args.stems:
+        keep_stems = {s.strip() for s in args.stems.split(",") if s.strip()}
+        manifest = [e for e in manifest if e.get("stem") in keep_stems]
+    if args.fields:
+        # Progressive disclosure: project to exactly the requested fields
+        # plus `stem` as the join key. --compact is implied.
+        wanted = {f.strip() for f in args.fields.split(",") if f.strip()}
+        wanted.add("stem")
+        manifest = [{k: v for k, v in e.items() if k in wanted}
+                    for e in manifest]
+    elif args.compact:
+        # The LLM-decision fields. ~8× smaller than the full manifest on a
+        # 99-layout pack, fits comfortably into a single prompt for the
+        # first triage pass before progressive disclosure narrows further.
+        keep = {
+            "stem", "current_role", "current_family", "current_data_band",
+            "ideal_count", "slot_inventory",
+            "current_description", "current_primary_message",
+            "current_when_to_use", "current_when_not_to_use",
+            "current_chrome_subject",
+        }
+        manifest = [{k: v for k, v in entry.items() if k in keep}
+                    for entry in manifest]
     if args.format == "yaml":
         print(yaml.safe_dump(manifest, sort_keys=False, allow_unicode=True), end="")
     else:
