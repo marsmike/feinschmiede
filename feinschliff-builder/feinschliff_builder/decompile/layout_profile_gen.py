@@ -277,6 +277,7 @@ def _native_kind(xml: str | None) -> str:
 
 
 _BAKED_TEXT_RE = re.compile(r"<a:t>([^<]+)</a:t>")
+_ROOT_PIC_RE = re.compile(r'\s*(?:<\?xml[^>]*\?>\s*)?<p:pic[\s>]')
 
 
 def _has_baked_text(xml: str) -> bool:
@@ -356,24 +357,44 @@ def _root_xfrm_emu(xml: str) -> tuple[float, float, float, float] | None:
 def _illustration_area_share(
     natives: list[tuple[str, str | None]], canvas_w: float, canvas_h: float,
 ) -> float | None:
-    """Canvas-area share covered by native ILLUSTRATION payloads (clipped to
-    the slide). None when any illustration geometry cannot be decoded — the
-    caller then falls back to the old slot-count gate for the layout."""
+    """Canvas-area share covered by non-pic native chrome (illustration, mark,
+    chart, table, smartart, shape, graphicFrame, …), clipped to the slide.
+
+    Returns ``None`` when any chrome geometry cannot be decoded — the caller
+    then falls back to the old slot-count gate.
+
+    Excludes native payloads whose **root** element is ``<p:pic>`` because
+    PR #109 promotes large content pics into first-class ``image`` slots,
+    so they're not chrome. Everything else contributes to the chrome-area
+    total: charts, tables, smartart, plain shapes, and groups containing a
+    mix all render as baked content the picker can't swap. Layouts whose
+    canvas is dominated by such content should be ``fixed_chrome``. Root
+    detection (rather than substring) is deliberate — a ``<p:grpSp>``
+    group whose first child is a ``<p:pic>`` logo is still mostly chrome
+    via its other shapes and must count.
+    """
     scale = canvas_w / _EMU_SLIDE_W
     total = 0.0
-    for kind, xml in natives:
-        if kind != "illustration":
-            continue
+    seen_any = False
+    for _kind, xml in natives:
         if xml is None:
+            # Undecoded payload — caller should fall back to the slot-count rule.
             return None
+        if _ROOT_PIC_RE.match(xml):
+            continue
+        seen_any = True
         xfrm = _root_xfrm_emu(xml)
         if xfrm is None:
-            return None
+            # This particular native has no decodable root geometry (group
+            # without xfrm, etc.) — skip it but keep summing the rest.
+            continue
         x, y, w, h = (v * scale for v in xfrm)
         vis_w = min(x + w, canvas_w) - max(x, 0.0)
         vis_h = min(y + h, canvas_h) - max(y, 0.0)
         if vis_w > 0 and vis_h > 0:
             total += vis_w * vis_h
+    if not seen_any:
+        return None
     return total / (canvas_w * canvas_h)
 
 

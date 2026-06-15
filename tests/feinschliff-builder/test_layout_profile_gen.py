@@ -394,19 +394,43 @@ def test_area_gate_fires_for_big_illustration_with_many_text_slots():
     ]
 
 
-def test_area_gate_ignores_small_illustration_and_non_illustration_kinds():
+def test_area_gate_counts_non_pic_natives_including_charts():
+    """A full-bleed chart now counts toward the chrome-area gate.
+
+    The previous heuristic only summed ``illustration`` natives, so a layout
+    dominated by a baked ``<p:graphicFrame>`` chart looked clean to the
+    picker and its content slots overprinted the baked chart labels at
+    build time. Counting all non-``pic`` chrome closes that gap.
+    """
     small = native(illu_xml(cx=2438400, cy=2743200), "corner")  # 8 % area
-    big_chart = native(  # chart kind never counts toward illustration area
+    full_bleed_chart = native(
         '<p:graphicFrame xmlns:p="p"><a:xfrm><a:off x="0" y="0"/>'
         '<a:ext cx="12192000" cy="6858000"/></a:xfrm>'
         '<a:graphic><c:chart r:id="rId2"/></a:graphic></p:graphicFrame>',
         "graphic1")
-    dsl = (HEADER + small + big_chart
+    dsl = (HEADER + small + full_bleed_chart
            + slot(1, "Growth", pt=40) + prose_slots(2, 4))
     p = classify(dsl, name="growth")
     assert p["role"] == "data-comparison"
+    assert p["fixed_chrome"] is True
+    # picker should keep this layout out of plain content / KPI roles
+    assert "role=content-columns" in p["when_not_to_use"]
+    assert "role=data-quantity" in p["when_not_to_use"]
+
+
+def test_area_gate_ignores_large_pic_natives():
+    """A full-bleed ``pic`` is harvested as an image slot (PR #109), not
+    chrome — the gate must skip it so layouts whose only "chrome" is a
+    promoted hero image stay pickable for content roles."""
+    full_bleed_pic = native(
+        '<p:pic xmlns:p="p"><a:xfrm><a:off x="0" y="0"/>'
+        '<a:ext cx="12192000" cy="6858000"/></a:xfrm>'
+        '<a:blip r:embed="rId2"/></p:pic>',
+        "pic1")
+    dsl = (HEADER + full_bleed_pic
+           + slot(1, "Headline", pt=40) + prose_slots(2, 4))
+    p = classify(dsl, name="hero")
     assert "fixed_chrome" not in p
-    assert "when_not_to_use" not in p
 
 
 def test_area_gate_decode_failure_falls_back_to_slot_count_rule():
