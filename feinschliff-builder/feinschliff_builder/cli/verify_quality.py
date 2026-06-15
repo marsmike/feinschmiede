@@ -6,7 +6,6 @@ import json
 import sys
 from pathlib import Path
 
-from feinschliff_builder.verify.autofix import suggest_fix
 from feinschliff_builder.verify.cache import VerifyCache
 from feinschliff_builder.verify.llm.rubric import (
     RubricResult, result_to_defects,
@@ -88,14 +87,11 @@ def cmd_verify_quality(args) -> int:
             cache=cache, plan=plan, brand=brand,
         ).__dict__
 
-    suggestions: list[dict] = []
-    for _, payload in results.items():
-        rr = RubricResult(payload["rubric"], payload["status"], payload["per_slide"])
-        for d in result_to_defects(rr):
-            fix = suggest_fix(d)
-            if fix:
-                suggestions.append(fix)
-    report_suggested_fixes = suggestions
+    # `suggest_fix` retired with the DSL pipeline (was DSL-plan-shape). The
+    # rubric now writes raw defects only; downstream tooling decides how to
+    # act on them.
+    report_suggested_fixes: list[dict] = []
+    _ = result_to_defects  # keep import alive for ABI consumers
 
     statuses = {r["status"] for r in results.values()}
     if "fail" in statuses:
