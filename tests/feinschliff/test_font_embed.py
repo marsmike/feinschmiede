@@ -203,7 +203,7 @@ def test_cli_flag_embeds(tmp_path):
     result = subprocess.run(
         [
             sys.executable, "-m", "feinschliff.cli", "build",
-            str(PLUGIN_ROOT / "layouts" / "action-title.slide.dsl"),
+            str(PLUGIN_ROOT / "brands" / "feinschliff" / "layouts" / "action-title.slide.dsl"),
             "--brand", "dejavu-embed-test",
             "--content", str(content),
             "--embed-fonts",
