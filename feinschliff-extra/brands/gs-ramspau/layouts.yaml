@@ -1,0 +1,4 @@
+# gs-ramspau brand is snippet-only — every layout is a ClonePlan
+# against snippets.yaml. No FillPlan entries.
+master_theme: default
+layouts: []
