@@ -179,18 +179,23 @@ def discover_layouts(brand: str) -> list[dict]:
             "is_phase4": lid in _PHASE4_LAYOUTS,
         }
         for lid in sorted(seen)
-        if _has_content_fixture(brand_fixtures, lid)
+        if _has_content_fixture(brand, brand_fixtures, lid)
     ]
 
 
-def _has_content_fixture(brand_fixtures: Path, layout_id: str) -> bool:
-    """Mirror of ``render_brand_atlas._find_content``: brand override wins,
-    shared fallback otherwise. Layouts with neither are unrenderable, so
-    listing them on the gallery would always 404 the preview asset.
+def _has_content_fixture(brand: str, brand_fixtures: Path, layout_id: str) -> bool:
+    """Mirror of ``render_brand_atlas._find_content``: brand-scoped
+    fixtures always win, and the shared toolkit fallback applies only to
+    the feinschliff brand itself (its layouts use the same semantic-slot
+    vocabulary as the shared fixtures). Extra brand packs ship decompiled
+    ``text_N`` slots and must own their fixtures — listing one without a
+    brand-scoped fixture would 404 a preview that the renderer also skips.
     """
     if (brand_fixtures / f"{layout_id}.yaml").is_file():
         return True
-    return (SHARED_CONTENT_FIXTURES / f"{layout_id}.yaml").is_file()
+    if brand == "feinschliff":
+        return (SHARED_CONTENT_FIXTURES / f"{layout_id}.yaml").is_file()
+    return False
 
 
 def _themes_for_brand(root: Path) -> list[dict] | None:
