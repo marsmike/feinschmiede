@@ -138,20 +138,33 @@ def _humanize(layout_id: str) -> str:
 def discover_layouts(brand: str) -> list[dict]:
     """V2 layout discovery: shared layouts + brand overrides/extensions.
 
-    Mirrors `scripts/render_brand_atlas._discover_layouts` so the gallery
-    references the same set of slides the renderer produces.
+    For the feinschliff brand (which owns the shared toolkit layouts), the
+    full shared set is returned. For extra brands that carry their own
+    brand-specific layouts, only those brand-local layouts are returned —
+    they don't ship the shared toolkit slides, so including them here would
+    inflate the count and reference PNGs that don't exist for those brands.
 
     Role + phase4 metadata are pulled from feinschliff.layout_picker so layout cards
     show accurate classifications — including the four-column-cards fix
     (content-columns, not data-timeline).
     """
-    seen: dict[str, Path] = {}
-    for dsl in sorted(SHARED_LAYOUTS.glob("*.slide.dsl")):
-        seen[dsl.stem.removesuffix(".slide")] = dsl
     brand_layouts = BRAND_ROOTS[brand] / "layouts"
-    if brand_layouts.is_dir():
+    has_brand_layouts = brand_layouts.is_dir() and any(brand_layouts.glob("*.slide.dsl"))
+
+    if has_brand_layouts and brand != "feinschliff":
+        # Extra brand: show only its own layouts (shared toolkit isn't rendered for it)
+        seen: dict[str, Path] = {}
         for dsl in sorted(brand_layouts.glob("*.slide.dsl")):
             seen[dsl.stem.removesuffix(".slide")] = dsl
+    else:
+        # feinschliff (or any future brand without a layouts/ dir): shared toolkit
+        seen = {}
+        for dsl in sorted(SHARED_LAYOUTS.glob("*.slide.dsl")):
+            seen[dsl.stem.removesuffix(".slide")] = dsl
+        if has_brand_layouts:
+            for dsl in sorted(brand_layouts.glob("*.slide.dsl")):
+                seen[dsl.stem.removesuffix(".slide")] = dsl
+
     return [
         {
             "id": lid,
@@ -163,16 +176,96 @@ def discover_layouts(brand: str) -> list[dict]:
     ]
 
 
+def _themes_for_brand(root: Path) -> list[dict] | None:
+    """Return per-theme palette+typography for brands that have a themes/ dir.
+
+    Each entry: {id, name, palette, typography, is_default}.
+    Returns None when the brand has no themes/ dir (extra brands).
+    """
+    themes_dir = root / "themes"
+    if not themes_dir.is_dir():
+        return None
+
+    base = json.loads((root / "tokens.json").read_text())
+    default_theme = base.get("$default_theme") or "default"
+
+    result = []
+    for theme_dir in sorted(themes_dir.iterdir()):
+        if not theme_dir.is_dir():
+            continue
+        tj = theme_dir / "tokens.json"
+        if not tj.is_file():
+            continue
+        theme_raw = json.loads(tj.read_bytes())
+        # Deep-merge: theme tokens on top of brand base
+        merged = _deep_merge_simple(base, theme_raw)
+        tid = theme_dir.name
+        result.append({
+            "id": tid,
+            "name": tid.replace("-", " ").title(),
+            "palette": _palette_from_raw(merged),
+            "typography": _typography_from_raw(merged),
+            "is_default": (tid == default_theme),
+        })
+    return result or None
+
+
+def _deep_merge_simple(base: dict, override: dict) -> dict:
+    """Shallow-recursive deep merge of two token dicts (no Tokens validation)."""
+    result = dict(base)
+    for k, v in override.items():
+        if k in result and isinstance(result[k], dict) and isinstance(v, dict):
+            result[k] = _deep_merge_simple(result[k], v)
+        else:
+            result[k] = v
+    return result
+
+
+def _palette_from_raw(tok: dict) -> list[tuple[str, str, str]]:
+    """Extract palette swatches from a raw (already-merged) token dict."""
+    color = tok.get("color", {})
+    order = [
+        "accent", "accent-hover", "highlight",
+        "ink", "graphite", "steel", "silver",
+        "paper", "paper-2", "off-white", "off-white-2",
+        "navy-100", "navy-200", "navy-300", "navy-400",
+        "navy-500", "navy-600", "navy-700", "navy-800", "black",
+        "fog", "rule-dark", "white",
+    ]
+    rows = []
+    for slot in order:
+        meta = color.get(slot)
+        if not meta or not isinstance(meta, dict):
+            continue
+        rows.append((slot, meta.get("$value", ""), meta.get("$description", "")))
+    return rows
+
+
+def _typography_from_raw(tok: dict) -> dict:
+    ff = tok.get("font-family", {})
+    return {
+        "display": (ff.get("display", {}) or {}).get("$value", []),
+        "body": (ff.get("body", {}) or {}).get("$value", []),
+        "mono": (ff.get("mono", {}) or {}).get("$value", []),
+    }
+
+
 def brand_meta(brand: str) -> dict:
     root = BRAND_ROOTS[brand]
     design = parse_design_md(root / "DESIGN.md")
+    themes = _themes_for_brand(root)
+    # Brand-level palette/typography = default theme's resolved tokens (or raw tokens for extra brands)
+    default_theme = next((t for t in (themes or []) if t["is_default"]), None)
+    palette = default_theme["palette"] if default_theme else palette_from_tokens(root / "tokens.json")
+    typography = default_theme["typography"] if default_theme else typography_from_tokens(root / "tokens.json")
     return {
         "id": brand,
         "name": design["frontmatter"].get("name", brand),
         "version": design["frontmatter"].get("version", ""),
         "overview": design["overview"],
-        "palette": palette_from_tokens(root / "tokens.json"),
-        "typography": typography_from_tokens(root / "tokens.json"),
+        "palette": palette,
+        "typography": typography,
+        "themes": themes,  # None for brands without themes/ dir
         "layouts": discover_layouts(brand),
         "is_dark": brand in DARK_FIRST,
         "has_atlas": (PREVIEWS / brand / "_atlas.png").is_file(),
@@ -198,23 +291,64 @@ def _layout_card_html(brand_id: str, i: int, layout: dict) -> str:
     )
 
 
-def render_brand_section(brand: dict) -> str:
-    palette_html = "".join(
+def _render_palette_html(palette: list[tuple[str, str, str]]) -> str:
+    return "".join(
         f'<div class="swatch" style="--c:{escape(hex_)}" '
         f'title="{escape(slot)} · {escape(hex_)} · {escape(desc)}"><span>{escape(slot)}</span></div>'
-        for slot, hex_, desc in brand["palette"]
+        for slot, hex_, desc in palette
         if hex_
     )
-    type_html = (
+
+
+def _render_typography_html(typography: dict) -> str:
+    return (
         f'<div class="typography">'
         f'<span class="t-label">display</span>'
-        f'<span class="t-sample" style="font-family: {", ".join(escape(f) for f in brand["typography"]["display"])};">'
+        f'<span class="t-sample" style="font-family: {", ".join(escape(f) for f in typography["display"])};">'
         f'The quick brown fox jumps over the lazy dog</span>'
         f'<span class="t-label">body</span>'
-        f'<span class="t-sample t-body" style="font-family: {", ".join(escape(f) for f in brand["typography"]["body"])};">'
+        f'<span class="t-sample t-body" style="font-family: {", ".join(escape(f) for f in typography["body"])};">'
         f'The quick brown fox jumps over the lazy dog</span>'
         f'</div>'
     )
+
+
+def render_brand_section(brand: dict) -> str:
+    themes = brand.get("themes")
+
+    if themes:
+        # Theme switcher: one button per theme; active = default theme
+        default_id = next((t["id"] for t in themes if t["is_default"]), themes[0]["id"])
+        switcher_buttons = "".join(
+            f'<button class="theme-chip{" active" if t["is_default"] else ""}" '
+            f'data-theme-target="{escape(t["id"])}">{escape(t["name"])}</button>'
+            for t in themes
+        )
+        switcher_html = (
+            f'<nav class="theme-switcher" aria-label="Theme">'
+            f'{switcher_buttons}'
+            f'</nav>'
+        )
+        # Per-theme palette + typography blocks (hidden when not active)
+        theme_blocks_html = ""
+        for t in themes:
+            hidden = "" if t["is_default"] else " hidden"
+            theme_blocks_html += (
+                f'<div class="theme-block"{hidden} data-theme-block="{escape(t["id"])}">'
+                f'{_render_typography_html(t["typography"])}'
+                f'<div class="palette">{_render_palette_html(t["palette"])}</div>'
+                f'</div>'
+            )
+        chrome_html = switcher_html + theme_blocks_html
+        section_extra = f' data-default-theme="{escape(default_id)}"'
+    else:
+        # No themes — render as before
+        chrome_html = (
+            _render_typography_html(brand["typography"])
+            + f'<div class="palette">{_render_palette_html(brand["palette"])}</div>'
+        )
+        section_extra = ""
+
     layout_cards = "".join(
         _layout_card_html(brand["id"], i, layout)
         for i, layout in enumerate(brand["layouts"], start=1)
@@ -236,12 +370,11 @@ def render_brand_section(brand: dict) -> str:
             </a>
         ''')
     return dedent(f'''\
-        <section class="brand"{dark_attr} id="{escape(brand["id"])}">
+        <section class="brand"{dark_attr}{section_extra} id="{escape(brand["id"])}">
             <header class="brand-header">
                 <h2>{escape(brand["name"])}<span class="brand-id"> · {escape(brand["id"])}</span> {license_badge}</h2>
                 <p class="brand-overview">{escape(brand["overview"])}</p>
-                {type_html}
-                <div class="palette">{palette_html}</div>
+                {chrome_html}
             </header>
             {atlas_html}<div class="layouts">
                 {layout_cards}
@@ -500,6 +633,41 @@ section.brand[data-dark="true"] .layout-role[data-role^="content"] { color: #7ec
 section.brand[data-dark="true"] .layout-role[data-role^="title"],
 section.brand[data-dark="true"] .layout-role[data-role^="chapter"] { color: #d4aa6e; }
 
+/* ---- Theme switcher ---- */
+nav.theme-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 4px;
+}
+.theme-chip {
+  padding: 4px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--rule);
+  background: var(--card-bg);
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+.theme-chip:hover { border-color: var(--accent); color: var(--fg); }
+.theme-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+section.brand[data-dark="true"] .theme-chip {
+  background: #1a2230;
+  border-color: #2a3140;
+  color: #aab0bc;
+}
+section.brand[data-dark="true"] .theme-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 /* ---- Lightbox ---- */
 .lightbox {
   position: fixed;
@@ -614,10 +782,12 @@ def main() -> int:
 
     sections_html = "\n".join(render_brand_section(b) for b in brands)
 
+    total_layouts = sum(len(b["layouts"]) for b in brands)
+    total_themes = sum(len(b["themes"]) for b in brands if b.get("themes"))
     body_top = dedent(f'''\
         <header class="site-header">
             <div class="site-title"><img class="site-mark" src="../feinschmiede-mark.svg" alt="feinschmiede" width="52" height="52"><h1>feinschmiede — Brand Pack Gallery</h1></div>
-            <p>Every feinschmiede brand pack rendered against the full {len(brands[0]["layouts"]) if brands else 0}-layout catalog. {len(brands)} brands × {len(brands[0]["layouts"]) if brands else 0} layouts = {len(brands) * (len(brands[0]["layouts"]) if brands else 0)} slides. Click any thumbnail to open the carousel — arrow keys / on-screen buttons navigate, Esc closes.</p>
+            <p>{len(brands)} brands · {total_themes} themes · {total_layouts} layouts. Click any thumbnail to open the carousel — arrow keys / on-screen buttons navigate, Esc closes.</p>
         </header>
         <nav class="brand-nav">
             {chr(10).join(nav_html)}
@@ -703,6 +873,23 @@ def main() -> int:
             }
         })();
         </script>
+        <script>
+        (function () {
+            document.querySelectorAll('section.brand[data-default-theme]').forEach(function (section) {
+                var chips = section.querySelectorAll('.theme-chip');
+                var blocks = section.querySelectorAll('[data-theme-block]');
+                chips.forEach(function (chip) {
+                    chip.addEventListener('click', function () {
+                        var tid = chip.getAttribute('data-theme-target');
+                        chips.forEach(function (c) { c.classList.toggle('active', c === chip); });
+                        blocks.forEach(function (b) {
+                            b.hidden = b.getAttribute('data-theme-block') !== tid;
+                        });
+                    });
+                });
+            });
+        })();
+        </script>
     ''')
     body = body_top + body_lightbox
 
@@ -718,7 +905,7 @@ def main() -> int:
     out = DOCS / "index.html"
     out.write_text(html)
     print(f"wrote {out} ({len(html)//1024} KB, {len(brands)} brands, "
-          f"{sum(len(b['layouts']) for b in brands)} layouts)")
+          f"{total_themes} themes, {total_layouts} layouts)")
     return 0
 
 

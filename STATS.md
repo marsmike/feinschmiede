@@ -12,15 +12,16 @@ After PR #91 moved tests out of the plugin directories:
 
 | Plugin | Files | Size | What it ships |
 |---|---:|---:|---|
-| `feinschliff` | 190 | **1378 KB** | `bin/` launcher, 50 layouts, 3 brand packs, deck skill (1 SKILL.md + 13 references), Python source for the wheel cache |
-| `feinschliff-builder` | 114 | **845 KB** | `bin/` launcher, 3 skills (autoloop, compile, improve-brand) with 27 references |
-| `feinbild` | 49 | **348 KB** | `bin/` launcher, 3 skills (svg, excalidraw, imagine) with 9 references |
-| `feinklang` | 13 | **28 KB** | `bin/` launcher, tts skill |
-| `feinschnitt` | 151 | **797 KB** | `bin/` launcher, 3 skills (edit, cli-recorder, remotion) with 80 references |
-| **Total** | **517** | **≈ 3.3 MB** | |
+| `feinschliff` | 201 | **1424 KB** | `bin/` launcher, the `feinschliff` brand pack (50 layouts + 8 themes), deck skill (1 SKILL.md + 13 references), Python source for the wheel cache |
+| `feinschliff-builder` | 109 | **822 KB** | `bin/` launcher, 3 skills (autoloop, compile, improve-brand) with 27 references |
+| `feinbild` | 49 | **350 KB** | `bin/` launcher, 3 skills (svg, excalidraw, imagine) with 9 references |
+| `feinklang` | 13 | **29 KB** | `bin/` launcher, tts skill |
+| `feinschnitt` | 151 | **803 KB** | `bin/` launcher, 3 skills (edit, cli-recorder, remotion) with 80 references |
+| **Total** | **523** | **≈ 3.4 MB** | |
 
-The `feinschliff-extra` add-on (14 additional brand packs, 58 layouts)
-is an optional install for users who want more themes.
+The `feinschliff-extra` add-on (5 additional self-contained brand packs,
+58 layouts) is an optional install for users who want more brand chrome
+beyond the feinschliff brand's 8 themes.
 
 ### Before vs after the test move
 
@@ -59,9 +60,9 @@ update.
 
 | Plugin | Python LOC | Notes |
 |---|---:|---|
-| `feinschliff` | 18,103 | DSL parser, emitter, picker, polish, intake, storyline, picker, verify, quality, CLI |
-| `feinschliff-builder` | 17,137 | Brand-pack authoring, decompiler, render harness, verify gates |
-| `feinschmiede` (engine) | 5,728 | Shared brand discovery, tokens, diagrams |
+| `feinschliff` | 18,446 | DSL parser, emitter, picker, polish, intake, storyline, picker, verify, quality, CLI |
+| `feinschliff-builder` | 16,415 | Brand-pack authoring, decompiler, render harness, verify gates |
+| `feinschmiede` (engine) | 5,891 | Shared brand discovery, tokens, themes, diagrams |
 | `feinschnitt` | 3,282 | Video edit pipeline, recorder, Remotion glue |
 | `feinbild` | 374 | Image / SVG / Excalidraw generation |
 | `feinklang` | 338 | ElevenLabs TTS client |
@@ -126,14 +127,24 @@ Each brand pack is fully self-contained (no `extends` inheritance).
 Tokens, fonts, and layouts live entirely within the brand's own directory.
 Layouts are `.slide.dsl` files (1–5 KB each).
 
-**Changes since last snapshot:**
-- `extends:` inheritance subsystem removed (PR #97) — ~150 LOC deleted from
-  `feinschmiede`, `feinschliff`, `feinschliff-builder`; brands already
-  inlined parent tokens in a prior migration.
+**Changes since last snapshot (PR #98 + #99 + this PR):**
+- Brand / theme split introduced — every brand pack is fully self-contained;
+  themes layer colors on top via `themes/<name>/tokens.json`. CLI: `--theme`.
+- `extends:` inheritance subsystem removed entirely (chain walk, DESIGN.md
+  frontmatter field, schema entry, all callers). Net **−26,108 lines**.
 - 3 trademarked extra brands (`binance`, `spotify`, `ferrari`) deleted.
-- `blank` brand (internal-only) deleted.
-- 6 palette-only extra brands (catppuccin-latte, catppuccin-macchiato, feinschliff-dark,
-  gruvbox-dark, nord, solarized-dark) demoted to themes under the `feinschliff` brand.
+- `blank` brand (internal-only stub) deleted.
+- 6 palette-only extra brands (catppuccin-latte, catppuccin-macchiato,
+  feinschliff-dark, gruvbox-dark, nord, solarized-dark) demoted to themes
+  under the `feinschliff` brand.
+- Toolkit layouts moved from `feinschliff/layouts/` to
+  `brands/feinschliff/layouts/` so the feinschliff brand is structurally
+  identical to BSH / Bosch and any private corporate pack.
+- `compile_slide()` + `static_verify` now thread `theme` so brands whose
+  colors live only in a theme overlay (e.g. BSH-orange) render correctly.
+- Brand gallery is now theme-aware: feinschliff section shows a theme switcher
+  (8 chips); palette swatches + typography swap on click via CSS-var/JS toggle,
+  no re-render. Gallery subtitle reads "6 brands · 8 themes · 108 layouts".
 
 ## Methodology
 
