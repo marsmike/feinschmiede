@@ -10,7 +10,6 @@ from feinschliff.env import load_home_env
 # capture API keys at import time. Mirrors feinklang and feinschnitt.
 load_home_env()
 
-from feinschliff.cli import build as build_cmd  # noqa: E402
 from feinschliff.cli import deck as deck_cmd  # noqa: E402
 from feinschliff.cli import doctor as doctor_cmd  # noqa: E402
 from feinschliff.cli import render_master as render_master_cmd  # noqa: E402
@@ -20,12 +19,6 @@ from feinschliff.cli import ship as ship_cmd  # noqa: E402
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="feinschliff")
     sub = p.add_subparsers(dest="command", required=True)
-
-    build_parser_cmd = sub.add_parser(
-        "build",
-        help="Expand a .slide.dsl into a .pptx via the DSL pipeline",
-    )
-    build_cmd.register(build_parser_cmd)
 
     deck_parser = sub.add_parser(
         "deck",

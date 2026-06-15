@@ -1,8 +1,0 @@
-pgmeta:        "UI kit"
-tracker:       "Layout · components"
-action_title:  "UI library preview."
-button_labels: ["Primary →", "Default →", "Ghost"]
-chips:         ["Production", "Featured", "Beta", "Archived"]
-accent_note:   ""
-footer_left:   "Jan 2026 · Showcase"
-footer_right:  "Slide 14 / 32"

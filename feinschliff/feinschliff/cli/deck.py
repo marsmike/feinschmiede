@@ -49,23 +49,12 @@ import yaml
 from feinschliff.deck.content_metadata import auto_bind_slots, warn_overbudget_slots
 from feinschliff.deck.orchestrate import (
     patch_set_hash as _patch_set_hash_fn,
-    build_primitives_for_layout as _build_primitives_for_layout_fn,
-    build_refurbished_deck as _build_refurbished_deck_fn,
 )
 
-from feinschliff.dsl.parser import parse_file, split_frontmatter
 from feinschmiede.dsl.tokens import load_tokens, load_tokens_with_theme
-from feinschliff.dsl.expander import (
-    interpolate_nodes,
-    expand_compounds,
-    load_compounds_for_brand,
-)
-from feinschliff.dsl.pptx_emit import build_multi_slide
 from feinschliff.content_validator import (
     emit_defects_and_abort_message, validate_content,
 )
-from feinschliff.slot_budget import compute_slot_budgets
-from feinschliff.pipeline import compile_slide
 from feinschliff.defects import fatal_kinds, format_defect
 from feinschmiede.brand_discovery import find_brand
 from feinschliff.io.image_provider import discover_providers, get_provider
@@ -1395,16 +1384,6 @@ def cmd_pick_deck(args) -> int:
     return 0
 
 
-def _build_primitives_for_layout(
-    layout_path: Path, brand: str, content_path: Path | None,
-    *, skip_interpolation: bool = False,
-) -> tuple[list, object]:
-    """Delegate to feinschliff.deck.orchestrate.build_primitives_for_layout."""
-    return _build_primitives_for_layout_fn(
-        layout_path, brand, content_path,
-        skip_interpolation=skip_interpolation,
-    )
-
 
 def cmd_wireframe(args) -> int:
     _require_or_delegate_builder("deck wireframe")
@@ -1746,8 +1725,11 @@ def cmd_polish(args) -> int:
 
 
 def _build_refurbished_deck(slides_plan: list[dict], brand: str, out_path: Path) -> None:
-    """Delegate to feinschliff.deck.orchestrate.build_refurbished_deck."""
-    _build_refurbished_deck_fn(slides_plan, brand, out_path)
+    """Build refurbished deck — DSL path removed."""
+    raise NotImplementedError(
+        "deck polish build is not available without the DSL pipeline. "
+        "Use 'feinschliff render-master' for the master-template path."
+    )
 
 
 def cmd_book(args) -> int:

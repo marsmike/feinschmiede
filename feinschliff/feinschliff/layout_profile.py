@@ -49,7 +49,23 @@ from pathlib import Path
 
 import yaml
 
-from feinschliff.dsl.parser import split_frontmatter
+def split_frontmatter(text: str) -> tuple[str | None, str | None]:
+    """Split a ``---\\n...\\n---`` YAML frontmatter fence from a text file.
+
+    Returns ``(frontmatter_text, body_text)``; both are ``None`` when the
+    file has no opening ``---`` fence.  The body is padded with blank lines
+    so that line numbers in the original file are preserved.
+    """
+    lines = text.splitlines(keepends=True)
+    if not lines or lines[0].rstrip() != "---":
+        return None, None
+    for i, line in enumerate(lines[1:], start=1):
+        if line.rstrip() == "---":
+            fm = "".join(lines[1:i])
+            body = "".join([""] * (i + 1) + lines[i + 1:])
+            return fm, body
+    return None, None
+
 
 # Declared-value enums (the values a layout may *declare* in its profile).
 # Kept local so this module does not import the picker (which imports us).

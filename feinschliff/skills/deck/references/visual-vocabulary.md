@@ -1,6 +1,6 @@
 # Visual Vocabulary
 
-How to pick the right visual for a concept. This reference is generic (brand-agnostic). Brand-specific layout names come from the `.slide.dsl` files in the active brand's `<brand-root>/layouts/` directory plus the toolkit-shared pool under `feinschliff/layouts/` (see `../SKILL.md` for how the active brand resolves). Run `feinschliff-builder brand inspect <brand>` to list the full pool.
+How to pick the right visual for a concept. This reference is generic (brand-agnostic). Brand-specific layout names come from the active brand's `<brand-root>/layouts.yaml` (the master-template catalog); see `../SKILL.md` for how the active brand resolves.
 
 ## Composition principles
 
@@ -27,8 +27,8 @@ These govern how elements are arranged on the canvas, regardless of which layout
 For each slide you plan to generate:
 1. Identify the **concept type** (from the list below).
 2. Look up **candidate visual types**.
-3. Cross-reference `feinschliff-builder brand inspect <brand>` for the brand's specific `.slide.dsl` layouts that match.
-4. Prefer layouts whose `when_to_use` (from the layout's header docstring) aligns with your content; avoid layouts whose `when_not_to_use` applies.
+3. Cross-reference `<brand-root>/layouts.yaml` for the brand's layouts whose placeholders accept that visual type.
+4. Prefer layouts whose `role` aligns with the slide's narrative role (cover / chapter / content / closing).
 
 ## Concept → Visual-type Mapping
 

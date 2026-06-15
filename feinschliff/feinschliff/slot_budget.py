@@ -1,29 +1,13 @@
 """Typographic budget extractor.
 
-Derives per-slot character/line constraints directly from DSL layout nodes
-and the active brand's token set. This is the single source of truth that
-replaces hand-written `≤180` schema comments with pixel-accurate limits.
+Derives per-slot character/line constraints from layout slot metadata and the
+active brand's token set. SlotBudget objects are used by content_validator to
+catch text overflows before rendering, and by /deck generation to inform the
+LLM of the actual pixel envelope.
 
-Usage::
-
-    from feinschliff.slot_budget import compute_slot_budgets, format_budget_hint
-    from feinschliff.dsl.parser import parse_file
-    from feinschmiede.dsl.tokens import load_tokens
-
-    nodes, _ = parse_file(layout_path)
-    tokens = load_tokens(brand_dir)
-    budgets = compute_slot_budgets(nodes, tokens)
-    # budgets["action_title"] → SlotBudget(chars_per_line=51, max_lines=2, ...)
-    print(format_budget_hint(budgets))
-
-The computed budgets are fed to two consumers:
-
-1. ``content_validator.py`` — ``check_slot_overflow`` uses ``textfit.fits()``
-   to catch overflows before the render budget is burned.
-
-2. ``/deck`` generation (Step 2) — ``format_budget_hint()`` produces a table
-   that the LLM includes in its slot-filling context so generated text stays
-   within the actual pixel envelope, not the looser schema char-count.
+The DSL-parse path (compute_slot_budgets from DSL nodes) has been removed
+with the DSL pipeline. Slot budgets now come from the master-template catalog
+(layouts.yaml slot metadata) or are constructed directly by callers.
 """
 from __future__ import annotations
 
@@ -31,26 +15,68 @@ import math
 import re
 import sys
 from dataclasses import dataclass
-from collections.abc import Sequence
 
-from feinschliff.dsl.parser import DSLNode, CompoundDef, parse_xy
-from feinschliff.dsl.style_resolve import resolve_node_style, text_insets_emu
-from feinschmiede.dsl.tokens import Tokens
 from feinschmiede.geometry import units
-from feinschliff.textfit import (
-    chars_per_line as _cpl,
-    has_real_metrics as _has_real_metrics,
-    register_font_metrics as _register_font_metrics,
-    supported_fonts as _supported_fonts,
-)
+
+
+# ── font-metrics registration ─────────────────────────────────────────────────
+
+# Per-family average char-width ratio tables (family → {normal, bold}).
+# Brand packs populate this via ``register_tokens_font_metrics``; the default
+# "default" entry approximates proportional Latin fonts.
+_FONT_RATIOS: dict[str, dict[str, float]] = {
+    "default": {"normal": 0.50, "bold": 0.55},
+    "Open Sans": {"normal": 0.48, "bold": 0.53},
+}
+_REAL_METRICS: dict[tuple[str, bool], float] = {}  # (face, bold) → ratio
+
+
+def register_font_metrics(family: str, *, normal: float, bold: float) -> None:
+    """Register empirical width ratios for a font family."""
+    _FONT_RATIOS[family] = {"normal": normal, "bold": bold}
+
+
+def has_real_metrics(face: str, bold: bool) -> bool:
+    return (face, bold) in _REAL_METRICS
+
+
+def supported_fonts() -> frozenset[str]:
+    return frozenset(_FONT_RATIOS.keys())
+
+
+def chars_per_line(font_family: str, font_size_pt: float, bold: bool,
+                   width_emu: int) -> int:
+    """Estimate characters that fit on one wrapped line.
+
+    Uses empirical width ratios when available; falls back to the 'default'
+    heuristic (0.50 normal, 0.55 bold).
+    """
+    from feinschmiede.geometry.units import EMU_PER_PT
+    width_pt = width_emu / EMU_PER_PT
+    if font_size_pt <= 0 or width_pt <= 0:
+        return 9999
+
+    # Try real PIL metrics first (from feinschmiede.text.measure), then ratio
+    # table, then default.
+    ratio: float | None = None
+    try:
+        from feinschmiede.text.measure import avg_char_width_ratio
+        ratio = avg_char_width_ratio(font_family, bold=bold)
+    except ImportError:
+        pass
+
+    if ratio is None:
+        entry = _FONT_RATIOS.get(font_family) or _FONT_RATIOS["default"]
+        ratio = entry["bold"] if bold else entry["normal"]
+
+    return max(1, int(width_pt / (font_size_pt * ratio)))
 
 
 def register_tokens_font_metrics(tokens) -> None:
-    """Register tokens' `font-metrics` width ratios with the textfit table.
+    """Register tokens' ``font-metrics`` width ratios.
 
     Block shape: ``{"<Family>": {"normal": 0.48, "bold": 0.53}, ...}``;
-    ``$``-prefixed keys (descriptions etc.) are skipped. Malformed entries
-    are ignored — metrics are a measurement aid, never a build-breaker.
+    ``$``-prefixed keys are skipped. Malformed entries are ignored.
     """
     raw = getattr(tokens, "raw", None)
     block = raw.get("font-metrics") if isinstance(raw, dict) else None
@@ -60,17 +86,31 @@ def register_tokens_font_metrics(tokens) -> None:
         if family.startswith("$") or not isinstance(m, dict):
             continue
         try:
-            _register_font_metrics(
+            register_font_metrics(
                 family, normal=float(m["normal"]), bold=float(m["bold"])
             )
         except (KeyError, TypeError, ValueError):
             continue
 
 
-# Slot interpolation — matches {{ slot_name }}, {{ cells[0].heading }}, etc.
+# Slot interpolation RE — matches {{ slot_name }}, {{ cells[0].heading }}, etc.
 _SLOT_RE = re.compile(r"\{\{([^{}]+)\}\}")
 # Normalise array indices: cells[0].heading → cells[].heading
 _IDX_RE = re.compile(r"\[\d+\]")
+
+
+def _extract_single_slot(label: str) -> str | None:
+    """Return the normalised slot name if *label* contains exactly one slot
+    interpolation, otherwise None (multi-slot or no-slot labels are skipped).
+    """
+    matches = _SLOT_RE.findall(label)
+    if len(matches) != 1:
+        return None
+    raw = matches[0].strip()
+    # Drop Jinja filters (e.g. `{{ text_5 | default("…") }}`) so the key is the
+    # bare slot reference.
+    raw = raw.split("|", 1)[0].strip()
+    return _IDX_RE.sub("[]", raw)
 
 
 @dataclass(frozen=True)
@@ -81,31 +121,30 @@ class SlotBudget:
     EMU-converted equivalents for ``textfit`` are exposed as properties.
     """
     slot: str               # normalised slot key, e.g. "action_title" or "cells[].heading"
-    style: str              # DSL style name, e.g. "act-title"
+    style: str              # style name, e.g. "act-title"
     size_px: float          # font size in design-px
     line_height: float      # CSS line-height multiplier
     width_px: float         # maxwidth in design-px
     height_px: float        # maxheight in design-px (0 = unconstrained)
     font_family: str        # primary font family name
     bold: bool              # whether the style uses bold weight
-    x_px: float = 0.0       # slot origin x in design-px (from DSL pos_args "X,Y")
-    y_px: float = 0.0       # slot origin y in design-px (from DSL pos_args "X,Y")
+    x_px: float = 0.0       # slot origin x in design-px
+    y_px: float = 0.0       # slot origin y in design-px
     autoshrink: bool = False  # emitter will shrink to fit (10pt floor) when True
-    inset_w_emu: int = 0    # total horizontal text-frame inset the emitter subtracts from fit envelope (both sides summed), mirroring pptx_emit's padding rules
+    inset_w_emu: int = 0    # total horizontal text-frame inset (both sides summed)
     inset_h_emu: int = 0    # total vertical text-frame inset (both sides summed)
-    emu_per_px: float = units.EMU_PER_PX_BASELINE  # design-px → EMU scale (derived from tokens slide.width_emu)
-    px_to_pt: float = units.PX_TO_PT_BASELINE       # design-px → pt scale (emu_per_px / EMU_PER_PT)
+    emu_per_px: float = units.EMU_PER_PX_BASELINE  # design-px → EMU scale
+    px_to_pt: float = units.PX_TO_PT_BASELINE       # design-px → pt scale
 
     # ── derived geometry ──────────────────────────────────────────────────
     @property
     def font_size_pt(self) -> float:
-        """Rendered font size in pt — size_px at the build's px→pt scale,
-        identical to what pptx_emit's Pt() conversion produces."""
+        """Rendered font size in pt."""
         return self.size_px * self.px_to_pt
 
     @property
     def size_pt(self) -> float:
-        """Deprecated alias for :attr:`font_size_pt` (one release)."""
+        """Deprecated alias for :attr:`font_size_pt`."""
         return self.font_size_pt
 
     @property
@@ -119,17 +158,11 @@ class SlotBudget:
     @property
     def chars_per_line(self) -> int:
         """Estimated characters that fit on one wrapped line."""
-        return _cpl(self.font_family, self.font_size_pt, self.bold, self.width_emu)
+        return chars_per_line(self.font_family, self.font_size_pt, self.bold, self.width_emu)
 
     @property
     def max_lines(self) -> int:
         """Maximum lines that fit in height_px at this line-height.
-
-        Mirrors :func:`feinschliff.textfit.measure_height_emu`: inter-line
-        leading applies only BETWEEN lines; the trailing line contributes
-        its em box (PowerPoint lets the last line's overshoot bleed past
-        the shape edge instead of clipping). n lines fit while
-        ``(n-1) * line_h + em <= height``.
 
         Returns a large sentinel (999) when height_px is 0 or very large,
         meaning the slot is effectively unconstrained vertically.
@@ -150,221 +183,6 @@ class SlotBudget:
         return self.chars_per_line * self.max_lines
 
 
-def _extract_single_slot(label: str) -> str | None:
-    """Return the normalised slot name if *label* contains exactly one slot
-    interpolation, otherwise None (multi-slot or no-slot labels are skipped).
-    """
-    matches = _SLOT_RE.findall(label)
-    if len(matches) != 1:
-        return None
-    raw = matches[0].strip()
-    # Drop Jinja filters (e.g. `{{ text_5 | default("…") }}`) so the key is the
-    # bare slot reference. Brand layouts write every slot with a `| default(…)`
-    # fallback; keying on the whole expression made budgets unmatchable by the
-    # content-lint and verify-static lookups (which key on the normalised slot
-    # name via `iter_slot_values`) — silently disabling the overflow check for
-    # those slots.
-    raw = raw.split("|", 1)[0].strip()
-    return _IDX_RE.sub("[]", raw)
-
-
-def _bold_for_weight(weight: int) -> bool:
-    return weight >= 600
-
-
-def _best_font(font_family: list[str]) -> str:
-    """Return the first font in *font_family* known to textfit, or 'default'.
-
-    Walks the full list so that fallback fonts (e.g. ``['BrandFont', 'Open
-    Sans']``) can resolve to 'Open Sans' when BrandFont has no empirical
-    width ratio. Logs a warning to stderr when no explicit match is found.
-    """
-    known = _supported_fonts()
-    for name in font_family:
-        if name in known:
-            return name
-    if font_family:
-        print(
-            f"slot_budget: font {font_family[0]!r} not in width-ratio table; "
-            "falling back to default ratios",
-            file=sys.stderr,
-        )
-    return "default"
-
-
-def _budget_face(font_family: list[str], weight: int) -> tuple[str, bool]:
-    """The (face, bold) textfit should model for this budget — the same face
-    the emitter's fit paths use, whenever textfit can actually model it.
-
-    Priority:
-    1. The emitter's face (family[0] + weight suffix via pptx_emit._resolve_face)
-       when it is registered/ratio-table-known or has real measured metrics —
-       keeps gate predictions on the same glyph widths the emitter fits with.
-    2. Otherwise today's fallback walk (_best_font + _bold_for_weight) so
-       fallback-list brands and metric-less environments are unchanged.
-
-    Named weight-variant faces (e.g. "Open Sans SemiBold" at weight 600) are
-    rarely in the table or measurable, so they fall through to path 2 until
-    registered.
-    """
-    if font_family:
-        # Lazy import: pptx_emit pulls python-pptx/PIL — only needed here.
-        from feinschliff.dsl.pptx_emit import _resolve_face
-        face, bold = _resolve_face(font_family[0], weight)
-        if face in _supported_fonts() or _has_real_metrics(face, bold):
-            return face, bold
-    return (_best_font(font_family) if font_family else "default",
-            _bold_for_weight(weight))
-
-
-def compute_slot_budgets(
-    nodes: Sequence[DSLNode],
-    tokens: Tokens,
-    *,
-    # Safety margin: reduce effective width/height by this fraction before
-    # computing chars_per_line / max_lines. 0.0 = use raw values (default,
-    # conservative callers can pass 0.10 for a 10% buffer).
-    margin: float = 0.0,
-    # When provided, compound calls inside `nodes` are expanded with the
-    # call's positional/keyword args substituted into the compound body
-    # before slot extraction. This lets the budget gate see text primitives
-    # that live inside compounds like `kpi-cell`. Pass the same compounds
-    # dict used at render time (load_compounds_for_brand).
-    compounds: dict[str, CompoundDef] | None = None,
-) -> dict[str, SlotBudget]:
-    """Parse *nodes* and return a per-slot typographic budget dict.
-
-    Only ``text`` nodes whose label contains **exactly one** ``{{ slot }}``
-    interpolation are considered. Nodes without ``maxwidth`` are skipped
-    (their width is effectively unbounded and no useful budget can be stated).
-    When the same normalised slot key appears more than once with different
-    geometry (e.g. two text boxes using the same slot at different sizes),
-    the **tightest** budget (smallest ``max_chars``) wins — that's the
-    box most likely to overflow first.
-
-    The optional *margin* argument shrinks effective width and height by a
-    fraction, e.g. ``margin=0.10`` provides a 10% safety buffer above the raw
-    pixel constraint.
-
-    The production default is ``margin=0.0`` — the showcase corpus is tuned
-    to fit at the raw pixel envelope. A non-zero margin would weaken the
-    constraint (false negatives) on already-fitting content; callers who
-    want a safety buffer should pass it explicitly.
-    """
-    # Brand packs ship width ratios for their own (often proprietary) fonts
-    # via a tokens `font-metrics` block. Register them here, not only in
-    # compile_slide: budgets are also computed from entry points that never
-    # compile a slide (the default static gate, deck plan-skeleton), and all
-    # of them pass `tokens`.
-    register_tokens_font_metrics(tokens)
-
-    candidates: dict[str, list[SlotBudget]] = {}
-
-    if compounds:
-        # Pre-expand compound calls so text primitives inside compound
-        # bodies become visible to the budget walker. The call args carry
-        # their slot references (e.g. value:"{{ kpis[0].value }}") through
-        # parameter substitution — the resulting text labels end up with
-        # the right `{{ slot }}` shape for `_extract_single_slot`.
-        from feinschliff.dsl.expander import expand_compounds  # local import; avoid cycle
-        nodes, _ = expand_compounds(list(nodes), compounds)
-
-    # Derive px→EMU/pt scale from the canvas width and tokens slide.width_emu.
-    # Decompiled brand packs write width_emu to tokens.json; without it we fall
-    # back to the 1920px/13.33in legacy baseline so existing layouts are unchanged.
-    canvas_w = 1920.0
-    for n in nodes:
-        if n.kind == "canvas" and n.pos_args:
-            try:
-                canvas_w = float(str(n.pos_args[0]).lower().split("x")[0])
-            except ValueError:
-                pass
-            break
-    try:
-        width_emu_token = tokens.slide("width_emu")
-    except Exception:
-        width_emu_token = 0
-    emu_per_px = units.emu_per_px(width_emu_token, canvas_w)
-    px_to_pt = emu_per_px / units.EMU_PER_PT
-
-    for node in nodes:
-        if node.kind != "text":
-            continue
-        label = node.label
-        if not label:
-            continue
-        slot = _extract_single_slot(label)
-        if slot is None:
-            continue
-
-        x_px = y_px = 0.0
-        if node.pos_args:
-            try:
-                x_px, y_px = parse_xy(node.pos_args[0])
-            except ValueError:
-                pass
-
-        style_name = node.kw_args.get("style", "body")
-        maxwidth_str = node.kw_args.get("maxwidth")
-        if not maxwidth_str:
-            continue  # unbounded width — no useful budget
-        try:
-            width_px = float(maxwidth_str) * (1.0 - margin)
-        except ValueError:
-            print(
-                f"slot_budget: skipping node — cannot parse maxwidth {maxwidth_str!r}",
-                file=sys.stderr,
-            )
-            continue
-
-        maxheight_str = node.kw_args.get("maxheight")
-        try:
-            height_px = float(maxheight_str) * (1.0 - margin) if maxheight_str else 0.0
-        except ValueError:
-            print(
-                f"slot_budget: cannot parse maxheight {maxheight_str!r}; "
-                "treating slot as vertically unconstrained",
-                file=sys.stderr,
-            )
-            height_px = 0.0
-
-        # resolve_node_style raises on unknown style/color/weight/size tokens —
-        # such nodes are unbudgetable, skip them (the emitter will fail loudly on the same token).
-        try:
-            resolved = resolve_node_style(node, tokens, px_to_pt=px_to_pt)
-        except (KeyError, ValueError):
-            continue
-
-        font_name, bold = _budget_face(resolved.font_family, resolved.weight)
-        inset_w, inset_h = text_insets_emu(node, emu_per_px)
-        budget = SlotBudget(
-            slot=slot,
-            style=style_name,
-            size_px=resolved.size_px,
-            line_height=resolved.line_height,
-            width_px=width_px,
-            height_px=height_px,
-            font_family=font_name,
-            bold=bold,
-            x_px=x_px,
-            y_px=y_px,
-            autoshrink=str(node.kw_args.get("autoshrink", "")).lower() == "true",
-            inset_w_emu=inset_w,
-            inset_h_emu=inset_h,
-            emu_per_px=emu_per_px,
-            px_to_pt=px_to_pt,
-        )
-        candidates.setdefault(slot, []).append(budget)
-
-    # Keep tightest budget per slot. Primary key: max_chars (overall capacity);
-    # tie-break on chars_per_line so the narrowest box wins when multiple
-    # candidates are unconstrained vertically (all have max_chars=9999).
-    result: dict[str, SlotBudget] = {}
-    for slot, budget_list in candidates.items():
-        result[slot] = min(budget_list, key=lambda b: (b.max_chars, b.chars_per_line))
-    return result
-
-
 def format_budget_hint(budgets: dict[str, SlotBudget]) -> str:
     """Return a compact, LLM-readable table of slot constraints.
 
@@ -373,7 +191,7 @@ def format_budget_hint(budgets: dict[str, SlotBudget]) -> str:
 
     Example output::
 
-        Slot typographic budgets (derived from layout DSL + tokens):
+        Slot typographic budgets (derived from layout + tokens):
         action_title  : style=act-title 56px | ~51 chars/line | max 2 lines | max ~102 chars total
         heading       : style=h-hd      32px | ~19 chars/line | max 2 lines | max ~38 chars total
         body          : style=body      26px | ~28 chars/line | max 3 lines | max ~84 chars total
@@ -387,7 +205,7 @@ def format_budget_hint(budgets: dict[str, SlotBudget]) -> str:
     if not budgets:
         return ""
 
-    lines = ["Slot typographic budgets (derived from layout DSL + tokens):"]
+    lines = ["Slot typographic budgets (derived from layout + tokens):"]
     max_slot_len = max(len(s) for s in budgets)
     for slot, b in sorted(budgets.items()):
         if b.max_lines >= 999:

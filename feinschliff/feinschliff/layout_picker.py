@@ -156,11 +156,30 @@ def _default_profile_table() -> dict[str, dict]:
     ``strict=False`` so a single malformed third-party layout drops out of
     the candidate set rather than failing every deck build; the toolkit's
     own bundled layouts are held to ``strict=True`` by the test suite.
-    """
-    from feinschliff.layout_discovery import discover_layout_paths
-    from feinschliff.layout_profile import build_profile_table
 
-    return build_profile_table(discover_layout_paths(), strict=False)
+    Note: layout_discovery (DSL-era) has been removed. Callers that need
+    the full on-disk layout set should pass ``profiles`` explicitly via the
+    brand-aware ``feinschliff.deck.picker.LayoutPicker``. This default
+    returns an empty table so no-brand calls gracefully produce zero
+    candidates rather than crashing.
+    """
+    try:
+        from feinschliff.layout_profile import build_profile_table
+        # Try to find layouts from the brands/ directory directly.
+        import importlib.resources as _ir
+        from pathlib import Path as _Path
+        import feinschliff as _pkg
+        pkg_root = _Path(_pkg.__file__).resolve().parent
+        layouts_root = pkg_root / "layouts"
+        if layouts_root.is_dir():
+            paths = {
+                p.name[: -len(".slide.dsl")]: p
+                for p in layouts_root.glob("*.slide.dsl")
+            }
+            return build_profile_table(paths, strict=False)
+    except Exception:
+        pass
+    return {}
 
 
 # Layouts that came in with Phase 4 — used by tests + docs to draw the

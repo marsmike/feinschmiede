@@ -40,7 +40,7 @@ If you catch yourself writing "and also..." in body text, split the slide.
 
 - Before a major concept shift: chapter opener.
 - For every distinct numeric comparison: its own slide.
-- Never cram more than 6 items into any layout (each `.slide.dsl` declares maxItems in its slot schema header).
+- Never cram more than 6 items into any layout (each layout's placeholders[] in `layouts.yaml` declares the available slot count + per-slot `char_budget`).
 
 ## When to skip a layout
 
