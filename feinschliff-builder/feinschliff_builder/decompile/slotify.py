@@ -483,6 +483,212 @@ def _slotify_native_xml(
     return _NATIVE_T_RE.sub(repl, xml), slots
 
 
+_PIC_XFRM_OFF_RE = re.compile(r'<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"\s*/>')
+_PIC_XFRM_EXT_RE = re.compile(r'<a:ext\s+cx="(\d+)"\s+cy="(\d+)"\s*/>')
+_PIC_NAME_RE = re.compile(r'<p:cNvPr\s[^>]*\bname="([^"]*)"')
+_PIC_BLIP_RE = re.compile(r'<a:blip\s[^>]*\br:embed="([^"]*)"')
+_PIC_DECORATIVE_RE = re.compile(r'<adec:decorative\s+val="1"')
+_PIC_LOGO_NAME_RE = re.compile(r"logo|mark|icon|signet", re.IGNORECASE)
+# Split a native payload XML into individual <p:pic>…</p:pic> blocks.
+_PIC_ELEMENT_RE = re.compile(r"<p:pic\b.*?</p:pic>", re.DOTALL)
+# Relationship block: maps rId -> target filename + ext
+_REL_BLOCK_RE = re.compile(r'<Relationship\s[^>]*\bId="([^"]*)"[^>]*\bTarget="([^"]*)"')
+
+_EMU_PER_PX = 9525  # PowerPoint standard: 1 design-px = 9525 EMU
+
+
+def slotify_native_pictures(
+    dsl_text: str,
+    asset_root: Path | None,
+    canvas_w_px: int = 1920,
+    canvas_h_px: int = 1080,
+    area_threshold: float = 0.05,
+    next_idx: int = 1,
+) -> tuple[str, list[dict], list[str]]:
+    """Promote qualifying content ``<p:pic>`` elements inside native payloads
+    to top-level ``image`` DSL slots.
+
+    For each ``native <id>`` line whose payload XML contains ``<p:pic>``
+    elements, this function:
+
+    1. Decodes the XML (b64 inline or xml_file sidecar).
+    2. Inspects each ``<p:pic>`` for geometry and skip conditions.
+    3. For qualifying pics, emits an ``image image_<N> class=replace @x,y wxh``
+       DSL line, saves extracted image bytes when resolvable, and removes the
+       ``<p:pic>`` from the payload.
+    4. Re-encodes the modified XML and updates the native line.
+
+    Skip conditions (any one causes the pic to stay in the native payload):
+    - Area ratio below ``area_threshold`` (small chrome / decorative).
+    - Name matches ``logo|mark|icon|signet`` (case-insensitive).
+    - Carries ``<adec:decorative val="1">``.
+    - Has no ``<a:blip r:embed="…">`` (no actual image data).
+
+    Image DSL lines are inserted right before the ``native`` block they came
+    from, or after the last existing ``image``/``picture`` line if one exists
+    earlier in the file — whichever avoids splitting the native block.
+
+    Returns ``(new_dsl, image_slot_dicts, log_lines)`` where each slot dict is
+    ``{"name", "native_id", "x", "y", "w", "h", "asset_path"}``.
+    """
+    import base64
+    import hashlib
+
+    canvas_area = canvas_w_px * canvas_h_px
+
+    out_lines: list[str] = []
+    all_slots: list[dict] = []
+    logs: list[str] = []
+    current_idx = next_idx
+
+    for line in dsl_text.splitlines(keepends=True):
+        body = line.rstrip("\n")
+        m = _NATIVE_LINE_RE.match(body)
+        if m is None:
+            out_lines.append(line)
+            continue
+
+        native_id, rest = m.group(1), m.group(2)
+        kwargs = dict(_NATIVE_KW_RE.findall(rest))
+        xml: str | None = None
+        sidecar: Path | None = None
+
+        if kwargs.get("b64"):
+            try:
+                xml = base64.b64decode(kwargs["b64"]).decode("utf-8")
+            except (ValueError, UnicodeDecodeError):
+                xml = None
+        elif kwargs.get("xml_file") and asset_root is not None:
+            sidecar = asset_root / kwargs["xml_file"]
+            if sidecar.is_file():
+                xml = sidecar.read_text(encoding="utf-8")
+
+        if xml is None or "<p:pic" not in xml:
+            out_lines.append(line)
+            continue
+
+        # Parse relationship block for RID → filename/ext mapping
+        rid_map: dict[str, tuple[str, str]] = {}
+        for rm in _REL_BLOCK_RE.finditer(xml):
+            rid, target = rm.group(1), rm.group(2)
+            import posixpath
+            ext = posixpath.splitext(target)[1].lstrip(".")
+            rid_map[rid] = (target, ext or "bin")
+
+        pics = _PIC_ELEMENT_RE.findall(xml)
+        if not pics:
+            out_lines.append(line)
+            continue
+
+        image_lines: list[str] = []
+        slot_dicts: list[dict] = []
+
+        for pic_xml in pics:
+            # --- Skip conditions ---
+            if _PIC_DECORATIVE_RE.search(pic_xml):
+                continue
+            blip_m = _PIC_BLIP_RE.search(pic_xml)
+            if blip_m is None:
+                continue
+            name_m = _PIC_NAME_RE.search(pic_xml)
+            if name_m and _PIC_LOGO_NAME_RE.search(name_m.group(1)):
+                continue
+
+            # --- Geometry ---
+            off_m = _PIC_XFRM_OFF_RE.search(pic_xml)
+            ext_m = _PIC_XFRM_EXT_RE.search(pic_xml)
+            if not (off_m and ext_m):
+                continue
+            x_px = int(off_m.group(1)) // _EMU_PER_PX
+            y_px = int(off_m.group(2)) // _EMU_PER_PX
+            w_px = int(ext_m.group(1)) // _EMU_PER_PX
+            h_px = int(ext_m.group(2)) // _EMU_PER_PX
+
+            if w_px <= 0 or h_px <= 0:
+                continue
+            area_ratio = (w_px * h_px) / canvas_area
+            if area_ratio < area_threshold:
+                continue
+
+            # --- Image bytes extraction (best-effort) ---
+            asset_path: str | None = None
+            r_id = blip_m.group(1)
+            if asset_root is not None and r_id in rid_map:
+                _target, ext = rid_map[r_id]
+                # For sidecar payloads the image file lives under asset_root.
+                # Try to locate it relative to the sidecar directory.
+                candidate = asset_root / _target.lstrip("/")
+                if candidate.is_file():
+                    img_bytes = candidate.read_bytes()
+                    sha8 = hashlib.sha1(img_bytes).hexdigest()[:8]
+                    dest = asset_root / f"native_pic_{sha8}.{ext}"
+                    if not dest.exists():
+                        dest.write_bytes(img_bytes)
+                    asset_path = str(dest)
+
+            # --- Slot allocation ---
+            slot_name = f"image_{current_idx}"
+            current_idx += 1
+            image_lines.append(
+                f"image {slot_name} class=replace @{x_px},{y_px} {w_px}x{h_px}"
+            )
+            slot_dicts.append({
+                "name": slot_name,
+                "native_id": native_id,
+                "x": x_px, "y": y_px,
+                "w": w_px, "h": h_px,
+                "asset_path": asset_path,
+            })
+
+        if not slot_dicts:
+            # No pics qualified — leave the line unchanged.
+            out_lines.append(line)
+            continue
+
+        # Remove promoted <p:pic> elements from the XML.
+        # Cross-check by geometry to identify which pic_xml strings to drop.
+        promoted_set: set[str] = set()
+        for pic_xml in pics:
+            off_m = _PIC_XFRM_OFF_RE.search(pic_xml)
+            ext_m = _PIC_XFRM_EXT_RE.search(pic_xml)
+            if not (off_m and ext_m):
+                continue
+            x_px = int(off_m.group(1)) // _EMU_PER_PX
+            y_px = int(off_m.group(2)) // _EMU_PER_PX
+            w_px = int(ext_m.group(1)) // _EMU_PER_PX
+            h_px = int(ext_m.group(2)) // _EMU_PER_PX
+            for d in slot_dicts:
+                if d["x"] == x_px and d["y"] == y_px and d["w"] == w_px and d["h"] == h_px:
+                    promoted_set.add(pic_xml)
+                    break
+
+        new_xml = xml
+        for pic_xml in promoted_set:
+            new_xml = new_xml.replace(pic_xml, "", 1)
+
+        # Re-encode the modified native payload.
+        new_native_line: str
+        if sidecar is not None:
+            sidecar.write_text(new_xml, encoding="utf-8")
+            new_native_line = line
+        else:
+            new_b64 = base64.b64encode(new_xml.encode("utf-8")).decode("ascii")
+            new_body = body.replace(kwargs["b64"], new_b64, 1)
+            new_native_line = new_body + ("\n" if line.endswith("\n") else "")
+
+        # Emit image DSL lines immediately before this native line.
+        for img_line in image_lines:
+            out_lines.append(img_line + ("\n" if line.endswith("\n") else ""))
+        out_lines.append(new_native_line)
+        all_slots.extend(slot_dicts)
+        logs.append(
+            f"{native_id}: {len(slot_dicts)} pic(s) promoted "
+            f"({', '.join(d['name'] for d in slot_dicts)})"
+        )
+
+    return "".join(out_lines), all_slots, logs
+
+
 def slotify_native_text(
     dsl_text: str, asset_root: Path | None
 ) -> tuple[str, list[dict], list[str]]:

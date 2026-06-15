@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -36,6 +37,7 @@ from feinschliff_builder.decompile.slotify import (
     clip_text_to_images,
     clip_to_images_enabled,
     slotify_dsl,
+    slotify_native_pictures,
     slotify_native_text,
 )
 from feinschliff_builder.verify.verify_map import load_verify_map
@@ -135,6 +137,19 @@ def cmd_slotify(args) -> int:
             for line in native_logs:
                 print(f"  {path.name}: {line}")
             slots = slots + [ns["name"] for ns in native_slots]
+            # Promote qualifying content <p:pic> elements to image slots so
+            # the layout picker's image-bonus logic can surface them and the
+            # image provider can populate them.
+            existing_img = [
+                int(m.group(1))
+                for m in re.finditer(r"\bimage_(\d+)\b", new_text)
+            ]
+            pic_next_idx = max(existing_img, default=0) + 1
+            new_text, pic_slots, pic_logs = slotify_native_pictures(
+                new_text, brand_pack / "assets", next_idx=pic_next_idx)
+            for line in pic_logs:
+                print(f"  {path.name}: {line}")
+            slots = slots + [ps["name"] for ps in pic_slots]
         if clip_enabled:
             new_text, clips = clip_text_to_images(
                 new_text,
