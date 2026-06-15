@@ -203,6 +203,71 @@ def test_find_layout_returns_none_when_not_found(tmp_path, monkeypatch):
     assert _resolve_layout_path(pack.layouts_path, "nonexistent") is None
 
 
+def test_find_layout_resolves_sibling_brand_prefix(tmp_path, monkeypatch):
+    """``<brand>-<stem>`` resolves against a sibling brand pack."""
+    from feinschliff.deck.picker import _resolve_layout_path
+
+    packs = tmp_path / "brands"
+    active = _write_brand(packs, "bosch")
+    (active / "layouts").mkdir()
+    sibling = _write_brand(packs, "bsh")
+    sibling_layouts = sibling / "layouts"
+    sibling_layouts.mkdir()
+    target = sibling_layouts / "slide-25.slide.dsl"
+    target.write_text("canvas 1920x1080")
+
+    monkeypatch.setattr("feinschliff.layout_discovery.find_layout", lambda name: None)
+    pack = BrandPack.load(active)
+    assert _resolve_layout_path(pack.layouts_path, "bsh-slide-25") == target
+
+
+def test_find_layout_brand_prefix_handles_multiword_brand(tmp_path, monkeypatch):
+    """Brand names containing ``-`` are matched by trying increasingly long prefixes."""
+    from feinschliff.deck.picker import _resolve_layout_path
+
+    packs = tmp_path / "brands"
+    active = _write_brand(packs, "bosch")
+    (active / "layouts").mkdir()
+    sibling = _write_brand(packs, "gs-ramspau")
+    sibling_layouts = sibling / "layouts"
+    sibling_layouts.mkdir()
+    target = sibling_layouts / "slide-01.slide.dsl"
+    target.write_text("canvas 1920x1080")
+
+    monkeypatch.setattr("feinschliff.layout_discovery.find_layout", lambda name: None)
+    pack = BrandPack.load(active)
+    assert _resolve_layout_path(pack.layouts_path, "gs-ramspau-slide-01") == target
+
+
+def test_find_layout_brand_prefix_unknown_brand_returns_none(tmp_path, monkeypatch):
+    """Unknown prefix falls through; toolkit discovery is the last resort."""
+    from feinschliff.deck.picker import _resolve_layout_path
+
+    packs = tmp_path / "brands"
+    active = _write_brand(packs, "bosch")
+    (active / "layouts").mkdir()
+
+    monkeypatch.setattr("feinschliff.layout_discovery.find_layout", lambda name: None)
+    pack = BrandPack.load(active)
+    assert _resolve_layout_path(pack.layouts_path, "doesnotexist-slide-25") is None
+
+
+def test_orchestrate_resolve_layout_path_handles_brand_prefix(tmp_path):
+    """``resolve_layout_path`` (used by the deck builder) honours brand prefixes."""
+    from feinschliff.deck.orchestrate import resolve_layout_path
+
+    packs = tmp_path / "brands"
+    active = _write_brand(packs, "bosch")
+    (active / "layouts").mkdir()
+    sibling = _write_brand(packs, "bsh")
+    sibling_layouts = sibling / "layouts"
+    sibling_layouts.mkdir()
+    target = sibling_layouts / "slide-25.slide.dsl"
+    target.write_text("canvas 1920x1080")
+
+    assert resolve_layout_path(active, "bsh-slide-25") == target
+
+
 # ---------------------------------------------------------------------------
 # find_compound
 # ---------------------------------------------------------------------------

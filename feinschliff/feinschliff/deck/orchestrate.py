@@ -151,10 +151,19 @@ def resolve_layout_path(brand_root: Path, layout_name: str) -> Path | None:
     Path or None
         Absolute path to the ``.slide.dsl`` file, or ``None`` when not found.
     """
-    from feinschliff.layout_discovery import find_layout as _find_layout
+    from feinschliff.layout_discovery import (
+        find_layout as _find_layout,
+        resolve_brand_prefixed as _resolve_brand_prefixed,
+    )
     brand_local = brand_root / "layouts" / f"{layout_name}.slide.dsl"
     if brand_local.is_file():
         return brand_local
+    # ``<brand>-<stem>`` form addresses a sibling brand pack under the
+    # same ``brands/`` parent — lets plans pick a specific brand's
+    # layout when two packs ship the same stem.
+    cross = _resolve_brand_prefixed(brand_root, layout_name)
+    if cross is not None:
+        return cross
     layout = _find_layout(layout_name)
     return layout.path if layout is not None else None
 
