@@ -69,6 +69,7 @@ from feinschliff.pipeline import compile_slide
 from feinschliff.defects import fatal_kinds, format_defect
 from feinschmiede.brand_discovery import find_brand
 from feinschliff.io.image_provider import discover_providers, get_provider
+from feinschliff.io.image_providers import chain_from_brand_config
 
 # Core verify imports — available without feinschliff-builder.
 from feinschliff.verify.deck.notes_budget import validate_notes
@@ -815,15 +816,25 @@ def cmd_build(args) -> int:
     # a registry listing — surfaces as the normal CLI traceback.
     discover_providers()
     provider = None
+    chain = None
     try:
         default_brand_obj = find_brand(default_brand)
     except ValueError as e:
         print(f"deck: {e}", file=sys.stderr)
         return 2
-    if (default_brand_obj.image_provider_config
-            and not getattr(args, "no_image_provider", False)):
-        cfg = default_brand_obj.image_provider_config
-        provider = get_provider(cfg["kind"], cfg.get("config"))
+    if not getattr(args, "no_image_provider", False):
+        _raw_tokens = getattr(default_brand_obj, "tokens", {}) or {}
+        _ip_list = _raw_tokens.get("$image_providers")
+        if _ip_list is not None:
+            chain = chain_from_brand_config(_ip_list, brand_root=default_brand_obj.root)
+        elif default_brand_obj.image_provider_config:
+            # Backwards compat: singular $image_provider → one-element chain.
+            chain = chain_from_brand_config(
+                default_brand_obj.image_provider_config,
+                brand_root=default_brand_obj.root,
+            )
+            cfg = default_brand_obj.image_provider_config
+            provider = get_provider(cfg["kind"], cfg.get("config"))
 
     # ── Pre-render static geometry verify (--strict-static) ──────────────
     if getattr(args, "strict_static", False):
@@ -1175,11 +1186,17 @@ def cmd_build(args) -> int:
             slides_payload,
             asset_root_fallback=_bundled_assets(),
             image_provider=provider,
+            provider_chain=chain,
             deck_dir=out_path.parent,
             slide_numbers=not getattr(args, "no_slide_numbers", False),
         )
         missing = getattr(prs, "missing_assets", []) or []
-        if missing and not getattr(args, "allow_missing_assets", False):
+        # --allow-missing-assets is suppressed when a provider chain is
+        # configured and failed — operator must fix chain, not ship blank deck.
+        chain_failed = chain is not None and any(
+            e.get("kind") == "chain-miss" for e in missing
+        )
+        if missing and (chain_failed or not getattr(args, "allow_missing_assets", False)):
             for entry in missing:
                 kind = entry.get("kind", "missing")
                 path = entry.get("path") or "(unset)"
