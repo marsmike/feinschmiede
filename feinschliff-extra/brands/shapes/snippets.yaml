@@ -1,0 +1,40 @@
+snippets:
+- id: title-only
+  source_idx: 0
+  intent: Basic presentation
+- id: title-and-content
+  source_idx: 1
+  intent: Agenda | Introduction | Building confidence | Engaging the audience
+- id: title-and-picture
+  source_idx: 2
+  intent: The power | of communication
+- id: summary
+  source_idx: 3
+  intent: Overcoming | nervousness | Confidence-building | strategies
+- id: title-and-content-2
+  source_idx: 4
+  intent: Engaging the audience | Make eye contact with your audience to create a sense of
+- id: section-title
+  source_idx: 5
+  intent: Selecting | visual aids  | Enhancing your | presentation
+- id: two-content-1
+  source_idx: 6
+  intent: Effective delivery techniques | This is a powerful tool in public speaking. It i
+- id: two-content-2
+  source_idx: 7
+  intent: Navigating Q&A sessions | Know your material in advance | Anticipate common ques
+- id: content-and-picture
+  source_idx: 8
+  intent: Speaking impact | Your ability to communicate effectively will leave a lasting i
+- id: content-and-table
+  source_idx: 9
+  intent: 'Dynamic delivery | Learn to infuse energy into your delivery to leave a lasting '
+- id: two-content-3
+  source_idx: 10
+  intent: Final tips & takeaways | Consistent rehearsal | Strengthen your familiarity | Re
+- id: table
+  source_idx: 11
+  intent: Speaking engagement metrics | Impact  factor | Measurement | Target
+- id: content-3
+  source_idx: 12
+  intent: Thank you | Brita Tamm | 502-555-0152 | brita@firstupconsultants.com

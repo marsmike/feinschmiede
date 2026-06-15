@@ -1,0 +1,392 @@
+layouts:
+- name: Title
+  role: cover
+  placeholders:
+  - idx: 11
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+- name: Agenda
+  role: agenda
+  placeholders:
+  - idx: 10
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Intro
+  role: chapter
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Section Break
+  role: chapter
+  placeholders:
+  - idx: 10
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+- name: Chart
+  role: content
+  placeholders:
+  - idx: 11
+    type: CHART (8)
+    role: body
+    char_budget: 400
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 14
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Table
+  role: content
+  placeholders:
+  - idx: 10
+    type: TABLE (12)
+    role: body
+    char_budget: 400
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Quote
+  role: callout
+  placeholders:
+  - idx: 10
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Team
+  role: content
+  placeholders:
+  - idx: 10
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 14
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 15
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 16
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 17
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 18
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 19
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 20
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 21
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 22
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 23
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 24
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Timeline
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 17
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 19
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 20
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 21
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 22
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 23
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 24
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 25
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 26
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 27
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 28
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Content 2 Column
+  role: content
+  placeholders:
+  - idx: 2
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 17
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 18
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 19
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 20
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 21
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Content 3 Column
+  role: content
+  placeholders:
+  - idx: 2
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 17
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 18
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 19
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 20
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 21
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 22
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Summary
+  role: closing
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 14
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: 'Thank you '
+  role: closing
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 14
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 15
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400

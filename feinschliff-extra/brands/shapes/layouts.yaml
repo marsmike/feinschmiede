@@ -1,0 +1,284 @@
+layouts:
+- name: Title only
+  role: cover
+  placeholders:
+  - idx: 0
+    type: CENTER_TITLE (3)
+    role: body
+    char_budget: 400
+- name: 'Title and Content '
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+- name: Title and Picture
+  role: content
+  placeholders:
+  - idx: 10
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+- name: Summary
+  role: closing
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 14
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Title and Content 2
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Section Title
+  role: content
+  placeholders:
+  - idx: 0
+    type: CENTER_TITLE (3)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: SUBTITLE (4)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Two Content 1
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 15
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Two Content 2
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 15
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Content and Picture
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Content and Table
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: TABLE (12)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Two Content 3
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 2
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Table
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: TABLE (12)
+    role: body
+    char_budget: 400
+- name: Content 3
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: DATE (16)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: FOOTER (15)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400

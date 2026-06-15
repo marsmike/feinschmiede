@@ -1,0 +1,212 @@
+layouts:
+- name: Title slide
+  role: cover
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: SUBTITLE (4)
+    role: body
+    char_budget: 400
+- name: Title and content with image right
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Title + subtitle + picture
+  role: content
+  placeholders:
+  - idx: 0
+    type: CENTER_TITLE (3)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: SUBTITLE (4)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+- name: Title + subtitle
+  role: content
+  placeholders:
+  - idx: 0
+    type: CENTER_TITLE (3)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: SUBTITLE (4)
+    role: body
+    char_budget: 400
+- name: Title and content 2
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Title + picture
+  role: content
+  placeholders:
+  - idx: 13
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 0
+    type: CENTER_TITLE (3)
+    role: body
+    char_budget: 400
+- name: 'Content + picture '
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 14
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Two content light blue
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 2
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Title and two content
+  role: content
+  placeholders:
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 2
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+- name: Two content white
+  role: content
+  placeholders:
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 2
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+- name: Table
+  role: content
+  placeholders:
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: TABLE (12)
+    role: body
+    char_budget: 400
+- name: Two content green
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 2
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Closing
+  role: closing
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 14
+    type: BODY (2)
+    role: body
+    char_budget: 400

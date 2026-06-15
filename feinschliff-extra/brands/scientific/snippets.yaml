@@ -1,0 +1,40 @@
+snippets:
+- id: title-slide
+  source_idx: 0
+  intent: Scientific discovery | Aidyn Zhanbolat
+- id: title-and-content-with-image-right
+  source_idx: 1
+  intent: "agenda | About us | Product overview | Market\_overview"
+- id: title--subtitle--picture
+  source_idx: 2
+  intent: About us | Aiming to revolutionize industries through our forward-thinking solut
+- id: title--subtitle
+  source_idx: 3
+  intent: Product overview | Combining functionality and user-friendliness, we empower use
+- id: title-and-content-2
+  source_idx: 4
+  intent: Product benefits | Increased productivity | Seamless integration | Enhanced user
+- id: title--picture
+  source_idx: 5
+  intent: Market overview
+- id: content--picture
+  source_idx: 6
+  intent: market comparison | Stands out in market | Innovative features | Provides unique
+- id: two-content-light-blue
+  source_idx: 7
+  intent: Competitive landscape | Strong market presence | Positioned as a market leader |
+- id: title-and-two-content
+  source_idx: 8
+  intent: Growth strategy | Expand market reach through strategic partnerships | Enhance p
+- id: two-content-white
+  source_idx: 9
+  intent: Traction | Product launch | Successful introduction of our product to market | 1
+- id: table
+  source_idx: 10
+  intent: Financials | Quarter | Revenue ($) | Expenses ($)
+- id: two-content-green
+  source_idx: 11
+  intent: Summary | With this product, Adatum Corporation is positioned for success in the
+- id: closing
+  source_idx: 12
+  intent: Thank you | Aidyn zhanbolat | Aidyn@adatum.com | www.adatum.com
