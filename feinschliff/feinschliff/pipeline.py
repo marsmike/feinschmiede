@@ -42,7 +42,7 @@ from feinschliff.dsl.expander import (
 from feinschliff.dsl.parser import parse_file
 from feinschliff.dsl.pptx_emit import _slide_canvas
 from feinschmiede import compounds_dir
-from feinschmiede.dsl.tokens import load_tokens
+from feinschmiede.dsl.tokens import load_tokens_with_theme
 from feinschliff.layout_validator import (
     validate_diagrams,
     validate_diagrams_color,
@@ -80,10 +80,32 @@ def compile_slide(
     slide_index: int,
     diagrams_out_dir: Path,
     craft_check: bool = False,
+    theme: str | None = None,
 ) -> CompileResult:
+    """Compile a single slide from DSL to primitives + defects.
+
+    Parameters
+    ----------
+    layout_path:
+        Path to the ``.slide.dsl`` layout file.
+    ctx:
+        Content dict (slot bindings).
+    brand_dir:
+        Path to the active brand directory.
+    slide_index:
+        1-based slide index used for diagram cache keys and defect reporting.
+    diagrams_out_dir:
+        Directory where diagram artifacts (SVG, excalidraw) are written.
+    craft_check:
+        When True, enables stricter craft-quality checks.
+    theme:
+        Theme name to overlay on the brand tokens (e.g. ``'orange'``).
+        When None, the brand's ``$default_theme`` is used.  If the brand has
+        no ``themes/`` directory, tokens are loaded brand-only (back-compat).
+    """
     diagrams_out_dir.mkdir(parents=True, exist_ok=True)
 
-    tokens = load_tokens(brand_dir)
+    tokens = load_tokens_with_theme(brand_dir, theme)
     # Brand packs may ship width ratios for their own (often proprietary)
     # fonts via a tokens `font-metrics` block — register them so the
     # slot-budget / verify-static predictors measure those fonts accurately.

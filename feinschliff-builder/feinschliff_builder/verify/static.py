@@ -254,7 +254,7 @@ def static_verify(
     """
     from feinschliff.dsl.parser import parse_file
     from feinschmiede import compounds_dir
-    from feinschmiede.dsl.tokens import load_tokens
+    from feinschmiede.dsl.tokens import load_tokens_with_theme
     from feinschliff.dsl.expander import load_compounds_for_brand
     from feinschliff.slot_budget import compute_slot_budgets
     from feinschliff.content_validator import (
@@ -271,7 +271,10 @@ def static_verify(
     # resolution also searches all discovered layout dirs as a fallback).
     effective_plan_dir = plan_dir if plan_dir is not None else Path.cwd()
 
-    tokens = load_tokens(brand_dir)
+    # Deck-level default theme: plan.get("theme") or None (→ brand $default_theme).
+    default_theme = plan.get("theme")
+    # Load deck-level tokens once (used as fallback when per-slide theme matches).
+    tokens = load_tokens_with_theme(brand_dir, default_theme)
     compounds = load_compounds_for_brand(
         brand_dir, std_dir=compounds_dir()
     )
@@ -306,6 +309,14 @@ def static_verify(
             local_compounds[cd.name] = cd
 
         ctx = spec.get("content") or {}
+
+        # Per-slide theme: slide `theme:` key > deck-level default.
+        slide_theme = spec.get("theme", default_theme)
+        slide_tokens = (
+            load_tokens_with_theme(brand_dir, slide_theme)
+            if slide_theme != default_theme
+            else tokens
+        )
 
         # ── 1. EMPTY_PLACEHOLDER ──────────────────────────────────────────
         # Collect all {{ slot }} interpolations in the layout and check
@@ -352,7 +363,7 @@ def static_verify(
         # the supplied content will fit without wrapping beyond max_lines.
         try:
             slot_budgets = compute_slot_budgets(
-                layout_nodes, tokens, compounds=local_compounds
+                layout_nodes, slide_tokens, compounds=local_compounds
             )
         except Exception as exc:  # noqa: BLE001
             print(
