@@ -39,6 +39,8 @@ DARK_FIRST: frozenset[str] = frozenset()  # no dark-first standalone brands rema
 
 
 def _brand_bg(brand: str) -> tuple[int, int, int]:
+    if brand not in BRAND_ROOTS:
+        return (255, 255, 255)
     tok = BRAND_ROOTS[brand] / "tokens.json"
     if not tok.is_file():
         return (255, 255, 255)
