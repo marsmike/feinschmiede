@@ -185,7 +185,12 @@ def _collect_jobs(brands: list[str], skip_missing_content: bool) -> tuple[list[L
     notes: list[str] = []
     for brand in brands:
         layouts = _discover_layouts(brand)
-        for index, (lid, lpath) in enumerate(layouts, start=1):
+        # Resolve fixtures first, then number the *renderable* subset.
+        # NN must match the gallery generator (which lists only layouts
+        # with a fixture) so existing R2 URLs stay aligned with what the
+        # gallery requests.
+        renderable: list[tuple[str, Path, Path]] = []
+        for lid, lpath in layouts:
             cpath = _find_content(brand, lid)
             if cpath is None:
                 msg = f"  skip {brand}/{lid}: no content YAML in tests/fixtures/layouts/{lid}.yaml or brand override"
@@ -194,6 +199,8 @@ def _collect_jobs(brands: list[str], skip_missing_content: bool) -> tuple[list[L
                     continue
                 else:
                     raise SystemExit(msg.strip() + " (use --skip-missing to ignore)")
+            renderable.append((lid, lpath, cpath))
+        for index, (lid, lpath, cpath) in enumerate(renderable, start=1):
             out_png = GALLERY_DIR / brand / f"{index:02d}-{lid}.png"
             jobs.append(LayoutJob(brand, lid, lpath, cpath, out_png, index))
     return jobs, notes

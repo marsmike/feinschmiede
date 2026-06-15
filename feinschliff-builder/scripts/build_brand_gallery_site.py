@@ -43,6 +43,11 @@ for _plugin_brands in (
                 BRAND_ROOTS[_d.name] = _d
 # Shared toolkit layouts live with the core plugin.
 SHARED_LAYOUTS = WORKSPACE / "feinschliff" / "brands" / "feinschliff" / "layouts"
+# Renderer source-of-truth for fixture lookup — kept in sync with
+# `feinschliff-builder/scripts/render_brand_atlas.py:_find_content`. The
+# gallery filters to layouts that *will* render, so links never 404 on a
+# missing preview.
+SHARED_CONTENT_FIXTURES = WORKSPACE / "tests" / "feinschliff" / "fixtures" / "layouts"
 DOCS = WORKSPACE / "docs" / "brands"
 PREVIEWS = WORKSPACE / "docs" / "brand-previews"
 R2_ASSET_BASE = "https://assets.marsmike.com/feinschliff/brand-previews"
@@ -165,6 +170,7 @@ def discover_layouts(brand: str) -> list[dict]:
             for dsl in sorted(brand_layouts.glob("*.slide.dsl")):
                 seen[dsl.stem.removesuffix(".slide")] = dsl
 
+    brand_fixtures = BRAND_ROOTS[brand] / "tests" / "fixtures" / "layouts"
     return [
         {
             "id": lid,
@@ -173,7 +179,18 @@ def discover_layouts(brand: str) -> list[dict]:
             "is_phase4": lid in _PHASE4_LAYOUTS,
         }
         for lid in sorted(seen)
+        if _has_content_fixture(brand_fixtures, lid)
     ]
+
+
+def _has_content_fixture(brand_fixtures: Path, layout_id: str) -> bool:
+    """Mirror of ``render_brand_atlas._find_content``: brand override wins,
+    shared fallback otherwise. Layouts with neither are unrenderable, so
+    listing them on the gallery would always 404 the preview asset.
+    """
+    if (brand_fixtures / f"{layout_id}.yaml").is_file():
+        return True
+    return (SHARED_CONTENT_FIXTURES / f"{layout_id}.yaml").is_file()
 
 
 def _themes_for_brand(root: Path) -> list[dict] | None:
