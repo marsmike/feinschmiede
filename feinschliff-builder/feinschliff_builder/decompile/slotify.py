@@ -540,8 +540,6 @@ def _et_collect_grouped_pics(root_el, parent_map):
     Scaled groups (ext ≠ chExt) are skipped (offset-only carry, consistent
     with the decompiler's own skip logic).
     """
-    import xml.etree.ElementTree as ET
-
     def _walk_group(grp_el, ox_emu: int, oy_emu: int):
         """Yield (pic_el, canvas_x_emu, canvas_y_emu) for pics inside grp_el."""
         # Compute this group's translation offset.

@@ -39,7 +39,6 @@ from __future__ import annotations
 import base64
 import json
 import re
-import sys
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -99,7 +98,7 @@ def _detect_chart_type(root):
     """Return the lxml element of the first supported chart type inside
     ``<c:plotArea>``, or None if the chart type is unsupported / absent."""
     try:
-        from lxml import etree
+        from lxml import etree  # noqa: F401 — availability probe only
     except ImportError:
         return None
     plot_area = root.find(f".//{{{_NS_C}}}plotArea")

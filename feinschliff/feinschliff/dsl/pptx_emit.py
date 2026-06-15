@@ -1766,12 +1766,7 @@ def _patch_chart_xml(root, categories, values, colors, etree, NS_C: str, NS_A: s
         ptc = cache_el.find(f"{{{NS_C}}}ptCount")
         if ptc is not None:
             ptc.set("val", str(len(new_values)))
-        # Insert new pt elements
-        # Find insertion point: after ptCount (or formatCode), before anything else
-        insert_after = None
-        for child in cache_el:
-            if child.tag in (f"{{{NS_C}}}ptCount", f"{{{NS_C}}}formatCode"):
-                insert_after = child
+        # Insert new pt elements (SubElement appends at end, after ptCount).
         for i, val in enumerate(new_values):
             pt_el = etree.SubElement(cache_el, f"{{{NS_C}}}pt")
             pt_el.set("idx", str(i))
