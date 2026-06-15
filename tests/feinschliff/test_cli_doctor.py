@@ -114,6 +114,7 @@ def test_doctor_json_output():
         "soffice",
         "pdftoppm",
         "brand-pack",
+        "master-template",
         "feinschliff-builder-optional",
     }
     assert expected == names, f"Check name mismatch: {names}"
