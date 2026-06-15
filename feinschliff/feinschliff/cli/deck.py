@@ -1091,7 +1091,8 @@ def cmd_build(args) -> int:
             compile_jobs.append((
                 i, spec.get("notes"), brand_dir,
                 dict(layout_path=layout_path, ctx=ctx, brand_dir=brand_dir,
-                     slide_index=i + 1, diagrams_out_dir=diagrams_out),
+                     slide_index=i + 1, diagrams_out_dir=diagrams_out,
+                     theme=slide_theme),
             ))
 
         if content_defects_by_slide:

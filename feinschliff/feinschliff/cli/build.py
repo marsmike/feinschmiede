@@ -16,7 +16,7 @@ import yaml
 
 from feinschliff.dsl.parser import parse_file
 from feinschmiede import compounds_dir
-from feinschmiede.dsl.tokens import load_tokens
+from feinschmiede.dsl.tokens import load_tokens_with_theme
 from feinschliff.dsl.expander import load_compounds_for_brand
 from feinschliff.dsl.pptx_emit import build_presentation
 from feinschliff.content_validator import validate_content, emit_defects_and_abort_message
@@ -65,6 +65,12 @@ def register(parser: argparse.ArgumentParser) -> None:
              "No font-license (fsType) check is performed — verify your "
              "brand fonts permit embedding.",
     )
+    parser.add_argument(
+        "--theme",
+        default=None,
+        help="Theme name to overlay on the brand tokens (e.g. 'orange'). "
+             "Defaults to the brand's $default_theme.",
+    )
     parser.set_defaults(func=cmd_build)
 
 
@@ -91,7 +97,8 @@ def cmd_build(args) -> int:
         cfg = brand.image_provider_config
         provider = get_provider(cfg["kind"], cfg.get("config"))
 
-    tokens = load_tokens(brand_dir)
+    theme = getattr(args, "theme", None)
+    tokens = load_tokens_with_theme(brand_dir, theme)
     compounds = load_compounds_for_brand(
         brand_dir, std_dir=compounds_dir()
     )
@@ -142,6 +149,7 @@ def cmd_build(args) -> int:
         brand_dir=brand_dir,
         slide_index=1,
         diagrams_out_dir=Path(args.output).resolve().parent / "diagrams",
+        theme=theme,
     )
 
     allowed_to_skip: set[str] = set()
