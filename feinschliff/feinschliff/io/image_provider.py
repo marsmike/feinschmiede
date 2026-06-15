@@ -136,6 +136,12 @@ def register_provider(cls: type[ImageProvider]) -> type[ImageProvider]:
         )
     if name in _REGISTRY:
         existing = _REGISTRY[name]
+        # Same class re-imported via different module paths (e.g. direct
+        # import + the auto-discovery alias `feinschliff_providers._auto.*`)
+        # is a no-op, not a collision. Compare by class identity AND by
+        # qualname so the test "same class, two paths" recognises itself.
+        if existing is cls or existing.__qualname__ == cls.__qualname__:
+            return cls
         raise ValueError(
             f"image provider name {name!r} is already registered to "
             f"{existing.__module__}.{existing.__name__}; "
