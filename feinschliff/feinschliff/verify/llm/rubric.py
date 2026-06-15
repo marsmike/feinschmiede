@@ -1,75 +1,69 @@
-"""Core LLM judge helper — minimal rubric caller for deck quality gates.
+"""In-session LLM-judge contract — feinschliff verify never reaches out.
 
-This module provides only `_judge`, the low-level Anthropic API call used
-by ghost_deck and claim_evidence. The full rubric suite (squint, title-body,
-claim-title, bullet-dump with caching) lives in feinschliff-builder, which
-has access to the render artefacts those rubrics need.
+Verification gates that need LLM judgment (ghost-deck, claim-evidence,
+verify-quality rubrics) are scored by the **orchestrating Claude** that
+runs the pipeline — the one that already has the brief, the plan, and
+the rendered artifacts in its context. The CLI subprocess never
+constructs an LLM client and never calls a remote endpoint.
+
+Why this contract:
+
+- A subprocess client would route to whichever endpoint the env points
+  at; gateway/key combinations vary by operator and can silently
+  misroute (e.g. an OpenRouter ``sk-or-…`` key + an unset
+  ``ANTHROPIC_BASE_URL`` → direct call to ``api.anthropic.com`` → 401).
+- Duplicating the LLM call inside the subprocess also double-bills the
+  same judgment that the orchestrator can produce from its existing
+  context — wasteful and harder to audit.
+- The orchestrator is the natural judge: it already saw the brief and
+  the build artifacts and is the one writing the final report.
+
+How verify gates work under this contract:
+
+1. The CLI gate (e.g. ``feinschliff deck ghost-deck``) writes the prompt
+   and any supporting context to ``out/<gate>.prompt.md``.
+2. The gate writes a stub ``<gate>_report.md`` with verdict
+   ``needs-orchestrator-judgment`` and a brief note pointing at the
+   prompt.
+3. The CLI exits 0 — the gate ran successfully; its output is the
+   prompt, not a verdict.
+4. The orchestrating Claude reads the prompt + report, judges in
+   session, and overwrites the report with its verdict.
+
+Calling :func:`_judge` directly is a programmer error and raises
+``SystemExit``.
+
+See :file:`~/.claude/projects/-Users-mike-work-feinschmiede/memory/
+never-direct-anthropic-gemini.md`.
 """
 from __future__ import annotations
 
-import functools
-import json
-import os
-import re
 from typing import Any
 
 
-@functools.lru_cache(maxsize=1)
 def _client():
-    """Construct an Anthropic SDK client routed via the operator's gateway.
+    """Always raises — verify subprocesses never construct an LLM client.
 
-    Refuses to fall back to ``api.anthropic.com``. The user's shell may carry
-    a gateway-issued ``ANTHROPIC_API_KEY`` (e.g. an OpenRouter ``sk-or-…``
-    key) that is invalid against Anthropic's API directly — silently
-    defaulting to the direct endpoint surfaces as ``Connection error`` or a
-    401 from the wrong account. Require explicit gateway config:
-
-    - ``ANTHROPIC_BASE_URL`` — gateway endpoint (e.g.
-      ``https://openrouter.ai/api/v1``)
-    - ``ANTHROPIC_AUTH_TOKEN`` (preferred) or ``ANTHROPIC_API_KEY`` — bearer
-      credential for the gateway
-
-    See :file:`~/.claude/projects/-Users-mike-work-feinschmiede/memory/
-    never-direct-anthropic-gemini.md`.
+    Kept as a named symbol so any caller patching it in tests gets a
+    clear contract violation instead of a silent no-op.
     """
-    try:
-        from anthropic import Anthropic
-    except ImportError as exc:
-        raise SystemExit(
-            "verify: anthropic library not installed; "
-            "install it with `uv pip install anthropic` or use --offline to skip LLM calls"
-        ) from exc
-    base_url = os.environ.get("ANTHROPIC_BASE_URL", "").strip()
-    if not base_url:
-        raise SystemExit(
-            "verify: ANTHROPIC_BASE_URL not set — refusing to call api.anthropic.com "
-            "directly. Configure your gateway (ANTHROPIC_BASE_URL + "
-            "ANTHROPIC_AUTH_TOKEN), or pass --offline to skip LLM calls."
-        )
-    auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN", "").strip()
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    if not auth_token and not api_key:
-        raise SystemExit(
-            "verify: neither ANTHROPIC_AUTH_TOKEN nor ANTHROPIC_API_KEY is set; "
-            "use --offline to skip LLM calls"
-        )
-    # Gateway clients prefer auth_token (bearer); api_key is accepted as a
-    # fallback for gateways that re-use the x-api-key header.
-    if auth_token:
-        return Anthropic(base_url=base_url, auth_token=auth_token)
-    return Anthropic(base_url=base_url, api_key=api_key)
-
-
-def _judge(prompt: str, model: str = "claude-haiku-4-5-20251001") -> dict[str, Any]:
-    msg = _client().messages.create(
-        model=model,
-        max_tokens=256,
-        messages=[{"role": "user", "content": prompt}],
+    raise SystemExit(
+        "feinschliff verify does not construct an LLM client. The "
+        "orchestrating Claude is the judge — emit the prompt as an "
+        "artifact and let the in-session orchestrator write the verdict."
     )
-    text = "".join(b.text for b in msg.content if hasattr(b, "text")).strip()
-    text = re.sub(r"^\s*```(?:json)?\s*\n?", "", text)
-    text = re.sub(r"\n?\s*```\s*$", "", text).strip()
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        return {"status": "fail", "reason": f"unparseable: {text[:200]}"}
+
+
+def _judge(prompt: str, model: str | None = None) -> dict[str, Any]:
+    """Always raises — see module docstring for the contract.
+
+    Gate code must instead emit ``<gate>.prompt.md`` next to the report
+    and stub a ``needs-orchestrator-judgment`` verdict that the
+    orchestrator will overwrite.
+    """
+    raise SystemExit(
+        "feinschliff verify does not call an LLM. Write the prompt to "
+        "out/<gate>.prompt.md and emit a 'needs-orchestrator-judgment' "
+        "stub verdict; the in-session orchestrator will read the prompt "
+        "and write the final report."
+    )
