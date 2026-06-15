@@ -40,7 +40,6 @@ from feinschliff_builder.decompile.slotify import (
     slotify_native_pictures,
     slotify_native_text,
 )
-from feinschliff_builder.decompile.slotify_native_charts import slotify_native_charts
 from feinschliff_builder.verify.verify_map import load_verify_map
 
 _DECK_MAP_HEADER = (
@@ -151,17 +150,6 @@ def cmd_slotify(args) -> int:
             for line in pic_logs:
                 print(f"  {path.name}: {line}")
             slots = slots + [ps["name"] for ps in pic_slots]
-            # Promote qualifying <c:chart> elements to parameterised svg slots.
-            existing_chart = [
-                int(m.group(1))
-                for m in re.finditer(r"\bchart_(\d+)\b", new_text)
-            ]
-            chart_next_idx = max(existing_chart, default=0) + 1
-            new_text, chart_slots, chart_logs = slotify_native_charts(
-                new_text, brand_pack / "assets", next_idx=chart_next_idx)
-            for line in chart_logs:
-                print(f"  {path.name}: {line}")
-            slots = slots + [cs["name"] for cs in chart_slots]
         if clip_enabled:
             new_text, clips = clip_text_to_images(
                 new_text,
