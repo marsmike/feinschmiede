@@ -802,10 +802,21 @@ def classify_layout(
     # chevron with baked STEP texts makes the overlapping text slots
     # un-rebindable (new copy renders over the baked labels). Marks count
     # too: small ≠ text-free.
+    # Drop the kind filter: any native whose XML still contains non-template
+    # <a:t> runs is chrome with baked labels.  The slotify pass already rewrote
+    # all bindable runs to {{ text_N | default(…) }} Jinja templates, so any
+    # literal <a:t> that survives is truly baked and un-rebindable.
+    #
+    # The old guard `kind in ("illustration", "mark")` silently skipped
+    # <p:graphicFrame> payloads.  _native_kind() classifies those as "chart",
+    # "smartart", or "table" — never "illustration" or "mark" — so a layout
+    # that ships a native graphicFrame carrying placeholder text (org-chart
+    # "Placeholder" labels, SmartArt step texts, table stub headings) received
+    # a clean profile and the picker happily selected it for content roles,
+    # causing slot-collision warnings at build time.
     chrome_text = any(
-        kind in ("illustration", "mark") and xml is not None
-        and _has_baked_text(xml)
-        for kind, xml in natives
+        xml is not None and _has_baked_text(xml)
+        for _kind, xml in natives
     )
 
     if role in ("title-primary", "chapter-opener", "quote", "closer"):
