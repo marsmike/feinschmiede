@@ -75,6 +75,17 @@ feinschliff deck pick --signals '{"role": "...", "concept_count": N, ...}' --top
 
 Use it as a sanity check / rerank, not as the primary signal. The LLM-driven cascade is the authoritative pick.
 
+## When the cascade starves — fallback ladder
+
+A pass returning **0 survivors** is a real signal, not a bug to paper over with `survivors[0]`. Walk back up the cascade:
+
+1. **Pass 4 → 0** (variety drained the pool). Relax in this order: bump the cap by +1 for this slide; then fall back to the Pass 3 survivors and accept the reuse — but log "variety_relaxed" in the trace so it's visible. Never silently drop to `p3[0]`; that's how slide-92 got reused 9× in the Lumino test.
+2. **Pass 3 → 0** (shape filter too tight). Re-check Pass 2 with ±2 on `ideal_count` instead of ±1, and accept image-zero layouts even when an image is available (a text layout with a missing image is recoverable; the wrong shape is not).
+3. **Pass 2 → 0** (every Pass 1 candidate had a disqualifier). Re-run Pass 1 with the role/family hint widened — if you scored only `organizational` family, admit `comparison` and `process` too. Most disqualifiers are content-shape, not concept-shape, so the second Pass-1 pool usually clears Pass 2.
+4. **Pass 1 → 0** (nothing in primary_message overlapped semantically). The slide's intent is genuinely off-vocabulary for this pack — pick the closest role-match layout from the toolkit pool (`feinschliff brand inspect <brand>` for the inherited 50) and log "off_vocabulary_fallback".
+
+In every starvation case, the trace must say which fallback fired and why. A silent fallback is worse than the starvation itself — it hides the signal that an annotation gap or a brand-pack gap exists.
+
 ## Logging — `pick_trace.md`
 
 Every cascade decision **must** be logged so the next person (you, tomorrow) can see why a layout won. After all slides are picked, write `out/pick_trace.md` alongside the rest of the deck artifacts. Format:
