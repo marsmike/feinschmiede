@@ -1,6 +1,7 @@
 """Path resolution of scripts/render_brand_atlas.py against the
 post-restructure workspace (brands split across feinschliff/ and
-feinschliff-extra/, shared layouts under feinschliff/layouts/)."""
+feinschliff-extra/). Each brand renders only its own layouts (PR #98
+pack isolation); there is no shared toolkit pool in the renderer."""
 from __future__ import annotations
 
 import importlib.util
@@ -27,10 +28,20 @@ def test_default_enumeration_covers_core_and_extra():
     assert {"feinschliff", "scientific"} <= set(brands)
 
 
-def test_discovery_finds_shared_and_brand_layouts():
+def test_discovery_returns_only_brand_layouts():
+    # annual-review owns exactly its own layouts/ dir — no shared toolkit pool.
     ids = dict(rba._discover_layouts("annual-review"))
-    assert "agenda" in ids          # shared toolkit layout or brand override
-    assert len(ids) >= 40           # the toolkit catalog is visible
+    assert "agenda" in ids               # brand ships its own agenda layout
+    assert len(ids) == 13                # only the 13 annual-review layouts
+    # feinschliff's toolkit layouts are NOT included for extra brands
+    assert "2x2-matrix" not in ids
     assert rba._find_content("feinschliff", "agenda") is not None
+
+
+def test_feinschliff_discovery_returns_its_own_layouts():
+    # feinschliff owns the toolkit layouts under its own layouts/ dir
+    ids = dict(rba._discover_layouts("feinschliff"))
+    assert len(ids) >= 40                # the full toolkit catalog
+    assert "2x2-matrix" in ids
 
 
