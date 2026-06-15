@@ -34,12 +34,20 @@ from lxml import etree
 from pptx import Presentation
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-BRAND_DIR = REPO_ROOT / "feinschliff/brands/feinschliff"
-LAYOUTS_DIR = BRAND_DIR / "layouts"
-FIXTURES_DIR = REPO_ROOT / "tests/feinschliff/fixtures/layouts"
-MASTER_PPTX = BRAND_DIR / "master.pptx"
-SNIPPETS_YAML = BRAND_DIR / "snippets.yaml"
-LAYOUTS_YAML = BRAND_DIR / "layouts.yaml"
+
+# Brand-pack roots known to this builder. Add new entries as DSL brand packs
+# migrate to the master-template format. Each entry resolves layouts +
+# content fixtures from convention.
+_BRANDS: dict[str, dict[str, Path]] = {
+    "feinschliff": {
+        "brand_dir": REPO_ROOT / "feinschliff/brands/feinschliff",
+        "fixtures":  REPO_ROOT / "tests/feinschliff/fixtures/layouts",
+    },
+    "gs-ramspau": {
+        "brand_dir": REPO_ROOT / "feinschliff-extra/brands/gs-ramspau",
+        "fixtures":  REPO_ROOT / "feinschliff-extra/brands/gs-ramspau/tests/fixtures/layouts",
+    },
+}
 
 _A = "http://schemas.openxmlformats.org/drawingml/2006/main"
 _NS = {"a": _A}
@@ -114,16 +122,16 @@ _ORDER = [
 ]
 
 
-def _layout_ids() -> list[str]:
-    available = {p.stem.replace(".slide", "") for p in LAYOUTS_DIR.glob("*.slide.dsl")}
+def _layout_ids(layouts_dir: Path) -> list[str]:
+    available = {p.stem.replace(".slide", "") for p in layouts_dir.glob("*.slide.dsl")}
     ordered = [lid for lid in _ORDER if lid in available]
     leftover = sorted(available - set(ordered))
     return ordered + leftover
 
 
-def _build_one(layout_id: str) -> Path | None:
-    layout_path = LAYOUTS_DIR / f"{layout_id}.slide.dsl"
-    content_path = FIXTURES_DIR / f"{layout_id}.yaml"
+def _build_one(layout_id: str, *, brand: str, layouts_dir: Path, fixtures: Path) -> Path | None:
+    layout_path = layouts_dir / f"{layout_id}.slide.dsl"
+    content_path = fixtures / f"{layout_id}.yaml"
     if not content_path.exists():
         print(f"  SKIP {layout_id}: no fixture at {content_path}", file=sys.stderr)
         return None
@@ -132,7 +140,7 @@ def _build_one(layout_id: str) -> Path | None:
     cmd = [
         "uv", "run", "feinschliff", "build",
         str(layout_path),
-        "--brand", "feinschliff",
+        "--brand", brand,
         "--content", str(content_path),
         "-o", str(pptx),
         "--skip-content-lint",
@@ -150,7 +158,7 @@ def _build_one(layout_id: str) -> Path | None:
 _R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 
 
-def _merge_into_master(per_layout_pptx: list[tuple[str, Path]]) -> list[dict]:
+def _merge_into_master(per_layout_pptx: list[tuple[str, Path]], *, brand: str, out_pptx: Path) -> list[dict]:
     """Open the first .pptx as the master, clone every other deck's slide(s)
     into it as snippets. Each cloned slide's images are re-added to the
     master via the proper python-pptx image API so part names don't collide.
@@ -159,7 +167,7 @@ def _merge_into_master(per_layout_pptx: list[tuple[str, Path]]) -> list[dict]:
     prs = Presentation(str(first_pptx))
     snippets = []
     for i, _ in enumerate(prs.slides):
-        snippets.append({"id": first_id, "source_idx": i, "intent": f"feinschliff/{first_id}"})
+        snippets.append({"id": first_id, "source_idx": i, "intent": f"{brand}/{first_id}"})
 
     dest_layout = prs.slide_layouts[0]
     for layout_id, pptx_path in per_layout_pptx[1:]:
@@ -194,26 +202,39 @@ def _merge_into_master(per_layout_pptx: list[tuple[str, Path]]) -> list[dict]:
             snippets.append({
                 "id": layout_id,
                 "source_idx": len(snippets),
-                "intent": f"feinschliff/{layout_id}",
+                "intent": f"{brand}/{layout_id}",
             })
-    prs.save(str(MASTER_PPTX))
+    prs.save(str(out_pptx))
     return snippets
 
 
 def main() -> int:
     p = argparse.ArgumentParser()
+    p.add_argument("--brand", default="feinschliff", choices=sorted(_BRANDS), help="Brand id to build")
     p.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) // 2))
     p.add_argument("--only", nargs="*", help="Restrict to specific layout ids")
     args = p.parse_args()
 
-    ids = _layout_ids()
+    cfg = _BRANDS[args.brand]
+    brand_dir = cfg["brand_dir"]
+    layouts_dir = brand_dir / "layouts"
+    fixtures = cfg["fixtures"]
+    master_pptx = brand_dir / "master.pptx"
+    snippets_yaml = brand_dir / "snippets.yaml"
+    layouts_yaml = brand_dir / "layouts.yaml"
+    master_theme = "default"
+
+    ids = _layout_ids(layouts_dir)
     if args.only:
         ids = [i for i in ids if i in args.only]
-    print(f"building {len(ids)} layouts with --workers {args.workers}…")
+    print(f"building {len(ids)} layouts for {args.brand} with --workers {args.workers}…")
 
     results: dict[str, Path] = {}
     with futures.ThreadPoolExecutor(max_workers=args.workers) as ex:
-        futs = {ex.submit(_build_one, lid): lid for lid in ids}
+        futs = {
+            ex.submit(_build_one, lid, brand=args.brand, layouts_dir=layouts_dir, fixtures=fixtures): lid
+            for lid in ids
+        }
         for fut in futures.as_completed(futs):
             lid = futs[fut]
             pptx = fut.result()
@@ -226,13 +247,16 @@ def main() -> int:
         return 1
 
     per_layout = [(lid, results[lid]) for lid in ids if lid in results]
-    snippets = _merge_into_master(per_layout)
-    SNIPPETS_YAML.write_text(yaml.safe_dump({"snippets": snippets}, sort_keys=False))
-    LAYOUTS_YAML.write_text("# Feinschliff house brand is snippet-only — every layout is a\n"
-                            "# ClonePlan against snippets.yaml. No FillPlan entries.\nlayouts: []\n")
+    snippets = _merge_into_master(per_layout, brand=args.brand, out_pptx=master_pptx)
+    snippets_yaml.write_text(yaml.safe_dump({"snippets": snippets}, sort_keys=False))
+    layouts_yaml.write_text(
+        f"# {args.brand} brand is snippet-only — every layout is a ClonePlan\n"
+        "# against snippets.yaml. No FillPlan entries.\n"
+        f"master_theme: {master_theme}\nlayouts: []\n"
+    )
 
-    print(f"\nwrote {MASTER_PPTX} ({MASTER_PPTX.stat().st_size / 1024:.1f} KB, {len(snippets)} slides)")
-    print(f"wrote {SNIPPETS_YAML} ({len(snippets)} snippets)")
+    print(f"\nwrote {master_pptx} ({master_pptx.stat().st_size / 1024:.1f} KB, {len(snippets)} slides)")
+    print(f"wrote {snippets_yaml} ({len(snippets)} snippets)")
     return 0
 
 

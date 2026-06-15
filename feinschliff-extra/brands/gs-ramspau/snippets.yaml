@@ -1,0 +1,19 @@
+snippets:
+- id: checkliste
+  source_idx: 0
+  intent: gs-ramspau/checkliste
+- id: leitbild
+  source_idx: 1
+  intent: gs-ramspau/leitbild
+- id: statistik
+  source_idx: 2
+  intent: gs-ramspau/statistik
+- id: stundenplan
+  source_idx: 3
+  intent: gs-ramspau/stundenplan
+- id: team
+  source_idx: 4
+  intent: gs-ramspau/team
+- id: termine
+  source_idx: 5
+  intent: gs-ramspau/termine
