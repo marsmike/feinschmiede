@@ -203,6 +203,25 @@ def _check_brand_pack() -> DoctorCheck:
         )
 
 
+def _check_master_template() -> DoctorCheck:
+    try:
+        from feinschmiede.master_template import load_catalog  # noqa: F401
+        return DoctorCheck(
+            "master-template",
+            "ok",
+            "Master-template renderer available (feinschliff render-master)",
+            None,
+        )
+    except ImportError as e:
+        return DoctorCheck(
+            "master-template",
+            "fail",
+            f"Master-template renderer missing: {e}",
+            "Reinstall feinschmiede>=0.4 — the master_template module powers\n"
+            "`feinschliff render-master` for brand packs that ship a real .pptx master.",
+        )
+
+
 def _check_builder_optional() -> DoctorCheck:
     try:
         import feinschliff_builder  # noqa: F401
@@ -236,6 +255,7 @@ def run_doctor() -> list[DoctorCheck]:
         _check_soffice(),
         _check_pdftoppm(),
         _check_brand_pack(),
+        _check_master_template(),
         _check_builder_optional(),
     ]
 

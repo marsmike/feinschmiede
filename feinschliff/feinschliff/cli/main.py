@@ -13,6 +13,7 @@ load_home_env()
 from feinschliff.cli import build as build_cmd  # noqa: E402
 from feinschliff.cli import deck as deck_cmd  # noqa: E402
 from feinschliff.cli import doctor as doctor_cmd  # noqa: E402
+from feinschliff.cli import render_master as render_master_cmd  # noqa: E402
 from feinschliff.cli import ship as ship_cmd  # noqa: E402
 
 
@@ -37,6 +38,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="One-command build + verify + verify-quality with a single verdict",
     )
     ship_cmd.register(ship_parser)
+
+    render_master_parser = sub.add_parser(
+        "render-master",
+        help="Render a deck from a master-template brand pack (master.pptx + layouts.yaml)",
+    )
+    render_master_cmd.register(render_master_parser)
 
     p_doctor = sub.add_parser(
         "doctor",
