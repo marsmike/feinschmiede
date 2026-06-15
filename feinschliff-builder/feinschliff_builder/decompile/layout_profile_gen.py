@@ -107,7 +107,7 @@ from feinschliff_builder.decompile.slotify import crosses_image_edge
 # The default body can never contain `"` (slotify curlifies them), so a lazy
 # group terminated by `\")` is unambiguous.
 _TEXT_SLOT_RE = re.compile(r'\{\{\s*(text_\d+)\s*\|\s*default\(\\"(.*?)\\"\)\s*\}\}')
-_IMAGE_SLOT_RE = re.compile(r'\{\{\s*(image\d*)\s*\|\s*default\(\\"(.*?)\\"\)\s*\}\}')
+_IMAGE_SLOT_RE = re.compile(r'\{\{\s*(image_?\d*)\s*\|\s*default\(\\"(.*?)\\"\)\s*\}\}')
 _XY_RE = re.compile(r"^(?:text|picture)\s+(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)")
 _WH_RE = re.compile(r"\s(-?\d+(?:\.\d+)?)x(-?\d+(?:\.\d+)?)(?:\s|$)")
 _SIZE_RE = re.compile(r"\bsize:(\d+(?:\.\d+)?)pt\b")
