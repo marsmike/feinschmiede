@@ -1,0 +1,18 @@
+prompt: |
+  /deck "External pitch deck for a brand-pack agentic toolkit (feinschmiede)
+  that lets PMs author PowerPoint decks via Claude Code.
+  Audience: enterprise design system leads (4 people, design-led but operationally-minded).
+  Intent: sell — they should understand the value and want a follow-up.
+  Slide count: 6.
+  Tone: confident, brand-led, not feature-listy.
+  Image style: rich-imagery.
+  Brand: feinschliff.
+  Save all artifacts in the current directory and the final deck as out.pptx."
+
+audience: enterprise design system leads (4 people, design-led but operationally-minded)
+intent: sell — they should understand the value and want a follow-up
+topic: feinschmiede pitch
+slide_count: 6
+tone: confident, brand-led, not feature-listy
+image_style: rich-imagery
+brand: feinschliff
