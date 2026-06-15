@@ -95,13 +95,26 @@ def _discover_layouts(brand: str) -> list[tuple[str, Path]]:
 
 
 def _find_content(brand: str, layout_id: str) -> Path | None:
-    """Resolve the content YAML for a (brand, layout_id) pair."""
+    """Resolve the content YAML for a (brand, layout_id) pair.
+
+    Brand-scoped fixtures always win. The shared toolkit fixtures
+    (``tests/feinschliff/fixtures/layouts/<id>.yaml``) are only consulted
+    for the ``feinschliff`` brand itself — extra packs that ship a layout
+    with the same stem (``agenda``, ``cover``, ``thank-you``, …) use a
+    decompiled ``text_N`` slot vocabulary that has no overlap with the
+    toolkit's hand-authored semantic-slot fixtures. Falling back across
+    that vocabulary boundary bound zero slots and silently rendered the
+    layout's `default(...)` placeholder text. Brand packs must own their
+    fixture vocabulary; missing fixture → skipped (gallery filter in
+    ``build_brand_gallery_site.py`` hides it accordingly).
+    """
     brand_yaml = _brand_root(brand) / "tests" / "fixtures" / "layouts" / f"{layout_id}.yaml"
     if brand_yaml.is_file():
         return brand_yaml
-    shared_yaml = SHARED_CONTENT / f"{layout_id}.yaml"
-    if shared_yaml.is_file():
-        return shared_yaml
+    if brand == "feinschliff":
+        shared_yaml = SHARED_CONTENT / f"{layout_id}.yaml"
+        if shared_yaml.is_file():
+            return shared_yaml
     return None
 
 

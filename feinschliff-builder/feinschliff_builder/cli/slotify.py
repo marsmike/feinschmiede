@@ -24,6 +24,7 @@ from pathlib import Path
 import yaml
 
 from feinschliff_builder.decompile.cleanup import native_pic_rects, strip_native_text_doubles
+from feinschliff_builder.decompile.fixtures import emit_fixture
 from feinschliff_builder.decompile.layout_profile_gen import (
     apply_profile,
     classify_layout,
@@ -204,6 +205,13 @@ def cmd_slotify(args) -> int:
                 path = layouts_dir / f"{name}.slide.dsl"
                 path.write_text(apply_profile(slotified[name], profile),
                                 encoding="utf-8")
+                # Brand-scoped content fixture next to the layout, derived
+                # from the slot defaults the profile pass just baked in.
+                # Each brand owns its slot vocabulary (text_N, semantic, or
+                # mixed) — the renderer reads this fixture verbatim so the
+                # showcase never falls back to a toolkit fixture with
+                # incompatible slot names.
+                emit_fixture(path, brand_pack / "tests" / "fixtures" / "layouts")
         flagged = {n: p["slot_warnings"] for n, p in profiles.items()
                    if p.get("slot_warnings")}
         if flagged:

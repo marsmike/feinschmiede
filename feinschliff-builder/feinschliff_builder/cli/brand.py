@@ -4,9 +4,12 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from feinschmiede.brand_discovery import discover_brands
 from feinschliff.layout_discovery import discover_layout_paths
+
+from feinschliff_builder.decompile.fixtures import emit_fixture
 
 
 def register(parser: argparse.ArgumentParser) -> None:
@@ -18,6 +21,18 @@ def register(parser: argparse.ArgumentParser) -> None:
     p_inspect = sub.add_parser("inspect", help="Print v2 inventory for a brand")
     p_inspect.add_argument("name")
     p_inspect.set_defaults(func=cmd_inspect)
+
+    p_fixtures = sub.add_parser(
+        "derive-fixtures",
+        help="Emit a brand-scoped content fixture for every slotified layout "
+             "(backfill for packs slotified before fixture emission was wired in)",
+    )
+    p_fixtures.add_argument("--brand-pack", required=True, type=Path,
+                            help="Path to the brand pack directory (e.g. "
+                                 "feinschliff-extra/brands/geometric)")
+    p_fixtures.add_argument("--force", action="store_true",
+                            help="Overwrite existing fixtures")
+    p_fixtures.set_defaults(func=cmd_derive_fixtures)
 
 
 def cmd_list(_args) -> int:
@@ -104,4 +119,39 @@ def cmd_inspect(args) -> int:
     if bc:
         print(f"compounds: {len(bc)} ({', '.join(bc)})")
 
+    return 0
+
+
+def cmd_derive_fixtures(args) -> int:
+    """Backfill brand-scoped content fixtures from the slot defaults a prior
+    ``slotify`` pass already baked into the layout frontmatter.
+
+    Slotify now emits a fixture per layout as part of its normal output;
+    this command exists for brand packs slotified before that wiring was
+    added.
+    """
+    brand_pack: Path = args.brand_pack.resolve()
+    layouts_dir = brand_pack / "layouts"
+    fixtures_dir = brand_pack / "tests" / "fixtures" / "layouts"
+    if not layouts_dir.is_dir():
+        print(f"brand derive-fixtures: no layouts/ in {args.brand_pack}",
+              file=sys.stderr)
+        return 2
+    written, skipped_existing, skipped_empty = 0, 0, 0
+    for dsl in sorted(layouts_dir.glob("*.slide.dsl")):
+        stem = dsl.name.removesuffix(".slide.dsl")
+        target = fixtures_dir / f"{stem}.yaml"
+        if target.is_file() and not args.force:
+            print(f"  skip {stem}: fixture exists (use --force to overwrite)")
+            skipped_existing += 1
+            continue
+        written_path = emit_fixture(dsl, fixtures_dir)
+        if written_path is None:
+            print(f"  skip {stem}: no slot defaults in frontmatter")
+            skipped_empty += 1
+            continue
+        print(f"  wrote {written_path.relative_to(brand_pack)}")
+        written += 1
+    print(f"\n{written} fixture(s) written, {skipped_existing} kept, "
+          f"{skipped_empty} layout(s) without derivable defaults")
     return 0
