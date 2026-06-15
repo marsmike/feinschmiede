@@ -1,0 +1,260 @@
+layouts:
+- name: Title Slide
+  role: cover
+  placeholders:
+  - idx: 0
+    type: CENTER_TITLE (3)
+    role: body
+    char_budget: 400
+- name: Agenda
+  role: agenda
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Introduction 2
+  role: chapter
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+- name: Section Header
+  role: chapter
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+- name: Quote
+  role: callout
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 2
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: 1_Comparison 1
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+  - idx: 11
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+- name: Comparison 4
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+  - idx: 2
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 4
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+- name: Timeline 1
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 15
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 14
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Summary 2
+  role: closing
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 14
+    type: PICTURE (18)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Timeline 3
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 13
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Summary 3
+  role: closing
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 2
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 15
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Timeline 2
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 4
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+  - idx: 10
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Closing
+  role: closing
+  placeholders:
+  - idx: 0
+    type: CENTER_TITLE (3)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: SUBTITLE (4)
+    role: body
+    char_budget: 400
+- name: Title Only
+  role: cover
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Blank
+  role: blank
+  placeholders:
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+- name: Content with Caption
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+  - idx: 2
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: OBJECT (7)
+    role: body
+    char_budget: 400
+- name: Picture with Caption
+  role: content
+  placeholders:
+  - idx: 0
+    type: TITLE (1)
+    role: body
+    char_budget: 400
+  - idx: 12
+    type: SLIDE_NUMBER (13)
+    role: body
+    char_budget: 400
+  - idx: 2
+    type: BODY (2)
+    role: body
+    char_budget: 400
+  - idx: 1
+    type: PICTURE (18)
+    role: body
+    char_budget: 400

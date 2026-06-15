@@ -1,0 +1,40 @@
+snippets:
+- id: title
+  source_idx: 0
+  intent: "Annual Review | Contoso |       Customer Success Team      September 3, 20XX\_"
+- id: agenda
+  source_idx: 1
+  intent: 'Agenda | 01.  | Introduction | 02. '
+- id: intro
+  source_idx: 2
+  intent: Introduction | Profits are up, and losses are down! We are very proud of the pro
+- id: section-break
+  source_idx: 3
+  intent: Last year
+- id: chart
+  source_idx: 4
+  intent: "Growth by sector chart | Annual Review | 5 | September 3, 20XX\_"
+- id: table
+  source_idx: 5
+  intent: Growth by sector table | Q1 | Q2 | Q3
+- id: quote
+  source_idx: 6
+  intent: "\u201C | Contoso was great to work with. Patrice was my representative and she antici"
+- id: team
+  source_idx: 7
+  intent: Our team | Ana | CEO | Larissa
+- id: timeline
+  source_idx: 8
+  intent: Timeline | Q1.  | Jul - Sep | Lorem ipsum dolor sit amet, consectetuer adipiscin
+- id: content-2-column
+  source_idx: 9
+  intent: Goals for Q1 | Business priorities | Increase customer satisfaction by 2% | Main
+- id: content-3-column
+  source_idx: 10
+  intent: Goals for Q2 | Business priorities | Increase customer satisfaction by 2% | Main
+- id: summary
+  source_idx: 11
+  intent: "Summary | Our business is good | Profits are up in the last quarter by 3% | We\u2019r"
+- id: thank-you
+  source_idx: 12
+  intent: Thank you | Thanks to your commitment and strong work ethic, we know next year w

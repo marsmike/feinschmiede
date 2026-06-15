@@ -1,0 +1,40 @@
+snippets:
+- id: title-slide
+  source_idx: 0
+  intent: Basic  | presentation
+- id: agenda
+  source_idx: 1
+  intent: agenda | Introduction | Building confidence | Engaging the audience
+- id: introduction-2
+  source_idx: 2
+  intent: The power of communication
+- id: section-header
+  source_idx: 3
+  intent: Overcoming nervousness | Confidence-building strategies
+- id: quote
+  source_idx: 4
+  intent: Engaging the audience | Make eye contact with your audience to create a sense of
+- id: 1comparison-1
+  source_idx: 5
+  intent: Selecting  | visual aids | 6 | Enhancing your presentation
+- id: comparison-4
+  source_idx: 6
+  intent: 'Effective delivery techniques | 7 | This is a powerful tool in public speaking. '
+- id: timeline-1
+  source_idx: 7
+  intent: Navigating Q&A  | sessions | Maintaining composure during the Q&A session is ess
+- id: summary-2
+  source_idx: 8
+  intent: Speaking impact | Your ability to communicate effectively will leave a lasting i
+- id: timeline-3
+  source_idx: 9
+  intent: 'Dynamic delivery | Learn to infuse energy into your delivery to leave a lasting '
+- id: summary-3
+  source_idx: 10
+  intent: Final tips & takeaways | Consistent rehearsal | Strengthen your familiarity | Re
+- id: timeline-2
+  source_idx: 11
+  intent: Speaking engagement metrics | Impact factor | Measurement | Target
+- id: closing
+  source_idx: 12
+  intent: Thank  | you | Brita Tamm | 502-555-0152
