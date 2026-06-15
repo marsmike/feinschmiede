@@ -21,6 +21,12 @@ from feinschmiede.master_template.clone_plan import ClonePlan
 from feinschmiede.master_template.fill_plan import FillPlan
 from feinschmiede.master_template.picture import PictureRef
 from feinschmiede.master_template.render import render, strip_existing_slides
+from feinschmiede.master_template.themes import (
+    build_swap,
+    discover_themes,
+    load_theme_colors,
+    recolor_element,
+)
 
 __all__ = [
     "Catalog",
@@ -31,7 +37,11 @@ __all__ = [
     "PictureRef",
     "PlaceholderSchema",
     "SnippetEntry",
+    "build_swap",
+    "discover_themes",
     "load_catalog",
+    "load_theme_colors",
+    "recolor_element",
     "render",
     "strip_existing_slides",
 ]

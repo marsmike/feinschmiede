@@ -48,6 +48,7 @@ class Catalog:
     source_deck: Path
     layouts: dict[str, LayoutEntry]
     snippets: dict[str, SnippetEntry]
+    master_theme: str | None = None  # theme the master.pptx was rendered with
 
 
 def load_catalog(brand_pack: Path) -> Catalog:
@@ -68,6 +69,7 @@ def load_catalog(brand_pack: Path) -> Catalog:
         source_deck=source_deck,
         layouts=layouts,
         snippets=snippets,
+        master_theme=layouts_doc.get("master_theme") or layouts_doc.get("$master_theme"),
     )
 
 

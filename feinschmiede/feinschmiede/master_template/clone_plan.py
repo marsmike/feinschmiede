@@ -10,11 +10,13 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass, field
+from io import BytesIO
 
 from lxml import etree
 from pptx import Presentation
 
 _A = "http://schemas.openxmlformats.org/drawingml/2006/main"
+_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 _NS = {"a": _A}
 
 
@@ -37,14 +39,30 @@ def apply_clone_plan(prs, plan: ClonePlan, catalog) -> None:
 
     for shape in list(new_slide.shapes):
         shape._element.getparent().remove(shape._element)
+
+    # Map src image rels → new rIds in the master before cloning XML, so
+    # r:embed / r:link attrs on cloned shapes can be rewritten. When the
+    # source deck IS the master, naive relate_to(target_part) collides on
+    # the master's /ppt/media/ partname; re-add via get_or_add_image_part.
+    rid_map: dict[str, str] = {}
+    for src_rid, rel in src_slide.part.rels.items():
+        if rel.reltype.endswith("/image"):
+            _, new_rid = new_slide.part.get_or_add_image_part(BytesIO(rel.target_part.blob))
+            rid_map[src_rid] = new_rid
+
     for child in list(src_slide.shapes._spTree):
         if etree.QName(child).localname in ("nvGrpSpPr", "grpSpPr"):
             continue
-        new_slide.shapes._spTree.append(copy.deepcopy(child))
-
-    for rel in src_slide.part.rels.values():
-        if rel.reltype.endswith("/image"):
-            new_slide.part.relate_to(rel.target_part, rel.reltype)
+        cloned = copy.deepcopy(child)
+        if rid_map:
+            for el in cloned.iter():
+                embed = el.get(f"{{{_R}}}embed")
+                if embed and embed in rid_map:
+                    el.set(f"{{{_R}}}embed", rid_map[embed])
+                link = el.get(f"{{{_R}}}link")
+                if link and link in rid_map:
+                    el.set(f"{{{_R}}}link", rid_map[link])
+        new_slide.shapes._spTree.append(cloned)
 
     if plan.text_replacements:
         _patch_text(new_slide, plan.text_replacements)

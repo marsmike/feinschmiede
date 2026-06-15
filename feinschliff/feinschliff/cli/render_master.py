@@ -45,6 +45,11 @@ def register(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--brand-pack", required=True, help="Path to a master-template brand pack directory")
     parser.add_argument("--plans", required=True, help="YAML file with the list of plans")
     parser.add_argument("-o", "--output", required=True, help="Output .pptx path")
+    parser.add_argument(
+        "--theme",
+        help="Color theme to overlay (name of a directory under <brand-pack>/themes/). "
+             "Recolors the master's srgbClr values per the theme's tokens.json.",
+    )
     parser.set_defaults(func=cmd_render_master)
 
 
@@ -68,7 +73,7 @@ def cmd_render_master(args: argparse.Namespace) -> int:
         doc = yaml.safe_load(fh) or {}
     plans = [_parse_plan(p, plans_path.parent) for p in doc.get("plans", [])]
 
-    out_path = render(brand_pack, plans, out)
+    out_path = render(brand_pack, plans, out, theme=args.theme)
     print(f"wrote {out_path} ({out_path.stat().st_size / 1024:.1f} KB, {len(plans)} slides)")
     return 0
 
