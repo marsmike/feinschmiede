@@ -247,14 +247,41 @@ def test_illustration_without_text_has_no_chrome_text():
     assert "chrome_text" not in p
 
 
-def test_chart_text_does_not_set_chrome_text():
-    """Charts/tables/SmartArt always carry <a:t> — only decorative
-    illustration chrome gates on baked text."""
+def test_graphic_frame_with_baked_text_sets_chrome_text():
+    """<p:graphicFrame> natives (charts, SmartArt, tables) carrying literal
+    <a:t> placeholder text must flag chrome_text — binding content slots over
+    them overprints the baked labels (org-chart 'Placeholder', SmartArt step
+    texts, table stub headings)."""
     xml = ('<p:graphicFrame xmlns:p="p"><a:graphic><c:chart r:id="rId2"/>'
-           '<a:t>Axis label</a:t></a:graphic></p:graphicFrame>')
+           '<a:t>Placeholder</a:t></a:graphic></p:graphicFrame>')
+    dsl = HEADER + native(xml, "graphic1") + slot(1, "Growth by sector", pt=40)
+    p = classify(dsl)
+    assert p["chrome_text"] is True
+    assert "baked text" in p["chrome_note"]
+
+
+def test_graphic_frame_with_template_runs_only_does_not_set_chrome_text():
+    """A <p:graphicFrame> native whose <a:t> runs have already been rewritten
+    to {{ text_N | default(…) }} template expressions by the slotify pass is
+    bindable — those are not baked labels, so chrome_text must NOT fire."""
+    # The native-text slotify pass rewrites baked runs to Jinja templates;
+    # _has_baked_text explicitly skips runs that contain "{{".
+    xml = ('<p:graphicFrame xmlns:p="p"><a:graphic>'
+           '<a:t>{{ text_1 | default("Sample heading") }}</a:t>'
+           '</a:graphic></p:graphicFrame>')
     dsl = HEADER + native(xml, "graphic1") + slot(1, "Growth by sector", pt=40)
     p = classify(dsl)
     assert "chrome_text" not in p
+
+
+def test_illustration_with_baked_text_regression_still_sets_chrome_text():
+    """Regression guard: extending the gate to graphic* must not break the
+    existing illustration path — illustration chrome with literal <a:t> labels
+    must still flag chrome_text."""
+    dsl = (HEADER + native(BAKED_TEXT_ILLU_XML)
+           + prose_slots(1, 3) + footer_slots(4))
+    p = classify(dsl)
+    assert p["chrome_text"] is True
 
 
 def test_mark_sized_native_with_baked_text_still_sets_chrome_text():
