@@ -14,7 +14,7 @@ import re
 from pathlib import Path
 
 
-LAYOUT = Path(__file__).resolve().parents[2] / "feinschliff" / "layouts" / "funnel.slide.dsl"
+LAYOUT = Path(__file__).resolve().parents[2] / "feinschliff" / "brands" / "feinschliff" / "layouts" / "funnel.slide.dsl"
 
 SHAPE_RE = re.compile(
     r"^\s*shape\s+(?P<x>\d+),(?P<y>\d+)\s+(?P<w>\d+)x(?P<h>\d+)\s+kind:trapezoid"

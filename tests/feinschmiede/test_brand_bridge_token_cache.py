@@ -2,7 +2,6 @@
 
 - repeated resolve() calls load tokens.json from disk exactly once
 - the cache key includes tokens.json mtime, so an edited file is re-read
-- extends: inheritance resolves through the canonical dsl.tokens walk
 """
 from __future__ import annotations
 
@@ -16,12 +15,10 @@ from feinschmiede.diagrams import brand_bridge
 from feinschmiede.diagrams.brand_bridge import BrandBridgeError, resolve
 
 
-def _write_brand(root: Path, name: str, colors: dict[str, str], extends: str | None = None) -> Path:
+def _write_brand(root: Path, name: str, colors: dict[str, str]) -> Path:
     brand = root / name
     brand.mkdir()
     (brand / "tokens.json").write_text(json.dumps({"color": colors}))
-    if extends:
-        (brand / "DESIGN.md").write_text(f"---\nextends: {extends}\n---\n")
     return brand
 
 
@@ -32,9 +29,9 @@ def test_repeated_resolve_loads_tokens_once(tmp_path, monkeypatch):
     calls: list[Path] = []
     real = brand_bridge._load_raw_tokens
 
-    def counting(brand_root, **kwargs):
+    def counting(brand_root):
         calls.append(brand_root)
-        return real(brand_root, **kwargs)
+        return real(brand_root)
 
     monkeypatch.setattr(brand_bridge, "_load_raw_tokens", counting)
     for name in ("primary", "paper", "ink", "primary", "paper"):
@@ -52,13 +49,6 @@ def test_tokens_json_edit_invalidates_cache(tmp_path):
     # Force a distinct mtime even on coarse-granularity filesystems.
     os.utime(tokens_path, ns=(old_mtime_ns + 1, old_mtime_ns + 1))
     assert resolve("primary", brand) == "#222222"
-
-
-def test_extends_chain_resolves_via_canonical_loader(tmp_path):
-    _write_brand(tmp_path, "parent", {"accent": "#abcdef", "paper": "#ffffff"})
-    child = _write_brand(tmp_path, "child", {"paper": "#fafafa"}, extends="parent")
-    assert resolve("primary", child) == "#abcdef"   # inherited from parent
-    assert resolve("paper", child) == "#fafafa"     # child override wins
 
 
 def test_missing_tokens_json_still_raises_brand_bridge_error(tmp_path):

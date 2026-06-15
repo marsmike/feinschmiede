@@ -1,6 +1,6 @@
 {
   "name": "feinschliff-extra",
-  "description": "Extra brand packs for feinschliff — light/dark themes, terminal palettes (catppuccin, nord, gruvbox, solarized), bold corporate looks (binance, ferrari, spotify), and MS-gallery template ports (annual-review, shapes, geometric, scientific).",
+  "description": "Extra brand packs for feinschliff — MS-gallery template ports (annual-review, shapes, geometric, scientific) and bespoke school pack (gs-ramspau). Color themes (catppuccin, nord, gruvbox, solarized, feinschliff-dark) have moved into the feinschliff core plugin as themes.",
   "author": {
     "name": "Mike Mueller",
     "email": "mike@objektarium.de"

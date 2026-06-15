@@ -24,7 +24,7 @@ from feinschliff.pipeline import compile_slide
 
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[2] / "feinschliff"
-QUOTE_LAYOUT = PLUGIN_ROOT / "layouts" / "quote.slide.dsl"
+QUOTE_LAYOUT = PLUGIN_ROOT / "brands" / "feinschliff" / "layouts" / "quote.slide.dsl"
 QUOTE_CONTENT = Path(__file__).resolve().parent / "fixtures" / "layouts" / "quote.yaml"
 BRAND_ID = "feinschliff"
 BUNDLED_ASSETS = PLUGIN_ROOT / "feinschliff" / "assets"

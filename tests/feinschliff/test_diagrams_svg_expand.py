@@ -83,7 +83,8 @@ def _locate_brand(name: str) -> Path:
 
 
 @pytest.mark.parametrize("brand_name", [
-    "feinschliff", "catppuccin-macchiato", "nord", "gruvbox-dark",
+    # catppuccin-macchiato, nord, gruvbox-dark demoted to themes — test via feinschliff only
+    "feinschliff",
 ])
 def test_chart_renders_across_brands(brand_name):
     brand_dir = _locate_brand(brand_name)

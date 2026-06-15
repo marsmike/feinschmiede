@@ -2,16 +2,13 @@
 
 DESIGN.md is the human-readable companion to a brand pack's
 hand-authored ``tokens.json``. Frontmatter carries machine-readable
-metadata (name, colors, typography, optional ``extends:`` for token
-inheritance); the markdown body holds the human rationale (why these
-colors, how to use them).
+metadata (name, colors, typography); the markdown body holds the human
+rationale (why these colors, how to use them).
 
 This module parses and validates one DESIGN.md file and exposes the
-result as a ``DesignMd`` dataclass. ``DesignMd.extends`` names the
-parent brand the tokens loader should merge from when building the
-runtime token bundle; ``DesignMd.colors`` and ``DesignMd.typography``
-mirror the frontmatter fields for tooling that wants to compare them
-against ``tokens.json``.
+result as a ``DesignMd`` dataclass. ``DesignMd.colors`` and
+``DesignMd.typography`` mirror the frontmatter fields for tooling that
+wants to compare them against ``tokens.json``.
 
 No bake step exists in v2 — DESIGN.md is read alongside ``tokens.json``,
 not used to derive it.
@@ -40,7 +37,6 @@ class DesignMd:
     description: str | None
     version: str | None
     typography: dict | None
-    extends: str | None
     body: str
 
     @property
@@ -81,7 +77,6 @@ def parse_text(text: str, source: str = "<string>") -> DesignMd:
         description=fm.get("description"),
         version=fm.get("version"),
         typography=fm.get("typography"),
-        extends=fm.get("extends"),
         body=body,
     )
 

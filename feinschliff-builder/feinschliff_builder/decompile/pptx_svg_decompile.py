@@ -273,45 +273,8 @@ class TextRun:
 
 
 def load_palette(tokens_path: Path) -> dict[str, tuple[int, int, int]]:
-    # Walk the brand-pack `extends:` chain when DESIGN.md declares one, so a
-    # child pack that only carries local overrides still gets the parent's
-    # palette for nearest-colour matching. Falls back to reading just the
-    # immediate file when there's no DESIGN.md or the parent can't be
-    # resolved (e.g. out-of-tree packs whose parent lives elsewhere).
-    brand_root = tokens_path.parent
-    data = None
-    if (brand_root / "DESIGN.md").is_file():
-        from feinschmiede.dsl.tokens import load_tokens
-        # Try sibling-located parent first (the default), then fall back
-        # to the toolkit's bundled brands/ dir. Out-of-tree packs (e.g.
-        # `.debug/brands/<name>` or `~/customer-brands/<name>`) declare
-        # `extends: feinschliff` but their sibling dir isn't the toolkit
-        # repo, so without this fallback the parent palette never loads
-        # and nearest_token() degrades to raw hex emission for every
-        # shape — visible in the decompiled DSL as `fill:#ffed00` instead
-        # of `fill:accent` and `fill:neutral` on every custGeom because
-        # _svg_color_token() then sees an unknown brand token.
-        from feinschmiede.brand_discovery import discover_brands as _discover_brands
-        candidate_dirs = [brand_root.parent]
-        # Add all discovered brands directories in priority order so out-of-tree
-        # packs whose parent lives in a different discovery source still resolve.
-        for _brand in _discover_brands():
-            brand_parent = _brand.root.parent
-            if brand_parent not in candidate_dirs:
-                candidate_dirs.append(brand_parent)
-        seen: set[Path] = set()
-        for cd in candidate_dirs:
-            cd = cd.resolve()
-            if cd in seen:
-                continue
-            seen.add(cd)
-            try:
-                data = load_tokens(brand_root, brands_dir=cd).raw
-                break
-            except (FileNotFoundError, ValueError):
-                continue
-    if data is None:
-        data = json.loads(tokens_path.read_text(encoding="utf-8"))
+    # Each brand pack is self-contained; read tokens.json directly.
+    data = json.loads(tokens_path.read_text(encoding="utf-8"))
     palette: dict[str, tuple[int, int, int]] = {}
     colors = data.get("color") or data.get("colors") or {}
 

@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Feinschliff gem monochrome">
-  <polygon points="100,20 60,85 40,105 100,180 160,105 140,85" fill="#0b1a33"></polygon>
-  <g fill="none" stroke="#f0ece4" stroke-width="1.5" stroke-linejoin="miter">
-    <polyline points="60,85 100,70 140,85"></polyline>
-    <polyline points="100,70 100,110"></polyline>
-    <polyline points="40,105 100,110 160,105"></polyline>
-    <polyline points="100,110 100,180"></polyline>
-  </g>
-</svg>

@@ -36,26 +36,25 @@ Three CLI subcommands (`feinschliff <subcommand>`):
 # Claude Code skill
 /deck "Q1 update: 12 launches, 3 customers, $4.2M ARR"
 
-# Pick a different brand
-FEINSCHLIFF_BRAND=catppuccin-macchiato /deck "..."
+# Pick a different theme (built in — no extra install)
+/deck --theme nord "..."
+/deck --theme catppuccin-macchiato "..."
 
 # Standalone CLI (no Claude Code required)
 feinschliff build layouts/quote.slide.dsl \
   --brand feinschliff --content tests/fixtures/layouts/quote.yaml -o out.pptx
 ```
 
-## Brand packs (3 ship in the box)
+## Brand packs (1 ships in the box, with 8 themes)
 
-| Pack | Description | License |
-|---|---|---|
-| `feinschliff` (default) | Navy ramp + warm paper + single gold accent. Bauhaus register | MIT |
-| `blank` | Minimal scaffold, no color opinions | MIT |
-| `claude` | Anthropic Claude brand colors | MIT |
+| Pack | Themes | Description | License |
+|---|---|---|---|
+| `feinschliff` | `default`, `claude`, `catppuccin-latte`, `catppuccin-macchiato`, `feinschliff-dark`, `gruvbox-dark`, `nord`, `solarized-dark` | Navy ramp + warm paper + single gold accent. Bauhaus register | MIT |
 
 Additional brands are available as separate plugins:
 
-- **[feinschliff-extra](https://github.com/marsmike/feinschmiede)** — 14 more brand packs
-  (terminal palettes, light/dark themes, bold corporate looks, MS-gallery ports).
+- **[feinschliff-extra](https://github.com/marsmike/feinschmiede)** — 5 more brand packs
+  (MS-gallery ports, bespoke school pack).
 - **[feinschliff-builder](https://github.com/marsmike/feinschmiede)** — authoring toolkit
   to compile HTML to DSL, decompile existing PPTX files, and verify brand quality.
 - **[feinbild](https://github.com/marsmike/feinschmiede)** — image & 2D: AI images

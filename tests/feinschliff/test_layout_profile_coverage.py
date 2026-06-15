@@ -22,7 +22,7 @@ from feinschliff.layout_profile import (
     parse_profile,
 )
 
-_BUNDLED = Path(__file__).resolve().parents[2] / "feinschliff" / "layouts"
+_BUNDLED = Path(__file__).resolve().parents[2] / "feinschliff" / "brands" / "feinschliff" / "layouts"
 
 
 def test_every_discovered_layout_has_a_valid_profile():

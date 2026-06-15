@@ -117,18 +117,3 @@ def test_no_typography_field_no_inherit():
     assert dm.inherits_typography_from is None
 
 
-def test_extends_field_parses():
-    text = """---
-name: Child
-extends: feinschliff
-colors:
-  accent: "#abcdef"
----
-"""
-    dm = parse_text(text)
-    assert dm.extends == "feinschliff"
-
-
-def test_no_extends_field_is_none():
-    dm = parse_text(_MIN)
-    assert dm.extends is None

@@ -1,5 +1,4 @@
 ---
-extends: feinschliff
 version: alpha
 name: Scientific
 description: 'Port of Microsoft''s free "Scientific discovery" pitch-deck template — condensed Daytona display, Posterama accents, Courier New data callouts. Source: powerpoint.cloud.microsoft.'
@@ -7,7 +6,6 @@ typography:
   display: Posterama
   body: Daytona Condensed Light
 ---
-
 ## Overview
 
 Scientific is a faithful brand-pack port of Microsoft's free **"Scientific

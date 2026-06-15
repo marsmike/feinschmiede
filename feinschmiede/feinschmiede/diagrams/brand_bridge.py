@@ -54,9 +54,9 @@ SEMANTIC_NAMES: Final[frozenset[str]] = frozenset({
 #
 # All paths are flat under ``color.<name>`` — the real tokens.json structure.
 # This differs from the original plan which assumed nested sub-groups like
-# ``color.brand.*`` and ``color.surface.*``.  All 12 brand packs in the
-# portfolio use the same flat layout (verified against feinschliff, catppuccin-
-# latte, catppuccin-macchiato, gruvbox-dark, nord, feinschliff-dark).
+# ``color.brand.*`` and ``color.surface.*``.  All brand packs and themes in the
+# portfolio use the same flat layout (verified against feinschliff and its themes:
+# catppuccin-latte, catppuccin-macchiato, gruvbox-dark, nord, feinschliff-dark).
 _TOKEN_PATHS: Final[dict[str, str]] = {
     # Brand colors
     # "primary" and "accent" both route to the brand-accent slot: "primary" is
@@ -167,7 +167,7 @@ def resolve(name: str, brand_dir: Path) -> str:
             f"{', '.join(sorted(SEMANTIC_NAMES))}"
         )
 
-    tokens = _load_tokens_with_extends(brand_dir)
+    tokens = _load_tokens(brand_dir)
     path = _TOKEN_PATHS[name]
     raw = _json_walk(tokens, path)
     value = _extract_value(raw)
@@ -190,13 +190,12 @@ def resolve(name: str, brand_dir: Path) -> str:
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _load_tokens_with_extends(brand_dir: Path) -> dict:
-    """Load tokens.json, walking extends: chain via DESIGN.md frontmatter.
+def _load_tokens(brand_dir: Path) -> dict:
+    """Load tokens.json for a brand.
 
-    Delegates the walk + merge to the canonical loader in
-    `feinschmiede.dsl.tokens`. The merged dict is cached per
-    (resolved dir, tokens.json mtime) so per-color resolve() calls don't
-    re-read disk; an edited tokens.json gets a fresh key.
+    The result is cached per (resolved dir, tokens.json mtime) so
+    per-color resolve() calls don't re-read disk; an edited tokens.json
+    gets a fresh key.
     """
     tokens_path = brand_dir / "tokens.json"
     if not tokens_path.exists():
@@ -292,7 +291,7 @@ def resolve_fonts(brand_dir: Path) -> BrandFonts:
     for the first concrete face (None when the brand has none).
     """
     try:
-        tokens = _load_tokens_with_extends(brand_dir)
+        tokens = _load_tokens(brand_dir)
     except BrandBridgeError:
         return BrandFonts(body=(), mono=())
     body = _font_family_values(tokens, "body") or _font_family_values(tokens, "display")

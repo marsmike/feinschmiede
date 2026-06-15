@@ -19,7 +19,7 @@ import re
 from pathlib import Path
 
 
-LAYOUT = Path(__file__).resolve().parents[2] / "feinschliff" / "layouts" / "v-model.slide.dsl"
+LAYOUT = Path(__file__).resolve().parents[2] / "feinschliff" / "brands" / "feinschliff" / "layouts" / "v-model.slide.dsl"
 
 H_HD_RE = re.compile(
     r"^\s*text\s+(?P<x>\d+),(?P<y>\d+)\s+style:h-hd[^\n]*"

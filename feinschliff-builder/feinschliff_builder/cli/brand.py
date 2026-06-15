@@ -56,43 +56,6 @@ def _brand_compounds(brand) -> list[str]:
     return sorted(p.stem for p in brand.compounds_path.glob("*.dsl"))
 
 
-def _inheritance_chain(brand) -> list[str]:
-    """Walk the `extends:` chain from DESIGN.md frontmatter starting at
-    `brand`. Returns names parent-most → child (e.g. ["feinschliff",
-    "feinschliff-dark"]). Missing DESIGN.md or missing parents truncate
-    the walk silently — the caller decides how to render. Cycles raise
-    ValueError."""
-    try:
-        from feinschliff.design_md import parse as parse_design_md
-    except Exception:
-        return [brand.name]
-
-    brands_by_name = {b.name: b for b in discover_brands()}
-    chain: list[str] = []
-    visited: set[str] = set()
-    cur = brand
-    while True:
-        if cur.name in visited:
-            raise ValueError(f"cyclic brand inheritance through {cur.name}")
-        visited.add(cur.name)
-        chain.append(cur.name)
-        if not cur.design_path or not cur.design_path.is_file():
-            break
-        try:
-            dm = parse_design_md(cur.design_path)
-        except Exception:
-            break
-        parent_name = getattr(dm, "extends", None)
-        if not parent_name:
-            break
-        parent = brands_by_name.get(parent_name)
-        if parent is None:
-            chain.append(parent_name)  # show the missing parent for diagnostics
-            break
-        cur = parent
-    return list(reversed(chain))
-
-
 def cmd_inspect(args) -> int:
     brand = next((b for b in discover_brands() if b.name == args.name), None)
     if brand is None:
@@ -101,15 +64,6 @@ def cmd_inspect(args) -> int:
 
     print(f"brand: {brand.name}")
     print(f"root:  {brand.root}")
-
-    # Inheritance chain (parent-most → child). Silent on missing DESIGN.md.
-    try:
-        chain = _inheritance_chain(brand)
-    except ValueError as e:
-        print(f"inheritance: ERROR — {e}", file=sys.stderr)
-        chain = [brand.name]
-    if len(chain) > 1:
-        print(f"inheritance: {' → '.join(chain)}")
 
     # Tokens summary.
     if brand.tokens_path:

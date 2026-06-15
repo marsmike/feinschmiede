@@ -139,6 +139,17 @@ def _discovery_cache_key() -> tuple:
                     key.append((str(marker), marker.stat().st_mtime_ns))
                 except OSError:
                     pass
+            # Include theme tokens files so edits to themes/ invalidate the cache.
+            themes_dir = d / "themes"
+            if themes_dir.is_dir():
+                for theme_dir in sorted(themes_dir.iterdir()):
+                    if not theme_dir.is_dir():
+                        continue
+                    theme_tj = theme_dir / "tokens.json"
+                    try:
+                        key.append((str(theme_tj), theme_tj.stat().st_mtime_ns))
+                    except OSError:
+                        pass
     return tuple(key)
 
 
@@ -178,20 +189,16 @@ def discover_brands() -> list[BrandPack]:
             if d.name in seen:
                 continue
             image_provider_config: dict | None = None
-            # Spec: `BrandPack.image_provider_config` is the extends-resolved
-            # block. Use `load_tokens` so a child that inherits the
-            # provider from a parent surfaces it correctly. `brands_dir`
-            # defaults to the brand's parent in `load_tokens`, which
-            # matches how we discovered `d` (under `root`). On a
-            # *survivable* failure (malformed JSON, missing parent file,
-            # cyclic `extends`, schema-validation error) fall back to
-            # None AND emit a RuntimeWarning so the operator sees why
-            # the field is empty — silent swallow makes a misconfigured
-            # brand indistinguishable from one with no provider declared.
-            # Genuine bugs / aborts (KeyboardInterrupt, SystemExit,
+            # Spec: `BrandPack.image_provider_config` is read directly from
+            # the brand's own tokens.json (packs are self-contained). On a
+            # *survivable* failure (malformed JSON, schema-validation error)
+            # fall back to None AND emit a RuntimeWarning so the operator
+            # sees why the field is empty — silent swallow makes a
+            # misconfigured brand indistinguishable from one with no provider
+            # declared. Genuine bugs / aborts (KeyboardInterrupt, SystemExit,
             # MemoryError, RecursionError) intentionally propagate.
             try:
-                resolved = load_tokens(d, brands_dir=root)
+                resolved = load_tokens(d)
                 ip = resolved.raw.get("$image_provider") if isinstance(resolved.raw, dict) else None
                 if isinstance(ip, dict) and "kind" in ip:
                     image_provider_config = ip

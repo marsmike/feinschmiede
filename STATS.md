@@ -118,13 +118,22 @@ prose. Reading a single reference file is typically 1–10 KB
 
 | Plugin | Brand packs | Layouts | Notes |
 |---|---:|---:|---|
-| `feinschliff` | 3 | 50 | `feinschliff` (default), `blank`, `claude` |
-| `feinschliff-extra` | 14 | 58 | terminal palettes (catppuccin, gruvbox, nord, solarized), corporate, gallery ports |
-| **Total** | **17** | **108** | |
+| `feinschliff` | 1 | 50 | `feinschliff` brand with 8 themes (`default`, `claude`, `catppuccin-latte`, `catppuccin-macchiato`, `feinschliff-dark`, `gruvbox-dark`, `nord`, `solarized-dark`) |
+| `feinschliff-extra` | 5 | 58 | MS-gallery ports (annual-review, geometric, scientific, shapes) + bespoke school pack (gs-ramspau) |
+| **Total** | **6** | **108** | |
 
-Each brand pack is ~50–200 KB (tokens.json, deck-map.yaml, claude-
-design HTML, gem mark assets). Layouts are `.slide.dsl` files (1–5 KB
-each).
+Each brand pack is fully self-contained (no `extends` inheritance).
+Tokens, fonts, and layouts live entirely within the brand's own directory.
+Layouts are `.slide.dsl` files (1–5 KB each).
+
+**Changes since last snapshot:**
+- `extends:` inheritance subsystem removed (PR #97) — ~150 LOC deleted from
+  `feinschmiede`, `feinschliff`, `feinschliff-builder`; brands already
+  inlined parent tokens in a prior migration.
+- 3 trademarked extra brands (`binance`, `spotify`, `ferrari`) deleted.
+- `blank` brand (internal-only) deleted.
+- 6 palette-only extra brands (catppuccin-latte, catppuccin-macchiato, feinschliff-dark,
+  gruvbox-dark, nord, solarized-dark) demoted to themes under the `feinschliff` brand.
 
 ## Methodology
 

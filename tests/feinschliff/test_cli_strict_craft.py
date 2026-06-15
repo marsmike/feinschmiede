@@ -16,7 +16,7 @@ import yaml
 from feinschliff.cli import deck
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[2] / "feinschliff"
-LAYOUT = PLUGIN_ROOT / "layouts" / "executive-summary.slide.dsl"
+LAYOUT = PLUGIN_ROOT / "brands" / "feinschliff" / "layouts" / "executive-summary.slide.dsl"
 
 
 def _build_args(plan_path: Path, out_path: Path, **overrides) -> argparse.Namespace:

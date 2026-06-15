@@ -21,7 +21,7 @@ import re
 from pathlib import Path
 
 
-LAYOUT = Path(__file__).resolve().parents[2] / "feinschliff" / "layouts" / "excalidraw-diagram.slide.dsl"
+LAYOUT = Path(__file__).resolve().parents[2] / "feinschliff" / "brands" / "feinschliff" / "layouts" / "excalidraw-diagram.slide.dsl"
 
 EXCAL_SLOT_RE = re.compile(
     r"^\s*excalidraw\s+diagram\s+(?P<x>\d+),(?P<y>\d+)\s+(?P<w>\d+)x(?P<h>\d+)",

@@ -197,9 +197,13 @@ def test_layout_picker_without_deck_map_brand_cover_not_boosted(tmp_path):
     root = _garden_pack(tmp_path, with_deck_map=False)
     picker = LayoutPicker(brand=BrandPack.load(root), top_k=1)
     result = picker.candidates({"role": "title-primary"})
-    # Tied on the bare +3 role match, the alphabetical tiebreak favors a
-    # toolkit title layout over "garden-cover".
-    assert result[0].layout_name != "garden-cover"
+    # Picker isolation: when the brand ships a non-empty layouts/, ONLY brand
+    # layouts are in the pool (toolkit layouts are excluded). With no deck-map
+    # bonus, the brand layout wins on bare role-match (+3) — no toolkit
+    # layouts compete.
+    assert result[0].layout_name == "garden-cover"
+    # And no deck-map rationale (no bonus applied).
+    assert "deck-map" not in result[0].reason
 
 
 # ── Feature 1: plan-skeleton end-to-end wiring ───────────────────────────────

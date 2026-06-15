@@ -16,50 +16,16 @@ from feinschmiede.dsl.tokens import load_tokens, validate_tokens
 
 REPO_ROOT = Path(__file__).resolve().parents[2] / "feinschliff"
 BRANDS_DIR = REPO_ROOT / "brands"
-_EXTRA_BRANDS_DIR = REPO_ROOT.parent / "feinschliff-extra" / "brands"
 
 
 def test_valid_feinschliff_brand_passes_schema():
     """The shipped feinschliff brand pack must validate cleanly."""
     # If validation fails this raises; the assert is belt-and-braces.
-    tokens = load_tokens(BRANDS_DIR / "feinschliff", brands_dir=BRANDS_DIR)
+    tokens = load_tokens(BRANDS_DIR / "feinschliff")
     assert tokens.brand_name == "feinschliff"
     # And the raw json passes the standalone validator with no issues.
     raw = json.loads((BRANDS_DIR / "feinschliff" / "tokens.json").read_text())
     validate_tokens(raw, "feinschliff")  # must not raise
-
-
-def test_valid_inherited_brand_passes_schema(tmp_path):
-    """A brand that extends another (catppuccin-macchiato → feinschliff) validates after merge."""
-    _macchiato_brands = (
-        _EXTRA_BRANDS_DIR
-        if _EXTRA_BRANDS_DIR.exists() and (_EXTRA_BRANDS_DIR / "catppuccin-macchiato").exists()
-        else BRANDS_DIR
-    )
-    macchiato_dir = _macchiato_brands / "catppuccin-macchiato"
-    if not macchiato_dir.exists():
-        pytest.skip("catppuccin-macchiato not available (install feinschliff-extra)")
-    # When macchiato lives in the extra brands dir, feinschliff (the parent)
-    # won't be found there. Build a combined brands_dir with symlinks so
-    # load_tokens can walk the full extends chain.
-    if not (_macchiato_brands / "feinschliff").exists():
-        combined = tmp_path / "brands"
-        combined.mkdir()
-        import shutil
-        try:
-            (combined / "feinschliff").symlink_to(BRANDS_DIR / "feinschliff")
-        except OSError:
-            shutil.copytree(BRANDS_DIR / "feinschliff", combined / "feinschliff")
-        try:
-            (combined / "catppuccin-macchiato").symlink_to(macchiato_dir)
-        except OSError:
-            shutil.copytree(macchiato_dir, combined / "catppuccin-macchiato")
-        brands_search = combined
-        macchiato_dir = combined / "catppuccin-macchiato"
-    else:
-        brands_search = _macchiato_brands
-    tokens = load_tokens(macchiato_dir, brands_dir=brands_search)
-    assert tokens.brand_name == "catppuccin-macchiato"
 
 
 def test_missing_required_group_raises_with_useful_message():

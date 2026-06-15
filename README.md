@@ -52,11 +52,12 @@ optional add-ons for more brands and for authoring your own brand pack.
 /deck "Q1 update: 12 launches, 3 customers, $4.2M ARR"
 ```
 
-Use a different brand pack (add the extra brands first):
+Use a different theme (built into the core plugin — no extra install):
 
 ```bash
-/plugin install feinschliff-extra@feinschmiede
-FEINSCHLIFF_BRAND=catppuccin-macchiato /deck "..."
+/deck --theme catppuccin-macchiato "..."
+/deck --theme nord "..."
+/deck --theme feinschliff-dark "..."
 ```
 
 Before your first run, see [`INSTALLATION.md`](INSTALLATION.md) for the

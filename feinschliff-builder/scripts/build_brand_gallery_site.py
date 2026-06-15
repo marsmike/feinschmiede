@@ -24,12 +24,7 @@ from textwrap import dedent
 
 REPO = Path(__file__).resolve().parent.parent  # feinschliff-builder/
 WORKSPACE = REPO.parent                          # workspace root (post-split)
-# Brands excluded from the public gallery. `blank` is a neutral base
-# template (near-black accent, pure-white canvas) that other layouts
-# inherit from; it has no distinctive visual identity of its own and
-# renders no meaningful showcase previews, so it never gets a card.
-# The pack stays on disk — it's still needed as a layout base.
-GALLERY_EXCLUDE = frozenset({"blank"})
+GALLERY_EXCLUDE: frozenset[str] = frozenset()
 
 # Brands are split across feinschliff/ (core: 3 brands) and
 # feinschliff-extra/ (10 brands) since v0.2.0. Index by name so the
@@ -47,7 +42,7 @@ for _plugin_brands in (
             if _d.is_dir() and (_d / "tokens.json").is_file():
                 BRAND_ROOTS[_d.name] = _d
 # Shared toolkit layouts live with the core plugin.
-SHARED_LAYOUTS = WORKSPACE / "feinschliff" / "layouts"
+SHARED_LAYOUTS = WORKSPACE / "feinschliff" / "brands" / "feinschliff" / "layouts"
 DOCS = WORKSPACE / "docs" / "brands"
 PREVIEWS = WORKSPACE / "docs" / "brand-previews"
 R2_ASSET_BASE = "https://assets.marsmike.com/feinschliff/brand-previews"
@@ -59,12 +54,7 @@ ASSET_BASE = R2_ASSET_BASE  # overridden in main() when --local is passed
 # fresh cache keys so updated renders surface immediately.
 CACHE_BUST = str(int(time.time()))
 
-DARK_FIRST = {
-    "binance", "ferrari", "spotify",
-    "catppuccin-macchiato",
-    "gruvbox-dark", "nord", "solarized-dark",
-    "feinschliff-dark",
-}
+DARK_FIRST: frozenset[str] = frozenset()  # no dark-first standalone brands remain
 
 # Pull role/phase4 metadata from the picker so gallery cards show real roles.
 # The try/except keeps the script runnable outside the feinschliff venv.
@@ -77,10 +67,12 @@ except ImportError:
 
 # Brands whose tokens + slides are freely redistributable under MIT.
 # The remaining brands carry trademarked visual identities (demo only).
+# Note: catppuccin-latte/macchiato, feinschliff-dark, gruvbox-dark, nord,
+# solarized-dark have been demoted to themes under the feinschliff brand.
 _MIT_BRANDS = frozenset({
-    "feinschliff", "feinschliff-dark",
-    "catppuccin-latte", "catppuccin-macchiato",
-    "solarized-dark", "nord", "gruvbox-dark",
+    "feinschliff",
+    "annual-review", "geometric", "shapes", "scientific",
+    "gs-ramspau",
 })
 
 

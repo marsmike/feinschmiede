@@ -10,7 +10,7 @@ from pptx import Presentation
 
 REPO = Path(__file__).resolve().parents[2]
 FEINSCHLIFF = REPO / "feinschliff"
-LAYOUT = FEINSCHLIFF / "layouts" / "action-title.slide.dsl"
+LAYOUT = FEINSCHLIFF / "brands" / "feinschliff" / "layouts" / "action-title.slide.dsl"
 
 
 def test_deck_build_threads_speaker_notes(tmp_path):

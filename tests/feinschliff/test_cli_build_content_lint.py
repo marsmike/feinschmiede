@@ -8,7 +8,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 FEINSCHLIFF = REPO / "feinschliff"
-LAYOUT = FEINSCHLIFF / "layouts" / "action-title.slide.dsl"
+LAYOUT = FEINSCHLIFF / "brands" / "feinschliff" / "layouts" / "action-title.slide.dsl"
 
 
 def _run_build(content_yaml: str, tmp_path: Path) -> subprocess.CompletedProcess:
@@ -48,10 +48,10 @@ def test_deck_build_fails_on_one_bad_slide(tmp_path):
     plan_yaml = f"""
 brand: feinschliff
 slides:
-  - layout: {FEINSCHLIFF / "layouts" / "action-title.slide.dsl"}
+  - layout: {FEINSCHLIFF / "brands" / "feinschliff" / "layouts" / "action-title.slide.dsl"}
     content:
       title: "Q3 revenue rose 12 percent"
-  - layout: {FEINSCHLIFF / "layouts" / "action-title.slide.dsl"}
+  - layout: {FEINSCHLIFF / "brands" / "feinschliff" / "layouts" / "action-title.slide.dsl"}
     content:
       title: "{long_title}"
 """
@@ -77,10 +77,10 @@ def test_deck_build_passes_on_clean_multi_slide(tmp_path):
     plan_yaml = f"""
 brand: feinschliff
 slides:
-  - layout: {FEINSCHLIFF / "layouts" / "action-title.slide.dsl"}
+  - layout: {FEINSCHLIFF / "brands" / "feinschliff" / "layouts" / "action-title.slide.dsl"}
     content:
       title: "Q3 revenue rose 12 percent"
-  - layout: {FEINSCHLIFF / "layouts" / "action-title.slide.dsl"}
+  - layout: {FEINSCHLIFF / "brands" / "feinschliff" / "layouts" / "action-title.slide.dsl"}
     content:
       title: "Customer churn dropped 8 points"
 """
@@ -123,7 +123,7 @@ def test_deck_build_skip_content_lint_flag(tmp_path):
     plan_yaml = f"""
 brand: feinschliff
 slides:
-  - layout: {FEINSCHLIFF / "layouts" / "action-title.slide.dsl"}
+  - layout: {FEINSCHLIFF / "brands" / "feinschliff" / "layouts" / "action-title.slide.dsl"}
     content:
       title: "{long_title}"
 """

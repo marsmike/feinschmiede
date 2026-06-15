@@ -20,7 +20,7 @@ import re
 from pathlib import Path
 
 
-LAYOUT = Path(__file__).resolve().parents[2] / "feinschliff" / "layouts" / "risk-register.slide.dsl"
+LAYOUT = Path(__file__).resolve().parents[2] / "feinschliff" / "brands" / "feinschliff" / "layouts" / "risk-register.slide.dsl"
 
 # Severity rect: `rect 900,Y 140x40 fill:"..."` — width 140, height 40.
 RECT_RE = re.compile(

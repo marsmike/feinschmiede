@@ -277,7 +277,7 @@ def test_emit_pptx_from_document_raises_on_empty(tmp_path):
 def test_emit_pptx_from_document_roundtrip(tmp_path):
     """Parse a layout DSL, emit to PPTX — the file must be well-formed."""
     # Use a real layout from the bundled layouts
-    layouts_dir = Path(__file__).resolve().parents[2] / "feinschliff" / "layouts"
+    layouts_dir = Path(__file__).resolve().parents[2] / "feinschliff" / "brands" / "feinschliff" / "layouts"
     layout_files = list(layouts_dir.glob("*.slide.dsl"))
     if not layout_files:
         pytest.skip("no bundled layouts found")

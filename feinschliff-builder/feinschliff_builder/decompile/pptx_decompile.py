@@ -417,12 +417,11 @@ def decompile_pptx(pptx_path: Path, brand_pack_dir: Path,
                    brands_dir: Path | None = None) -> int:
     """Decompile every slide in `pptx_path` into per-slide .slide.dsl files
     under `output_dir`. Pictures are written to `assets_dir` (defaults to
-    `brand_pack_dir / 'assets'`). `brands_dir` resolves the `extends:`
-    parent chain — defaults to `brand_pack_dir.parent`, but pass the
-    feinschliff repo's `brands/` for out-of-tree brand packs.
+    `brand_pack_dir / 'assets'`). The ``brands_dir`` argument is accepted
+    but ignored — brand packs are self-contained.
     Returns the slide count.
     """
-    tokens = load_tokens(brand_pack_dir, brands_dir=brands_dir)
+    tokens = load_tokens(brand_pack_dir)
     color_index = _ColorIndex.from_tokens(tokens)
     style_index = _StyleIndex.from_tokens(tokens)
     if assets_dir is None:

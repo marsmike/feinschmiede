@@ -340,129 +340,95 @@ class Tokens:
 # Brand pack loading
 # ---------------------------------------------------------------------------
 
-def _parse_design_md_frontmatter(text: str) -> dict[str, Any]:
-    """Extract YAML frontmatter from a DESIGN.md. Returns {} if absent."""
-    if not text.startswith("---"):
-        return {}
-    end = text.find("\n---", 3)
-    if end < 0:
-        return {}
-    import yaml
-    return yaml.safe_load(text[3:end]) or {}
+def load_raw_tokens(brand_root: Path) -> dict[str, Any]:
+    """Load a brand's ``tokens.json`` and return the parsed dict.
 
-
-def load_raw_tokens(brand_root: Path, *, brands_dir: Path | None = None) -> dict[str, Any]:
-    """Flatten a brand's `extends: <parent>` chain (DESIGN.md frontmatter)
-    into one merged tokens dict, without schema validation. `brands_dir`
-    defaults to the parent of `brand_root`. Use `load_tokens` for the
-    validated `Tokens` bundle; the diagram brand_bridge consumes the raw
-    merge directly.
+    Each brand pack is self-contained (no ``extends`` inheritance). The
+    ``brands_dir`` parameter is no longer accepted — pass only ``brand_root``.
+    Use ``load_tokens`` for the validated ``Tokens`` bundle; the diagram
+    brand_bridge consumes the raw dict directly.
     """
-    brands_dir = brands_dir or brand_root.parent
-    chain: list[Path] = []
-    visited: set[str] = set()
-    cur = brand_root
-    while True:
-        if cur.name in visited:
-            raise ValueError(f"cyclic brand inheritance through {cur.name}")
-        visited.add(cur.name)
-        chain.append(cur)
-        design = cur / "DESIGN.md"
-        parent_name = None
-        if design.is_file():
-            fm = _parse_design_md_frontmatter(design.read_text())
-            parent_name = fm.get("extends")
-        if not parent_name:
-            # `extends:` is a DESIGN.md-frontmatter convention; it has never
-            # been read from tokens.json. But putting it in tokens.json is a
-            # natural mistake (DTCG-flavoured packs put everything there),
-            # and the resulting failure mode is misleading — the child pack
-            # is treated as standalone, parent keys never merge, and
-            # validation dies with "'font-size' is a required property" or
-            # similar. Surface the misplacement explicitly.
-            tj = cur / "tokens.json"
-            if tj.is_file():
-                try:
-                    raw = json.loads(tj.read_text())
-                except json.JSONDecodeError:
-                    raw = {}
-                if isinstance(raw, dict) and "extends" in raw:
-                    raise ValueError(
-                        f"brand '{cur.name}': tokens.json has an `extends` "
-                        f"key, but `extends` must be declared in DESIGN.md "
-                        f"frontmatter (`---\\nextends: <parent>\\n---`). "
-                        f"The tokens.json entry is silently ignored, which "
-                        f"is why required keys like font-size appear missing."
-                    )
-            break
-        parent = brands_dir / parent_name
-        if not parent.is_dir():
-            # Cross-plugin extends: a brand in feinschliff-extra/brands/
-            # commonly extends `feinschliff` which lives in the core plugin's
-            # brands/ — a different brands_dir. Walk the same discovery
-            # sources brand_discovery scans, but stop at the path layer so
-            # we don't re-enter load_tokens (discover_brands() calls
-            # load_tokens for image_provider resolution → recursion).
-            from feinschmiede.brand_discovery import _discovery_sources
-            parent = None
-            for _src, root in _discovery_sources():
-                cand = root / parent_name
-                if cand.is_dir():
-                    parent = cand
-                    brands_dir = root
-                    break
-            if parent is None:
-                raise FileNotFoundError(
-                    f"brand '{cur.name}' extends '{parent_name}' but not "
-                    f"found in {brands_dir} or via plugin discovery"
-                )
-        cur = parent
-
-    merged: dict[str, Any] = {}
-    # parents first → child last (so child overrides win)
-    for b in reversed(chain):
-        tj = b / "tokens.json"
-        if tj.is_file():
-            try:
-                data = json.loads(tj.read_text())
-            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-                raise ValueError(
-                    f"tokens.json in brand '{b.name}' is not valid JSON: {exc}"
-                ) from exc
-            # `$image_provider` semantics: when the child swaps `kind`, the
-            # parent's `config` must NOT carry over (it was scoped to a
-            # different provider). Drop merged's `config` before deep-merge
-            # so the child can declare a kind-only override cleanly. The
-            # standard deep_merge already handles the same-kind case where
-            # the child only refines `config` keys.
-            #
-            # Today `$image_provider` only carries `kind` + `config`, but we
-            # drop ONLY `config` (the provider-scoped key) rather than the
-            # whole parent block so any future top-level keys (`enabled`,
-            # `fallback`, …) survive a kind-swap. If you add such a key,
-            # audit this block and decide whether it's provider-scoped.
-            child_ip = data.get("$image_provider") if isinstance(data, dict) else None
-            parent_ip = merged.get("$image_provider")
-            if (
-                isinstance(child_ip, dict)
-                and isinstance(parent_ip, dict)
-                and "kind" in child_ip
-                and child_ip.get("kind") != parent_ip.get("kind")
-            ):
-                new_parent_ip = {k: v for k, v in parent_ip.items() if k != "config"}
-                merged = {**merged, "$image_provider": new_parent_ip}
-            merged = deep_merge(merged, data)
-    return merged
+    tj = brand_root / "tokens.json"
+    if not tj.is_file():
+        return {}
+    try:
+        return json.loads(tj.read_text())
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise ValueError(
+            f"tokens.json in brand '{brand_root.name}' is not valid JSON: {exc}"
+        ) from exc
 
 
 def load_tokens(brand_root: Path, *, brands_dir: Path | None = None) -> Tokens:
-    """Load a brand's tokens.json, flattening any `extends: <parent>` chain
-    declared in DESIGN.md frontmatter. `brands_dir` defaults to the parent
-    of `brand_root`.
+    """Load a brand's ``tokens.json`` as a validated :class:`Tokens` bundle.
+
+    Each brand pack is fully self-contained. The ``brands_dir`` keyword
+    argument is accepted but ignored (kept for call-site back-compat during
+    the extends-removal migration; will be removed in a follow-up).
     """
-    merged = load_raw_tokens(brand_root, brands_dir=brands_dir)
+    merged = load_raw_tokens(brand_root)
     validate_tokens(merged, brand_root.name)
     return Tokens(raw=merged, brand_name=brand_root.name)
+
+
+def load_tokens_with_theme(
+    brand_root: Path,
+    theme_name: str | None = None,
+    *,
+    brands_dir: Path | None = None,
+) -> Tokens:
+    """Load brand tokens merged with a named theme's tokens overlay.
+
+    When ``theme_name`` is None, uses the brand's ``$default_theme`` key
+    (falling back to ``"default"``). When the brand has no ``themes/``
+    directory, returns the brand's own tokens unchanged (back-compat for
+    unmigrated packs and extra brands).
+
+    The theme's ``tokens.json`` is deep-merged on top of the brand's
+    tokens, then re-validated.
+
+    Parameters
+    ----------
+    brand_root:
+        Path to the brand directory.
+    theme_name:
+        Theme name to load, e.g. ``'claude'``. Defaults to the brand's
+        declared ``$default_theme`` or ``"default"``.
+    brands_dir:
+        Accepted but ignored. Kept for call-site back-compat during
+        the extends-removal migration.
+    """
+    # Load the base brand tokens (self-contained, no extends chain).
+    brand_merged = load_raw_tokens(brand_root)
+
+    # Determine which theme to load.
+    themes_dir = brand_root / "themes"
+    if not themes_dir.is_dir():
+        # No themes/ — back-compat: treat as pre-migration pack
+        validate_tokens(brand_merged, brand_root.name)
+        return Tokens(raw=brand_merged, brand_name=brand_root.name)
+
+    # Resolve theme name: explicit arg > $default_theme in tokens.json > "default"
+    if theme_name is None:
+        theme_name = brand_merged.get("$default_theme") or "default"
+
+    theme_dir = themes_dir / theme_name
+    theme_tj = theme_dir / "tokens.json"
+    if not theme_tj.is_file():
+        available = sorted(
+            d.name for d in themes_dir.iterdir()
+            if d.is_dir() and (d / "tokens.json").is_file()
+        )
+        raise ValueError(
+            f"theme '{theme_name}' not found for brand '{brand_root.name}'. "
+            f"Available themes: {', '.join(available) or '(none)'}"
+        )
+
+    theme_raw = json.loads(theme_tj.read_bytes())
+    combined = deep_merge(brand_merged, theme_raw)
+    label = f"{brand_root.name}:{theme_name}"
+    validate_tokens(combined, label)
+    return Tokens(raw=combined, brand_name=label)
 
 
 # Allowed keys in brief_defaults — mirrors the schema enum constraints.

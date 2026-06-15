@@ -20,8 +20,8 @@ class LayoutSource:
 
 
 def _bundled_layouts_root() -> Path:
-    """The layouts/ directory shipped inside this plugin."""
-    return Path(__file__).resolve().parents[1] / "layouts"
+    """The layouts/ directory shipped inside this plugin (now brand-local)."""
+    return Path(__file__).resolve().parents[1] / "brands" / "feinschliff" / "layouts"
 
 
 def _user_layouts_root() -> Path:
@@ -74,8 +74,8 @@ def _env_layouts_roots() -> list[Path]:
 def _cwd_dev_layouts_roots() -> list[Path]:
     """Walk up from $CWD; if an in-place git checkout of feinschliff exists,
     surface its layouts/. Supports the dev workflow where a layout author edits
-    `~/work/feinschliff/feinschliff/layouts/<layout>/` and runs scripts that
-    don't sit inside the package.
+    `~/work/feinschliff/feinschliff/brands/feinschliff/layouts/<layout>/` and
+    runs scripts that don't sit inside the package.
 
     The walk stops at the first git boundary so we don't accidentally scan
     the whole home directory.
@@ -125,7 +125,7 @@ def discover_layouts() -> list[LayoutSource]:
       1. bundled — `layouts/` next to the installed `lib/`
       2. env — directories listed in `FEINSCHLIFF_LAYOUT_PATH` (colon-separated)
       3. plugin — `~/.claude/plugins/.../layouts/` (feinschliff plugins only)
-      4. cwd-dev — `feinschliff/layouts/` reachable by walking up from $CWD
+      4. cwd-dev — `feinschliff/brands/feinschliff/layouts/` or similar, reachable by walking up from $CWD
       5. user — `~/.feinschliff/layouts/`
     """
     seen_paths: set[Path] = set()

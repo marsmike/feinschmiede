@@ -259,22 +259,3 @@ def test_cwd_dev_beats_same_named_plugin_brand(tmp_path, monkeypatch):
     )
 
 
-def test_extends_resolves_parent_across_sibling_roots(tmp_path, monkeypatch):
-    """A corporate pack (feinschliff-corp/brands/corp) extending `feinschliff`
-    must find the parent in the checkout's core brands dir — the corporate-fixture shape."""
-    import json as _json
-
-    from feinschmiede.dsl.tokens import load_raw_tokens
-
-    repo = _fake_checkout(tmp_path, monkeypatch)
-    monkeypatch.setattr("feinschmiede.brand_discovery._plugin_brands_roots", lambda: [])
-    parent = repo / "feinschliff" / "brands" / "feinschliff"
-    (parent / "tokens.json").write_text(_json.dumps(
-        {"color": {"ink": {"$value": "#101010"}}}))
-    child = repo / "feinschliff-corp" / "brands" / "corp"
-    (child / "DESIGN.md").write_text("---\nextends: feinschliff\n---\n")
-    (child / "tokens.json").write_text(_json.dumps(
-        {"color": {"accent": {"$value": "#FF0000"}}}))
-    merged = load_raw_tokens(child)
-    assert merged["color"]["ink"]["$value"] == "#101010", "parent keys must merge"
-    assert merged["color"]["accent"]["$value"] == "#FF0000"

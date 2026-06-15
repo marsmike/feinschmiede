@@ -1,5 +1,4 @@
 ---
-extends: feinschliff
 version: alpha
 name: Shapes
 description: 'Port of Microsoft''s free "The power of communication" (Shapes design) template — scattered decorative geometry, a big blue title circle on white, Tw Cen MT display. Source: powerpoint.cloud.microsoft.'
@@ -7,7 +6,6 @@ typography:
   display: Tw Cen MT
   body: Avenir Next LT Pro Light
 ---
-
 ## Overview
 
 Shapes is a faithful brand-pack port of Microsoft's free **"The power of

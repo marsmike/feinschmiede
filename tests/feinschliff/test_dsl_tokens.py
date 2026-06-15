@@ -11,27 +11,15 @@ from feinschmiede.dsl.tokens import load_tokens
 
 REPO_ROOT = Path(__file__).resolve().parents[2] / "feinschliff"
 BRANDS_DIR = REPO_ROOT / "brands"
-# Extra brands in sibling feinschliff-extra plugin
-_EXTRA_BRANDS_DIR = REPO_ROOT.parent / "feinschliff-extra" / "brands"
-
-
-def _brands_dir_for(brand_name: str) -> Path:
-    """Return the brands/ directory that contains `brand_name`."""
-    if (BRANDS_DIR / brand_name).exists():
-        return BRANDS_DIR
-    if _EXTRA_BRANDS_DIR.exists() and (_EXTRA_BRANDS_DIR / brand_name).exists():
-        return _EXTRA_BRANDS_DIR
-    return BRANDS_DIR  # fallback — test will fail with a clear FileNotFoundError
 
 
 # ---------------------------------------------------------------------------
-# Real-repo fixtures: feinschliff (leaf, no extends) + catppuccin-macchiato
-# (extends: feinschliff).
+# Real-repo fixtures: feinschliff brand (self-contained, no extends).
 # ---------------------------------------------------------------------------
 
-def test_load_tokens_leaf_brand_without_extends():
-    """`feinschliff` has no `extends:` — its tokens.json is loaded directly."""
-    tokens = load_tokens(BRANDS_DIR / "feinschliff", brands_dir=BRANDS_DIR)
+def test_load_tokens_feinschliff_brand():
+    """feinschliff brand tokens.json loads directly — pack is self-contained."""
+    tokens = load_tokens(BRANDS_DIR / "feinschliff")
     # Sanity: the brand name and the accent color round-trip from the raw json.
     assert tokens.brand_name == "feinschliff"
     raw_accent = json.loads((BRANDS_DIR / "feinschliff" / "tokens.json").read_text())
@@ -41,46 +29,12 @@ def test_load_tokens_leaf_brand_without_extends():
     assert tokens.color("accent").lower() == expected_value.lower()
 
 
-def test_load_tokens_walks_extends_chain_child_overrides_parent(tmp_path):
-    """catppuccin-macchiato extends feinschliff. Its `accent` overrides the
-    parent, while inherited font-sizes still resolve through the parent."""
-    _macchiato_brands = _brands_dir_for("catppuccin-macchiato")
-    macchiato_dir = _macchiato_brands / "catppuccin-macchiato"
-    if not macchiato_dir.exists():
-        pytest.skip("catppuccin-macchiato not available (install feinschliff-extra)")
-    # When macchiato lives in the extra brands dir, feinschliff (the parent)
-    # won't be found there. Build a combined brands_dir with symlinks so
-    # load_tokens can walk the full extends chain.
-    if not (_macchiato_brands / "feinschliff").exists():
-        combined = tmp_path / "brands"
-        combined.mkdir()
-        import shutil
-        try:
-            (combined / "feinschliff").symlink_to(BRANDS_DIR / "feinschliff")
-        except OSError:
-            shutil.copytree(BRANDS_DIR / "feinschliff", combined / "feinschliff")
-        try:
-            (combined / "catppuccin-macchiato").symlink_to(macchiato_dir)
-        except OSError:
-            shutil.copytree(macchiato_dir, combined / "catppuccin-macchiato")
-        brands_search = combined
-        macchiato_dir = combined / "catppuccin-macchiato"
-    else:
-        brands_search = _macchiato_brands
-    macchiato = load_tokens(macchiato_dir, brands_dir=brands_search)
-    feinschliff = load_tokens(BRANDS_DIR / "feinschliff", brands_dir=BRANDS_DIR)
-    # Child accent must differ from parent (child wins).
-    assert macchiato.color("accent").lower() != feinschliff.color("accent").lower()
-    # Child inherits font-size 'body' from parent (macchiato doesn't redefine it).
-    assert macchiato.font_size_px("body") == feinschliff.font_size_px("body")
-
-
 def test_color_accepts_inline_hex_literal():
     """`Tokens.color()` returns `#RRGGBB` literals unchanged so the hybrid
     decompiler's source-fidelity fallback (raw hex for shapes whose source
     colour has no close brand-token match) doesn't crash the build with
     `KeyError: no color token '#FFFFFF'`."""
-    tokens = load_tokens(BRANDS_DIR / "feinschliff", brands_dir=BRANDS_DIR)
+    tokens = load_tokens(BRANDS_DIR / "feinschliff")
     assert tokens.color("#FFFFFF") == "#FFFFFF"
     assert tokens.color("#ffed00") == "#FFED00"   # case-normalised
     assert tokens.color("#abc") == "#AABBCC"      # 3-digit expanded
@@ -88,57 +42,9 @@ def test_color_accepts_inline_hex_literal():
 
 def test_color_rejects_non_hex_unknown_token():
     """Non-hex unknown names still raise KeyError — only `#…` passes through."""
-    tokens = load_tokens(BRANDS_DIR / "feinschliff", brands_dir=BRANDS_DIR)
+    tokens = load_tokens(BRANDS_DIR / "feinschliff")
     with pytest.raises(KeyError, match="no color token 'royal-blue'"):
         tokens.color("royal-blue")
-
-
-def test_load_tokens_detects_cycle(tmp_path):
-    """Two brands that extend each other → ValueError."""
-    a = tmp_path / "a"
-    b = tmp_path / "b"
-    a.mkdir()
-    b.mkdir()
-    (a / "DESIGN.md").write_text("---\nextends: b\n---\n")
-    (a / "tokens.json").write_text("{}")
-    (b / "DESIGN.md").write_text("---\nextends: a\n---\n")
-    (b / "tokens.json").write_text("{}")
-    with pytest.raises(ValueError) as exc:
-        load_tokens(a, brands_dir=tmp_path)
-    assert "cycl" in str(exc.value).lower()
-
-
-def test_load_tokens_dangling_parent_raises(tmp_path):
-    """`extends: <missing>` raises FileNotFoundError with the missing name."""
-    child = tmp_path / "child"
-    child.mkdir()
-    (child / "DESIGN.md").write_text("---\nextends: ghost-brand\n---\n")
-    (child / "tokens.json").write_text("{}")
-    with pytest.raises(FileNotFoundError) as exc:
-        load_tokens(child, brands_dir=tmp_path)
-    assert "ghost-brand" in str(exc.value)
-
-
-def test_load_tokens_deep_merges_nested_maps(tmp_path):
-    """Child overrides win at the leaf level; parent leaves untouched
-    survive in the merged map (deep merge)."""
-    parent = tmp_path / "p"
-    child = tmp_path / "c"
-    parent.mkdir()
-    child.mkdir()
-    (parent / "tokens.json").write_text(json.dumps({
-        "color": {"accent": "#111111", "ink": "#000000"},
-        "font-family": {"display": ["Noto Sans"], "body": ["Noto Sans"], "mono": ["Noto Sans Mono"]},
-        "font-size": {"body": "20px"},
-    }))
-    (child / "DESIGN.md").write_text("---\nextends: p\n---\n")
-    (child / "tokens.json").write_text(json.dumps({
-        "color": {"accent": "#FF0000"},   # override only accent
-    }))
-    t = load_tokens(child, brands_dir=tmp_path)
-    assert t.color("accent") == "#FF0000"          # child wins
-    assert t.color("ink") == "#000000"             # parent survives
-    assert t.font_size_px("body") == 20.0          # parent survives
 
 
 # ---------------------------------------------------------------------------

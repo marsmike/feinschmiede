@@ -185,11 +185,11 @@ def test_embed_skips_unreadable_font_file(tmp_path, monkeypatch):
 
 def test_cli_flag_embeds(tmp_path):
     """End-to-end `feinschliff build --embed-fonts` via subprocess, with a
-    temp brand (blank clone, fonts patched to DejaVu Sans) so the test does
-    not depend on the feinschliff brand's Noto Sans being installed."""
+    temp brand (feinschliff clone, fonts patched to DejaVu Sans) so the test
+    does not depend on the feinschliff brand's Noto Sans being installed."""
     brands_root = tmp_path / "brands"
     brand_dir = brands_root / "dejavu-embed-test"
-    shutil.copytree(PLUGIN_ROOT / "brands" / "blank", brand_dir)
+    shutil.copytree(PLUGIN_ROOT / "brands" / "feinschliff", brand_dir)
     tokens_path = brand_dir / "tokens.json"
     raw = json.loads(tokens_path.read_text())
     raw["font-family"]["display"] = {"$value": ["DejaVu Sans"]}

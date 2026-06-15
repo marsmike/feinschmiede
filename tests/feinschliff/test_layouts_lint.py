@@ -22,7 +22,7 @@ import re
 from pathlib import Path
 
 
-LAYOUT_DIR = Path(__file__).resolve().parents[2] / "feinschliff" / "layouts"
+LAYOUT_DIR = Path(__file__).resolve().parents[2] / "feinschliff" / "brands" / "feinschliff" / "layouts"
 ADJUSTABLE_KINDS = {"trapezoid", "chevron"}
 
 # Match: `shape X,Y WxH kind:NAME …` — captures the shape's full line.
