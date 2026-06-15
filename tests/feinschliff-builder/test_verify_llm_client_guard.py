@@ -1,67 +1,28 @@
-import sys
-
+"""Builder-side verify-quality rubric contract:
+no LLM client is constructed in subprocess; the orchestrator judges in
+session. Mirror in ``tests/feinschliff/test_verify_llm_client_guard_engine.py``.
+"""
 import pytest
 
 from feinschliff_builder.verify.llm import rubric
 
 
-def test_client_missing_anthropic_exits_with_friendly_message(monkeypatch):
-    rubric._client.cache_clear()
-    monkeypatch.setitem(sys.modules, "anthropic", None)
+def test_client_always_raises_regardless_of_env(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://gateway.example.com")
     monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "tok-test")
-    with pytest.raises(SystemExit, match="anthropic library not installed"):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-or-test")
+    with pytest.raises(SystemExit, match="does not construct an LLM client"):
         rubric._client()
 
 
-def test_client_refuses_when_base_url_missing(monkeypatch):
-    """Direct calls to api.anthropic.com are forbidden — bail loudly."""
-    pytest.importorskip("anthropic")
-    rubric._client.cache_clear()
+def test_client_raises_when_env_completely_unset(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
-    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "tok-test")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-or-test")
-    with pytest.raises(SystemExit, match="ANTHROPIC_BASE_URL not set"):
-        rubric._client()
-
-
-def test_client_refuses_when_base_url_blank(monkeypatch):
-    """An empty (whitespace-only) base URL counts as unset."""
-    pytest.importorskip("anthropic")
-    rubric._client.cache_clear()
-    monkeypatch.setenv("ANTHROPIC_BASE_URL", "   ")
-    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "tok-test")
-    with pytest.raises(SystemExit, match="ANTHROPIC_BASE_URL not set"):
-        rubric._client()
-
-
-def test_client_missing_credential_exits_with_friendly_message(monkeypatch):
-    pytest.importorskip("anthropic")
-    rubric._client.cache_clear()
-    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://gateway.example.com")
     monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    with pytest.raises(SystemExit, match="ANTHROPIC_AUTH_TOKEN nor ANTHROPIC_API_KEY"):
+    with pytest.raises(SystemExit, match="orchestrating Claude is the judge"):
         rubric._client()
 
 
-def test_client_routes_via_gateway_with_auth_token(monkeypatch):
-    """Gateway URL + auth_token → SDK client constructed with both."""
-    pytest.importorskip("anthropic")
-    rubric._client.cache_clear()
-    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://gateway.example.com")
-    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "tok-test")
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    client = rubric._client()
-    assert str(client.base_url).rstrip("/") == "https://gateway.example.com"
-
-
-def test_client_routes_via_gateway_with_api_key_fallback(monkeypatch):
-    """auth_token absent → fall back to api_key against the gateway URL."""
-    pytest.importorskip("anthropic")
-    rubric._client.cache_clear()
-    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://gateway.example.com")
-    monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-or-test")
-    client = rubric._client()
-    assert str(client.base_url).rstrip("/") == "https://gateway.example.com"
+def test_judge_always_raises_and_points_at_prompt_artifact_contract():
+    with pytest.raises(SystemExit, match="needs-orchestrator-judgment"):
+        rubric._judge("anything")

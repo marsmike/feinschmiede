@@ -3,10 +3,6 @@ from __future__ import annotations
 
 import base64
 import dataclasses
-import functools
-import json
-import os
-import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
@@ -28,55 +24,27 @@ class RubricResult:
     per_slide: list[dict[str, Any]]
 
 
-@functools.lru_cache(maxsize=1)
 def _client():
-    """Anthropic SDK client routed via the operator's gateway.
-
-    Refuses to fall back to ``api.anthropic.com`` — see the longer
-    rationale in :mod:`feinschliff.verify.llm.rubric._client`. Mirror of
-    that function: keep the two in sync if you change the gateway
-    contract.
+    """Always raises — see :mod:`feinschliff.verify.llm.rubric` for the
+    in-session-judge contract. verify-quality rubrics emit prompts as
+    artifacts and the orchestrating Claude writes the verdict.
     """
-    try:
-        from anthropic import Anthropic
-    except ImportError as exc:
-        raise SystemExit(
-            "verify-quality: anthropic library not installed; "
-            "install it with `uv pip install anthropic` or use --offline to skip LLM calls"
-        ) from exc
-    base_url = os.environ.get("ANTHROPIC_BASE_URL", "").strip()
-    if not base_url:
-        raise SystemExit(
-            "verify-quality: ANTHROPIC_BASE_URL not set — refusing to call "
-            "api.anthropic.com directly. Configure your gateway "
-            "(ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN), or pass --offline "
-            "to skip LLM calls."
-        )
-    auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN", "").strip()
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    if not auth_token and not api_key:
-        raise SystemExit(
-            "verify-quality: neither ANTHROPIC_AUTH_TOKEN nor ANTHROPIC_API_KEY "
-            "is set; use --offline to skip LLM calls"
-        )
-    if auth_token:
-        return Anthropic(base_url=base_url, auth_token=auth_token)
-    return Anthropic(base_url=base_url, api_key=api_key)
-
-
-def _judge(prompt: str, model: str = "claude-haiku-4-5-20251001") -> dict[str, Any]:
-    msg = _client().messages.create(
-        model=model,
-        max_tokens=256,
-        messages=[{"role": "user", "content": prompt}],
+    raise SystemExit(
+        "feinschliff-builder verify-quality does not construct an LLM "
+        "client. The orchestrating Claude is the judge — emit prompts "
+        "as artifacts and let the in-session orchestrator write the "
+        "verdict."
     )
-    text = "".join(b.text for b in msg.content if hasattr(b, "text")).strip()
-    text = re.sub(r"^\s*```(?:json)?\s*\n?", "", text)
-    text = re.sub(r"\n?\s*```\s*$", "", text).strip()
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        return {"status": "fail", "reason": f"unparseable: {text[:200]}"}
+
+
+def _judge(prompt: str, model: str | None = None) -> dict[str, Any]:
+    """Always raises — see module docstring of the engine-side rubric."""
+    raise SystemExit(
+        "feinschliff-builder verify-quality does not call an LLM. Write "
+        "the prompt as an artifact and emit a "
+        "'needs-orchestrator-judgment' stub; the orchestrator will "
+        "read and judge in session."
+    )
 
 
 def run_squint(
