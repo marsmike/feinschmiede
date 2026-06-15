@@ -469,6 +469,25 @@ def test_image_slot_classes():
     assert slots["image4"]["class"] == "keep"  # share 0.14, aspect 11 > 6
 
 
+def test_image_slot_classes_accepts_underscore_form():
+    """`_IMAGE_SLOT_RE` accepts both ``imageN`` (original decompile
+    convention from `<p:pic>` placeholder naming) and ``image_N``
+    (the ``slotify_native_pictures`` promotion from PR #109/#114).
+    Mixing the two in a single layout — original placeholders preserved
+    as ``imageN`` while newly-promoted tiles emit ``image_N`` — must
+    not lose either set from the rebuilt slots table.
+    """
+    dsl = (HEADER
+           + picture("image", 1920, 1080)                  # original convention
+           + picture("image_1", 335, 233, x=23, y=213)     # promoted by PR #114
+           + picture("image_2", 335, 233, x=411, y=176)    # promoted by PR #114
+           + slot(1, "Grid intro", pt=40))
+    slots = classify(dsl, name="five-card-grid")["slots"]
+    assert "image" in slots, "original-convention image slot must be parsed"
+    assert "image_1" in slots, "promoted image_1 slot must be parsed"
+    assert "image_2" in slots, "promoted image_2 slot must be parsed"
+
+
 # --- annotation preservation across re-runs ---------------------------------------
 
 ANNOTATED_DSL = (HEADER + native(illu_xml(), "deko") + FULL_BLEED_PICTURE
