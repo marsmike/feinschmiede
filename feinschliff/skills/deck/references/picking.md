@@ -65,6 +65,8 @@ Fetch `ideal_count` and `slot_inventory` for the Pass 2 survivors. Filter:
 
 Reject any layout you've already used N times in this deck where N is the deck-level cap. Default N=2 for content-role layouts, N=1 for framing-role (cover, agenda, closer).
 
+**Absolute hard ceiling:** regardless of relaxations, never pick the same layout more than **3×** in a single deck. This ceiling is unconditional — it cannot be relaxed further. If the only Pass-3 survivor has already been used 3×, treat it as a Pass-4 starvation and fall through the fallback ladder (widen Pass-3, then Pass-2, then Pass-1) until a different layout is found or an explicit `off_vocabulary_fallback` is logged.
+
 ### Pass 5 — final affinity (optional)
 
 For tie-breaking among the Pass 4 survivors, call the deterministic picker:
@@ -79,7 +81,7 @@ Use it as a sanity check / rerank, not as the primary signal. The LLM-driven cas
 
 A pass returning **0 survivors** is a real signal, not a bug to paper over with `survivors[0]`. Walk back up the cascade:
 
-1. **Pass 4 → 0** (variety drained the pool). Relax in this order: bump the cap by +1 for this slide; then fall back to the Pass 3 survivors and accept the reuse — but log "variety_relaxed" in the trace so it's visible. Never silently drop to `p3[0]`; that's how slide-92 got reused 9× in the Lumino test.
+1. **Pass 4 → 0** (variety drained the pool). Relax in this order: bump the cap by +1 **for this slide only** (the global cap does not change; next slide still uses the original cap); then fall back to the Pass 3 survivors and accept the reuse — but log "variety_relaxed" in the trace so it's visible. Never silently drop to `p3[0]`; that's how slide-92 got reused 9× in the Lumino test. **Importantly, the absolute ceiling of 3× still applies even after relaxation.** If the per-slide relaxed pick would exceed 3 uses of a layout, do not pick it — treat this as continued starvation and proceed to step 2 below.
 2. **Pass 3 → 0** (shape filter too tight). Re-check Pass 2 with ±2 on `ideal_count` instead of ±1, and accept image-zero layouts even when an image is available (a text layout with a missing image is recoverable; the wrong shape is not).
 3. **Pass 2 → 0** (every Pass 1 candidate had a disqualifier). Re-run Pass 1 with the role/family hint widened — if you scored only `organizational` family, admit `comparison` and `process` too. Most disqualifiers are content-shape, not concept-shape, so the second Pass-1 pool usually clears Pass 2.
 4. **Pass 1 → 0** (nothing in primary_message overlapped semantically). The slide's intent is genuinely off-vocabulary for this pack — pick the closest role-match layout from the toolkit pool (`feinschliff brand inspect <brand>` for the inherited 50) and log "off_vocabulary_fallback".
@@ -90,9 +92,33 @@ In every starvation case, the trace must say which fallback fired and why. A sil
 
 Every cascade decision **must** be logged so the next person (you, tomorrow) can see why a layout won. After all slides are picked, write `out/pick_trace.md` alongside the rest of the deck artifacts. Format:
 
+### Required top section — Layout reuse summary
+
+**The very first section of `pick_trace.md` must be a "Layout reuse summary" block** written after all slides are resolved. It lists every layout that was used more than once, sorted by use count descending. This block must appear before any per-slide detail so a reader can spot reuse problems without scrolling the full trace.
+
 ```markdown
 # Pick trace — <deck title>
 
+## Layout reuse summary
+
+| Layout | Uses | Slides | Relaxed? | Note |
+|--------|------|--------|----------|------|
+| slide-83 | 3 | 4, 9, 15 | yes (slide 15) | Pool starvation: only layout matching concept_count=4 + image_query in evidence role |
+| slide-91 | 2 | 7, 10 | no | — |
+
+Layouts at or below their base cap are omitted.
+
+> ALERT: slide-83 relaxed 1 time — annotation or pool gap. Slides 21–22 had no alternative for concept_count=3 + image_query evidence. Consider adding a second annotation-equivalent layout to the brand pack or widening slide-83's ideal_count range.
+
+```
+
+Rules for the summary block:
+- Include any layout used **more than once** (i.e. at the base cap or above).
+- The "Relaxed?" column is "yes (slides N, M)" if `variety_relaxed` fired for that layout, "no" otherwise.
+- If any layout was relaxed **one or more times**, append one `ALERT:` line per such layout naming (a) how many times it was relaxed, (b) which slides triggered relaxation, and (c) a one-line diagnosis of the cause (pool starvation, annotation gap, etc.). This surfaces the signal that an annotation or brand-pack gap exists rather than burying it in per-slide prose.
+- If no layouts exceeded their base cap, write: `No layouts exceeded their base cap — variety clean.`
+
+```markdown
 ## Slide 4 — "Performance Line CX 2026 — 100 Nm, lighter, quieter"
 
 Intent: showcase one product capability with hero photo + 4 supporting bullets.
