@@ -1,10 +1,9 @@
 """Render every brand × every layout as a PNG — the gallery atlas.
 
-For each brand pack under `brands/`, walks the v2 layout catalog
-(shared layouts in `feinschliff/layouts/` plus any brand-specific
-`brands/<brand>/layouts/` overrides), runs `feinschliff build` with
-the matching content fixture, then converts the .pptx to PNG via
-soffice + pdftoppm.
+For each brand pack under `brands/`, walks the brand's own layout
+catalog (`brands/<brand>/layouts/`) — no shared toolkit pool (PR #98
+full pack isolation), runs `feinschliff build` with the matching
+content fixture, then converts the .pptx to PNG via soffice + pdftoppm.
 
 Output:
     docs/brand-previews/<brand>/<NN>-<layout-id>.png
@@ -20,9 +19,8 @@ Run:
     uv run python scripts/render_brand_atlas.py --workers 8           # parallel soffice
 
 Content fixtures:
-  - Shared layout `<id>.slide.dsl` looks for `tests/feinschliff/fixtures/layouts/<id>.yaml`
-    at repo root, falling back to `brands/<brand>/tests/fixtures/layouts/<id>.yaml`.
-  - Brand-specific layouts must ship `brands/<brand>/tests/fixtures/layouts/<id>.yaml`.
+  - Brand layout `<id>.slide.dsl` looks for `brands/<brand>/tests/fixtures/layouts/<id>.yaml`.
+  - Falls back to `tests/feinschliff/fixtures/layouts/<id>.yaml` at repo root.
 
 Caching: a PNG is regenerated only when its mtime is older than the
 DSL, content YAML, brand tokens.json, or any compound the brand owns.
@@ -56,7 +54,6 @@ for _root in (WORKSPACE / "feinschliff" / "brands",
             if _d.is_dir() and (_d / "tokens.json").is_file():
                 BRAND_ROOTS.setdefault(_d.name, _d)
 
-SHARED_LAYOUTS = WORKSPACE / "feinschliff" / "brands" / "feinschliff" / "layouts"
 SHARED_CONTENT = WORKSPACE / "tests" / "feinschliff" / "fixtures" / "layouts"
 GALLERY_DIR = WORKSPACE / "docs" / "brand-previews"
 
@@ -87,18 +84,14 @@ class LayoutJob:
 def _discover_layouts(brand: str) -> list[tuple[str, Path]]:
     """Return [(layout_id, layout_dsl_path), ...] for the brand.
 
-    Brand-specific layouts under `brands/<brand>/layouts/` shadow the
-    shared layout with the same id. Brand-only layouts (no shared
-    sibling) are included too.
+    Brand pack isolation (PR #98): each brand renders only the layouts
+    it owns. There is no shared toolkit pool.
     """
-    seen: dict[str, Path] = {}
-    for dsl in sorted(SHARED_LAYOUTS.glob("*.slide.dsl")):
-        seen[dsl.stem.removesuffix(".slide")] = dsl
     brand_layouts = _brand_root(brand) / "layouts"
-    if brand_layouts.is_dir():
-        for dsl in sorted(brand_layouts.glob("*.slide.dsl")):
-            seen[dsl.stem.removesuffix(".slide")] = dsl
-    return sorted(seen.items())
+    if not brand_layouts.is_dir():
+        return []
+    layouts = {dsl.stem.removesuffix(".slide"): dsl for dsl in sorted(brand_layouts.glob("*.slide.dsl"))}
+    return sorted(layouts.items())
 
 
 def _find_content(brand: str, layout_id: str) -> Path | None:
