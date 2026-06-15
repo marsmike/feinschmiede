@@ -166,7 +166,6 @@ def _default_profile_table() -> dict[str, dict]:
     try:
         from feinschliff.layout_profile import build_profile_table
         # Try to find layouts from the brands/ directory directly.
-        import importlib.resources as _ir
         from pathlib import Path as _Path
         import feinschliff as _pkg
         pkg_root = _Path(_pkg.__file__).resolve().parent

@@ -1013,11 +1013,11 @@ def cmd_build(args) -> int:
             except ValueError as e:
                 print(f"deck: slide {i}: {e}", file=sys.stderr)
                 return 2
-            compounds = load_compounds_for_brand(
+            compounds = load_compounds_for_brand(  # noqa: F821 (DSL-era subcommand, retired)
                 brand_dir, std_dir=_bundled_compounds()
             )
 
-            layout_nodes, layout_compounds = parse_file(layout_path)
+            layout_nodes, layout_compounds = parse_file(layout_path)  # noqa: F821 (DSL-era subcommand, retired)
             for cd in layout_compounds:
                 compounds[cd.name] = cd
 
@@ -1057,10 +1057,10 @@ def cmd_build(args) -> int:
                 if layout_name.endswith(".slide.dsl"):
                     layout_name = layout_name[: -len(".slide.dsl")]
                 warn_overbudget_slots(ctx, layout_path=layout_path, slide_index=slide_index)
-                slot_budgets = compute_slot_budgets(layout_nodes, tokens, compounds=compounds)
+                slot_budgets = compute_slot_budgets(layout_nodes, tokens, compounds=compounds)  # noqa: F821 (DSL-era subcommand, retired)
                 chrome_bboxes: list = []
                 try:
-                    fm_text, _ = split_frontmatter(layout_path.read_text(encoding="utf-8"))
+                    fm_text, _ = split_frontmatter(layout_path.read_text(encoding="utf-8"))  # noqa: F821 (DSL-era subcommand, retired)
                     if fm_text:
                         chrome_bboxes = (yaml.safe_load(fm_text) or {}).get("chrome_bboxes") or []
                 except Exception as exc:
@@ -1128,7 +1128,7 @@ def cmd_build(args) -> int:
                 _slide_t0 = _time.perf_counter()
                 log_event(plan_dir, "build:slide", "start", slide=i + 1,
                           layout=kwargs["layout_path"].name)
-                slide_result = compile_slide(**kwargs)
+                slide_result = compile_slide(**kwargs)  # noqa: F821 (DSL-era subcommand, retired)
                 log_event(
                     plan_dir, "build:slide", "end", slide=i + 1,
                     layout=kwargs["layout_path"].name,
@@ -1143,7 +1143,7 @@ def cmd_build(args) -> int:
             _pool_t0 = _time.perf_counter()
             with ProcessPoolExecutor(max_workers=_workers) as _pool:
                 _futs = [(i, notes, brand_dir,
-                          _pool.submit(compile_slide, **kwargs))
+                          _pool.submit(compile_slide, **kwargs))  # noqa: F821
                          for i, notes, brand_dir, kwargs in compile_jobs]
                 # Join in submission order — defect output and the slide
                 # payload sequence stay identical to a sequential build.
@@ -1170,7 +1170,7 @@ def cmd_build(args) -> int:
             )
             return 1
 
-        prs = build_multi_slide(
+        prs = build_multi_slide(  # noqa: F821 (DSL-era subcommand, retired)
             slides_payload,
             asset_root_fallback=_bundled_assets(),
             image_provider=provider,
@@ -1409,7 +1409,7 @@ def cmd_wireframe(args) -> int:
     # when --show-slots forces slot-structure mode even with content provided.
     skip_interp = (content_path is None) or args.show_slots
     try:
-        primitives, tokens = _build_primitives_for_layout(
+        primitives, tokens = _build_primitives_for_layout(  # noqa: F821 (DSL-era subcommand, retired)
             layout_path, args.brand, content_path,
             skip_interpolation=skip_interp,
         )
@@ -1487,10 +1487,10 @@ def cmd_wireframe_sheet(args) -> int:
         try:
             brand_dir = find_brand(brand).root
             tokens = load_tokens(brand_dir)
-            compounds = load_compounds_for_brand(
+            compounds = load_compounds_for_brand(  # noqa: F821 (DSL-era subcommand, retired)
                 brand_dir, std_dir=_bundled_compounds()
             )
-            layout_nodes, layout_compounds = parse_file(layout_path)
+            layout_nodes, layout_compounds = parse_file(layout_path)  # noqa: F821 (DSL-era subcommand, retired)
             for cd in layout_compounds:
                 compounds[cd.name] = cd
             ctx: dict = ctx_inline.copy()
@@ -1498,10 +1498,10 @@ def cmd_wireframe_sheet(args) -> int:
                 ctx = yaml.safe_load(content_path.read_text()) or {}
             if args.show_slots:
                 # Skip interpolation so {{ slot_name }} labels survive into the cell.
-                primitives, _ = expand_compounds(layout_nodes, compounds)
+                primitives, _ = expand_compounds(layout_nodes, compounds)  # noqa: F821 (DSL-era subcommand, retired)
             else:
-                interp = interpolate_nodes(layout_nodes, ctx)
-                primitives, _ = expand_compounds(interp, compounds)
+                interp = interpolate_nodes(layout_nodes, ctx)  # noqa: F821 (DSL-era subcommand, retired)
+                primitives, _ = expand_compounds(interp, compounds)  # noqa: F821 (DSL-era subcommand, retired)
         except (ValueError, OSError, yaml.YAMLError, KeyError) as exc:
             print(f"deck wireframe-sheet: slide {i}: {exc}", file=sys.stderr)
             return 1
@@ -2101,7 +2101,7 @@ def cmd_verify_aspect(args) -> int:
                 except ValueError:
                     continue
                 try:
-                    r = compile_slide(
+                    r = compile_slide(  # noqa: F821 (DSL-era subcommand, retired)
                         layout_path=layout_path,
                         ctx=spec.get("content") or {},
                         brand_dir=brand_dir,

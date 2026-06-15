@@ -15,9 +15,6 @@ import math
 
 from feinschliff.slot_budget import (
     chars_per_line,
-    has_real_metrics,
-    register_font_metrics,
-    supported_fonts,
 )
 from feinschmiede.geometry.units import EMU_PER_PT
 

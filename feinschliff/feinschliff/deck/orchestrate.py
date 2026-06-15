@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from feinschmiede.dsl.tokens import Tokens
+    pass
 
 # ── constants ─────────────────────────────────────────────────────────────────
 
