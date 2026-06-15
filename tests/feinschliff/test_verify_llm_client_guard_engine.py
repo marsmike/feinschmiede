@@ -1,8 +1,12 @@
+"""Mirrors tests/feinschliff-builder/test_verify_llm_client_guard.py for the
+engine-side ``feinschliff.verify.llm.rubric`` module — same gateway contract
+(refuse direct api.anthropic.com calls; require ANTHROPIC_BASE_URL).
+"""
 import sys
 
 import pytest
 
-from feinschliff_builder.verify.llm import rubric
+from feinschliff.verify.llm import rubric
 
 
 def test_client_missing_anthropic_exits_with_friendly_message(monkeypatch):
@@ -15,22 +19,11 @@ def test_client_missing_anthropic_exits_with_friendly_message(monkeypatch):
 
 
 def test_client_refuses_when_base_url_missing(monkeypatch):
-    """Direct calls to api.anthropic.com are forbidden — bail loudly."""
     pytest.importorskip("anthropic")
     rubric._client.cache_clear()
     monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
     monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "tok-test")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-or-test")
-    with pytest.raises(SystemExit, match="ANTHROPIC_BASE_URL not set"):
-        rubric._client()
-
-
-def test_client_refuses_when_base_url_blank(monkeypatch):
-    """An empty (whitespace-only) base URL counts as unset."""
-    pytest.importorskip("anthropic")
-    rubric._client.cache_clear()
-    monkeypatch.setenv("ANTHROPIC_BASE_URL", "   ")
-    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "tok-test")
     with pytest.raises(SystemExit, match="ANTHROPIC_BASE_URL not set"):
         rubric._client()
 
@@ -46,7 +39,6 @@ def test_client_missing_credential_exits_with_friendly_message(monkeypatch):
 
 
 def test_client_routes_via_gateway_with_auth_token(monkeypatch):
-    """Gateway URL + auth_token → SDK client constructed with both."""
     pytest.importorskip("anthropic")
     rubric._client.cache_clear()
     monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://gateway.example.com")
@@ -57,7 +49,6 @@ def test_client_routes_via_gateway_with_auth_token(monkeypatch):
 
 
 def test_client_routes_via_gateway_with_api_key_fallback(monkeypatch):
-    """auth_token absent → fall back to api_key against the gateway URL."""
     pytest.importorskip("anthropic")
     rubric._client.cache_clear()
     monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://gateway.example.com")

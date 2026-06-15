@@ -30,6 +30,13 @@ class RubricResult:
 
 @functools.lru_cache(maxsize=1)
 def _client():
+    """Anthropic SDK client routed via the operator's gateway.
+
+    Refuses to fall back to ``api.anthropic.com`` — see the longer
+    rationale in :mod:`feinschliff.verify.llm.rubric._client`. Mirror of
+    that function: keep the two in sync if you change the gateway
+    contract.
+    """
     try:
         from anthropic import Anthropic
     except ImportError as exc:
@@ -37,12 +44,24 @@ def _client():
             "verify-quality: anthropic library not installed; "
             "install it with `uv pip install anthropic` or use --offline to skip LLM calls"
         ) from exc
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
+    base_url = os.environ.get("ANTHROPIC_BASE_URL", "").strip()
+    if not base_url:
         raise SystemExit(
-            "verify-quality: ANTHROPIC_API_KEY not set; use --offline to skip LLM calls"
+            "verify-quality: ANTHROPIC_BASE_URL not set — refusing to call "
+            "api.anthropic.com directly. Configure your gateway "
+            "(ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN), or pass --offline "
+            "to skip LLM calls."
         )
-    return Anthropic(api_key=api_key)
+    auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN", "").strip()
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if not auth_token and not api_key:
+        raise SystemExit(
+            "verify-quality: neither ANTHROPIC_AUTH_TOKEN nor ANTHROPIC_API_KEY "
+            "is set; use --offline to skip LLM calls"
+        )
+    if auth_token:
+        return Anthropic(base_url=base_url, auth_token=auth_token)
+    return Anthropic(base_url=base_url, api_key=api_key)
 
 
 def _judge(prompt: str, model: str = "claude-haiku-4-5-20251001") -> dict[str, Any]:
