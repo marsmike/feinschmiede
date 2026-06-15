@@ -143,8 +143,12 @@ def test_large_pic_promoted_to_image_slot():
     assert s["h"] == 500
     assert s["asset_path"] is None  # no asset_root provided
 
-    # DSL must contain the image slot line
-    assert "image image_1 class=replace @100,100 800x500" in new_dsl
+    # DSL must contain the promoted picture primitive bound to the new slot.
+    # `picture` is the engine's image-rendering primitive (see
+    # feinschliff/dsl/parser.py); emitting a non-existent `image` primitive
+    # was the bug that caused FATAL unknown-compound at build time.
+    assert 'picture 100,100 800x500 path:"{{ image_1 | default(' in new_dsl
+    assert 'cover:true' in new_dsl
 
     # The native payload must no longer contain <p:pic
     new_b64 = new_dsl.split('b64:"')[1].split('"')[0]
@@ -316,9 +320,11 @@ def test_image_line_inserted_before_native():
     )
 
     lines = new_dsl.splitlines()
-    image_idx = next(i for i, l in enumerate(lines) if l.startswith("image "))
+    picture_idx = next(i for i, l in enumerate(lines) if l.startswith("picture "))
     native_idx = next(i for i, l in enumerate(lines) if l.startswith("native "))
-    assert image_idx < native_idx, "image slot line must appear before its native line"
+    assert picture_idx < native_idx, (
+        "promoted picture line must appear before its source native line"
+    )
 
 
 # ---------------------------------------------------------------------------
