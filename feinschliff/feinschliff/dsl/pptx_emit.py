@@ -1682,6 +1682,172 @@ def _merge_table_style(slide, style_b64: str, node: DSLNode) -> None:
         return
 
 
+def _patch_chart_entries(entries: list, node: DSLNode) -> None:
+    """Apply bound chart-slot values to any ``drawingml.chart+xml`` entry blobs.
+
+    Reads ``chart_categories``, ``chart_values``, ``chart_colors`` from
+    *node.kw_args* (already Jinja-rendered).  Each value is a base64-encoded
+    JSON list.  Mutates ``entry["blob"]`` in-place for the first chart part
+    found; leaves all other entries untouched.
+
+    On any error the entry is left unpatched and a warning is written to
+    stderr so the build continues with the original chart.
+    """
+    import base64 as _b64
+    import json as _json
+
+    _NS_C = "http://schemas.openxmlformats.org/drawingml/2006/chart"
+    _NS_A = "http://schemas.openxmlformats.org/drawingml/2006/main"
+
+    def _decode_kwarg(name: str) -> list | None:
+        raw = node.kw_args.get(name, "").strip()
+        if not raw:
+            return None
+        try:
+            return _json.loads(_b64.b64decode(raw).decode("utf-8"))
+        except Exception:
+            return None
+
+    categories = _decode_kwarg("chart_categories")
+    values = _decode_kwarg("chart_values")
+    colors = _decode_kwarg("chart_colors")
+
+    if categories is None and values is None and colors is None:
+        return  # no bindings — fast path, zero cost
+
+    try:
+        from lxml import etree as _etree
+    except ImportError:
+        return
+
+    for e in entries:
+        if "blob" not in e or not e.get("content_type", "").endswith("drawingml.chart+xml"):
+            continue
+        try:
+            xml_bytes = _b64.b64decode(e["blob"])
+            root = _etree.fromstring(xml_bytes)
+        except Exception as exc:
+            print(
+                f"native chart (line {node.line_no}): cannot parse chart XML — {exc}; "
+                "emitting unpatched",
+                file=sys.stderr,
+            )
+            return
+
+        try:
+            _patch_chart_xml(root, categories, values, colors, _etree, _NS_C, _NS_A)
+        except Exception as exc:
+            print(
+                f"native chart (line {node.line_no}): chart-data patch failed — {exc}; "
+                "emitting unpatched",
+                file=sys.stderr,
+            )
+            return
+
+        e["blob"] = _b64.b64encode(
+            _etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
+        ).decode("ascii")
+        return  # only patch the first chart part
+
+
+def _patch_chart_xml(root, categories, values, colors, etree, NS_C: str, NS_A: str) -> None:
+    """Mutate *root* (lxml Element) in-place with the provided binding lists.
+
+    Each argument may be None (= skip that dimension).  Only series 0 is
+    patched in v1.
+    """
+
+    def _set_pt_cache(cache_el, tag_ptCount, tag_pt, tag_v, new_values, str_vals: bool):
+        """Replace the <c:pt> children of *cache_el* with *new_values*."""
+        # Remove existing pt elements
+        for old_pt in cache_el.findall(f"{{{NS_C}}}pt"):
+            cache_el.remove(old_pt)
+        # Update ptCount
+        ptc = cache_el.find(f"{{{NS_C}}}ptCount")
+        if ptc is not None:
+            ptc.set("val", str(len(new_values)))
+        # Insert new pt elements
+        # Find insertion point: after ptCount (or formatCode), before anything else
+        insert_after = None
+        for child in cache_el:
+            if child.tag in (f"{{{NS_C}}}ptCount", f"{{{NS_C}}}formatCode"):
+                insert_after = child
+        for i, val in enumerate(new_values):
+            pt_el = etree.SubElement(cache_el, f"{{{NS_C}}}pt")
+            pt_el.set("idx", str(i))
+            v_el = etree.SubElement(pt_el, f"{{{NS_C}}}v")
+            v_el.text = str(val) if not str_vals else val
+            # Move newly appended element to be right after ptCount
+            # (SubElement appends at end which is correct order anyway)
+
+    ser = root.find(f".//{{{NS_C}}}ser")
+    if ser is None:
+        return
+
+    # --- patch categories ---
+    if categories is not None:
+        cat_cache = ser.find(f"{{{NS_C}}}cat/{{{NS_C}}}strRef/{{{NS_C}}}strCache")
+        if cat_cache is not None:
+            _set_pt_cache(cat_cache, None, None, None, categories, str_vals=True)
+
+    # --- patch values ---
+    if values is not None:
+        val_cache = ser.find(f"{{{NS_C}}}val/{{{NS_C}}}numRef/{{{NS_C}}}numCache")
+        if val_cache is not None:
+            _set_pt_cache(val_cache, None, None, None, values, str_vals=False)
+
+    # --- patch per-point colours ---
+    if colors is not None:
+        # Build existing dPt idx map
+        existing_dpts: dict[int, object] = {}
+        for dpt in ser.findall(f"{{{NS_C}}}dPt"):
+            idx_el = dpt.find(f"{{{NS_C}}}idx")
+            if idx_el is not None:
+                try:
+                    existing_dpts[int(idx_el.get("val", "-1"))] = dpt
+                except ValueError:
+                    pass
+
+        for i, hex_color in enumerate(colors):
+            if not hex_color:
+                continue  # empty string = no override for this point
+            hex_color = hex_color.strip().upper().lstrip("#")
+            if not hex_color:
+                continue
+
+            dpt = existing_dpts.get(i)
+            if dpt is None:
+                # Create a new dPt element; insert before <c:cat> (standard ordering)
+                dpt = etree.Element(f"{{{NS_C}}}dPt")
+                idx_el = etree.SubElement(dpt, f"{{{NS_C}}}idx")
+                idx_el.set("val", str(i))
+                # Insert before <c:cat> or <c:val> or append after last dPt
+                cat_el = ser.find(f"{{{NS_C}}}cat")
+                if cat_el is not None:
+                    cat_el.addprevious(dpt)
+                else:
+                    ser.append(dpt)
+                existing_dpts[i] = dpt
+
+            sp_pr = dpt.find(f"{{{NS_C}}}spPr")
+            if sp_pr is None:
+                sp_pr = etree.SubElement(dpt, f"{{{NS_C}}}spPr")
+
+            # Find or create solidFill > srgbClr
+            solid = sp_pr.find(f"{{{NS_A}}}solidFill")
+            if solid is None:
+                solid = etree.SubElement(sp_pr, f"{{{NS_A}}}solidFill")
+
+            clr = solid.find(f"{{{NS_A}}}srgbClr")
+            if clr is None:
+                # Remove any other fill children first
+                for child in list(solid):
+                    solid.remove(child)
+                clr = etree.SubElement(solid, f"{{{NS_A}}}srgbClr")
+
+            clr.set("val", hex_color)
+
+
 def _splice_native_parts(slide, frame_el, parts_b64: str, node: DSLNode) -> None:
     """Re-create a native-carried CHART or DIAGRAM external part-graph in this deck.
 
@@ -1737,6 +1903,13 @@ def _splice_native_parts(slide, frame_el, parts_b64: str, node: DSLNode) -> None
         _merge_table_style(slide, e["table_style"], node)
     if not entries:
         return
+
+    # 0. Chart-data patching: if the DSL node carries chart_categories /
+    #    chart_values / chart_colors kw-args (already Jinja-rendered by the
+    #    time _emit_native calls us), decode and apply them to the chart XML
+    #    before we materialise the parts.  On any error we leave the entry
+    #    unpatched and log to stderr — better a visible chart than a blown build.
+    _patch_chart_entries(entries, node)
 
     pkg = slide.part.package
     # Per content-type partname template (so a re-created xlsx lands in
