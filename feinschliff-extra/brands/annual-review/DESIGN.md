@@ -1,5 +1,4 @@
 ---
-extends: feinschliff
 version: alpha
 name: Annual Review
 description: 'Port of Microsoft''s free "Annual Review" presentation template — warm-yellow + pale-blue pastel section panels, black ink, heavy Arial Nova display. Source: powerpoint.cloud.microsoft.'
@@ -21,7 +20,6 @@ typography:
   display: Arial Nova
   body: Arial Nova
 ---
-
 ## Overview
 
 Annual Review is a faithful brand-pack port of Microsoft's free **"Annual

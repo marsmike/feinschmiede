@@ -14,7 +14,7 @@ def test_svg_infographic_renders_to_pptx(tmp_path):
     result = subprocess.run(
         [
             "uv", "run", "feinschliff", "build",
-            str(REPO / "layouts" / "svg-infographic.slide.dsl"),
+            str(REPO / "brands" / "feinschliff" / "layouts" / "svg-infographic.slide.dsl"),
             "--brand", "feinschliff",
             "--content", str(Path(__file__).resolve().parent / "fixtures" / "layouts" / "svg-infographic.yaml"),
             "-o", str(out),

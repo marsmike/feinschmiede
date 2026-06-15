@@ -18,7 +18,7 @@ from feinschmiede import compounds_dir
 # Core plugin root (feinschliff) is the sibling directory; brands/layouts live there.
 REPO_ROOT = Path(__file__).resolve().parents[2] / "feinschliff"
 BRAND_DIR = REPO_ROOT / "brands" / "feinschliff"
-LAYOUTS_DIR = REPO_ROOT / "layouts"
+LAYOUTS_DIR = REPO_ROOT / "brands" / "feinschliff" / "layouts"
 
 
 def test_compounds_dir_is_the_engine_compounds():

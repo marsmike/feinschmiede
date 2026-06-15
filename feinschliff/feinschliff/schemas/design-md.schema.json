@@ -16,11 +16,6 @@
       "minLength": 1,
       "description": "Display name of the brand."
     },
-    "extends": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Parent brand name. The DSL pipeline walks this chain to inherit tokens.json + compounds; child fields override parent."
-    },
     "description": {
       "type": "string",
       "description": "One-line summary."

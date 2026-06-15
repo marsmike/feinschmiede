@@ -22,8 +22,6 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from feinschmiede.dsl.tokens import _parse_design_md_frontmatter
-
 from .parser import DSLNode, CompoundDef, parse_file
 
 if TYPE_CHECKING:
@@ -213,54 +211,13 @@ def load_compounds(*dirs: Path) -> dict[str, CompoundDef]:
 def load_compounds_for_brand(
     brand_root: Path, *, std_dir: Path, brands_dir: Path | None = None
 ) -> dict[str, CompoundDef]:
-    """Resolve brand compounds across the `extends:` chain.
+    """Load compounds for a brand: engine-bundled toolkit compounds + brand-local.
 
-    Mirrors `tokens.load_tokens`: walks parents declared in DESIGN.md
-    frontmatter, then layers std → root-of-chain → … → child so child
-    overrides win. Lets a brand inherit header/footer (or any other
-    compound) from a parent brand without copying the file.
+    Brand-local compounds/ override toolkit compounds on name collision.
+    Each brand pack is self-contained (no extends inheritance). The
+    ``brands_dir`` argument is accepted but ignored.
     """
-    brands_dir = brands_dir or brand_root.parent
-    chain: list[Path] = []
-    visited: set[str] = set()
-    cur = brand_root
-    while True:
-        if cur.name in visited:
-            raise ValueError(f"cyclic brand inheritance through {cur.name}")
-        visited.add(cur.name)
-        chain.append(cur)
-        design = cur / "DESIGN.md"
-        parent_name = None
-        if design.is_file():
-            fm = _parse_design_md_frontmatter(design.read_text())
-            parent_name = fm.get("extends")
-        if not parent_name:
-            break
-        parent = brands_dir / parent_name
-        if not parent.is_dir():
-            # Cross-plugin extends — same fallback as load_tokens.
-            # Walk discovery sources directly (not discover_brands()) to
-            # avoid the tokens ↔ brand_discovery recursion path.
-            from feinschmiede.brand_discovery import _discovery_sources
-            parent = None
-            for _src, root in _discovery_sources():
-                cand = root / parent_name
-                if cand.is_dir():
-                    parent = cand
-                    brands_dir = root
-                    break
-            if parent is None:
-                raise FileNotFoundError(
-                    f"brand '{cur.name}' extends '{parent_name}' but not "
-                    f"found in {brands_dir} or via plugin discovery"
-                )
-        cur = parent
-
-    # std first, then chain from root-of-chain → child (child wins on name).
-    dirs: list[Path] = [std_dir]
-    for b in reversed(chain):
-        dirs.append(b / "compounds")
-    return load_compounds(*dirs)
+    return load_compounds(std_dir, brand_root / "compounds")
 
 
 # ---------------------------------------------------------------------------
@@ -891,6 +848,7 @@ def expand_diagram_blocks(
     layout_dir: Path | None = None,
     *,
     slide_index: int = 1,
+    theme_tokens_path: Path | None = None,
 ) -> list[DSLNode]:
     """Replace svg/excalidraw block nodes with picture primitives pointing at
     rendered PNGs. Carries diagram metadata so wireframe can render the
@@ -938,13 +896,19 @@ def expand_diagram_blocks(
     # the FULL `extends:` chain (brand_bridge merges parent tokens), so hashing
     # only the child brand's tokens.json would reuse a stale PNG when a PARENT
     # token is edited — common for a brand that inherits its palette via
-    # `extends:`. Hash the merged, extends-resolved tokens instead. Computed
-    # once per call (constant across this slide's diagram nodes). Falls back
-    # to the child file alone if the chain can't be resolved, so a malformed
-    # parent degrades to a stale-cache risk rather than crashing the build.
+    # `extends:`. Hash the merged, extends-resolved tokens instead. When a theme
+    # is active (`theme_tokens_path`), its bytes are also included so two themes
+    # of the same brand never share diagram cache entries. Computed once per call
+    # (constant across this slide's diagram nodes). Falls back to the child file
+    # alone if the chain can't be resolved, so a malformed parent degrades to a
+    # stale-cache risk rather than crashing the build.
     try:
-        from feinschmiede.dsl.tokens import load_tokens
-        _merged_raw = load_tokens(brand_dir).raw
+        from feinschmiede.dsl.tokens import load_tokens_with_theme
+        # Derive theme name from theme_tokens_path (themes/<name>/tokens.json)
+        _theme_name: str | None = None
+        if theme_tokens_path is not None and theme_tokens_path.is_file():
+            _theme_name = theme_tokens_path.parent.name
+        _merged_raw = load_tokens_with_theme(brand_dir, _theme_name).raw
         _tokens_hash = hashlib.sha1(
             _json.dumps(_merged_raw, sort_keys=True,
                         separators=(",", ":")).encode()
@@ -955,6 +919,13 @@ def expand_diagram_blocks(
             hashlib.sha1(_tj.read_bytes()).hexdigest()[:12]
             if _tj.exists() else ""
         )
+        # Append theme bytes if available so fallback hashes still differ per theme.
+        if theme_tokens_path is not None and theme_tokens_path.is_file():
+            _tokens_hash = hashlib.sha1(
+                (_tokens_hash + hashlib.sha1(
+                    theme_tokens_path.read_bytes()
+                ).hexdigest()).encode()
+            ).hexdigest()[:12]
     _layout_dir_name = layout_dir.name if layout_dir is not None else ""
 
     # ---- Pass 1: compute each diagram's cache identity -------------------

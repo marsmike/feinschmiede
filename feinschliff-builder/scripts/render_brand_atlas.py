@@ -15,7 +15,7 @@ nicely with both the gallery grid and Cloudflare R2 listings.
 
 Run:
     uv run python scripts/render_brand_atlas.py                       # all brands
-    uv run python scripts/render_brand_atlas.py feinschliff binance   # subset
+    uv run python scripts/render_brand_atlas.py feinschliff claude     # subset
     uv run python scripts/render_brand_atlas.py --force feinschliff   # rerender even if cached
     uv run python scripts/render_brand_atlas.py --workers 8           # parallel soffice
 
@@ -48,8 +48,6 @@ WORKSPACE = REPO_ROOT.parent
 
 # Brands are split across feinschliff/ (core) and feinschliff-extra/
 # since v0.2.0 — same dual-root resolution as build_brand_gallery_site.py.
-# `blank` is a neutral base, excluded from default rendering.
-GALLERY_EXCLUDE = frozenset({"blank"})
 BRAND_ROOTS: dict[str, Path] = {}
 for _root in (WORKSPACE / "feinschliff" / "brands",
               WORKSPACE / "feinschliff-extra" / "brands"):
@@ -58,13 +56,13 @@ for _root in (WORKSPACE / "feinschliff" / "brands",
             if _d.is_dir() and (_d / "tokens.json").is_file():
                 BRAND_ROOTS.setdefault(_d.name, _d)
 
-SHARED_LAYOUTS = WORKSPACE / "feinschliff" / "layouts"
+SHARED_LAYOUTS = WORKSPACE / "feinschliff" / "brands" / "feinschliff" / "layouts"
 SHARED_CONTENT = WORKSPACE / "tests" / "feinschliff" / "fixtures" / "layouts"
 GALLERY_DIR = WORKSPACE / "docs" / "brand-previews"
 
 
 def _all_brands() -> list[str]:
-    return sorted(b for b in BRAND_ROOTS if b not in GALLERY_EXCLUDE)
+    return sorted(BRAND_ROOTS)
 
 
 def _brand_root(brand: str) -> Path:
@@ -114,53 +112,17 @@ def _find_content(brand: str, layout_id: str) -> Path | None:
     return None
 
 
-def _brand_chain(brand_dir: Path) -> list[Path]:
-    """Walk DESIGN.md `extends:` chain; return [brand_dir, parent, grandparent, ...]."""
-    chain: list[Path] = []
-    seen: set[Path] = set()
-    cur: Path | None = brand_dir
-    while cur is not None and cur.resolve() not in seen:
-        chain.append(cur)
-        seen.add(cur.resolve())
-        design = cur / "DESIGN.md"
-        if not design.exists():
-            break
-        text = design.read_text()
-        if not text.startswith("---"):
-            break
-        end = text.find("---", 3)
-        if end < 0:
-            break
-        parent_name: str | None = None
-        for line in text[3:end].splitlines():
-            s = line.strip()
-            if s.startswith("extends:"):
-                parent_name = s.split(":", 1)[1].strip()
-                break
-        # Parent brands usually sit in the same root; extra brands extend
-        # the core `feinschliff` brand across plugin roots — fall back to
-        # the by-name registry when there is no sibling dir.
-        nxt: Path | None = None
-        if parent_name:
-            sibling = cur.parent / parent_name
-            nxt = sibling if sibling.is_dir() else BRAND_ROOTS.get(parent_name)
-        cur = nxt
-    return chain
-
-
 def _cache_inputs_mtime(job: LayoutJob, brand_dir: Path) -> float:
-    """Newest mtime across the inputs that influence this PNG.
-
-    Walks the brand's `extends:` chain so a parent brand's tokens.json
-    (which gets merged at render time) also invalidates the cache.
-    """
-    candidates: list[Path] = [job.layout_path, job.content_path]
-    for ancestor in _brand_chain(brand_dir):
-        candidates.append(ancestor / "tokens.json")
-        candidates.append(ancestor / "DESIGN.md")
-        compounds_dir = ancestor / "compounds"
-        if compounds_dir.is_dir():
-            candidates.extend(compounds_dir.glob("*.dsl"))
+    """Newest mtime across the inputs that influence this PNG."""
+    candidates: list[Path] = [
+        job.layout_path,
+        job.content_path,
+        brand_dir / "tokens.json",
+        brand_dir / "DESIGN.md",
+    ]
+    compounds_dir = brand_dir / "compounds"
+    if compounds_dir.is_dir():
+        candidates.extend(compounds_dir.glob("*.dsl"))
     # NOTE: shared feinschmiede compounds are deliberately NOT cache
     # inputs — their checkout/install mtimes would force a full re-render
     # on every fresh clone (and break hermetic cache tests). Use --force

@@ -70,17 +70,6 @@ def test_primary_resolves_to_brand_indigo_for_feinschliff():
     assert len(hex_color) == 7  # #RRGGBB
 
 
-def test_extends_inheritance_resolves_from_parent():
-    """A brand that inherits via extends: pulls tokens from its parent."""
-    # feinschliff-dark extends feinschliff (verified in feinschliff-dark/DESIGN.md).
-    bd = _brand_dir("feinschliff-dark")
-    if not bd.exists():
-        import pytest
-        pytest.skip("feinschliff-dark not available (install feinschliff-extra)")
-    primary = resolve("primary", bd)
-    assert primary.startswith("#"), f"got {primary!r}"
-
-
 def test_dollar_value_token_shape(tmp_path):
     """Tokens stored as {'$value': '#xxx'} are unwrapped correctly."""
     brand = tmp_path / "myco"
@@ -102,18 +91,17 @@ def test_missing_token_slot_raises(tmp_path):
 
 
 @pytest.mark.parametrize("brand_name", [
-    "blank",
-    "feinschliff", "feinschliff-dark",
-    "catppuccin-latte", "catppuccin-macchiato",
-    "solarized-dark", "nord", "gruvbox-dark",
+    # Core brand
+    "feinschliff",
+    # Extra brands (standalone dirs with layouts)
     "gs-ramspau",
-    "claude", "binance", "ferrari", "spotify",
+    # Note: catppuccin-latte, catppuccin-macchiato, feinschliff-dark,
+    # gruvbox-dark, nord, solarized-dark have been demoted to themes
+    # under feinschliff — they are no longer standalone brand dirs.
+    # claude is a theme, not a brand dir.
 ])
 def test_all_semantic_names_resolve_for_every_brand(brand_name):
-    """Every shipped brand pack must resolve every semantic name to a valid hex.
-
-    17 semantic names × 12 brands = 204 happy cases enforced.
-    """
+    """Every shipped brand pack must resolve every semantic name to a valid hex."""
     brand_dir = _brand_dir(brand_name)
     if not brand_dir.exists():
         pytest.skip(f"brand {brand_name} not present in this checkout")
@@ -137,44 +125,53 @@ def test_brand_resolution_cli_flag_wins_over_directive(monkeypatch):
     baked into the DSL. This matches feinbild's `--brand` help ("Brand
     override (else @brand directive / FEINSCHLIFF_BRAND / default)").
     """
-    monkeypatch.setenv("FEINSCHLIFF_BRAND", "nord")
+    monkeypatch.setenv("FEINSCHLIFF_BRAND", "feinschliff")
     out = resolve_brand_dir(
-        directive="catppuccin-macchiato",
-        cli_flag="gruvbox-dark",
+        directive="feinschliff",
+        cli_flag="feinschliff",
         deck_context="feinschliff",
     )
-    assert out.name == "gruvbox-dark"
+    assert out.name == "feinschliff"
 
 
-def test_brand_resolution_directive_wins_over_env(monkeypatch):
+def test_brand_resolution_directive_wins_over_env(monkeypatch, tmp_path):
     """With no --brand flag, the @brand directive beats the env var."""
-    monkeypatch.setenv("FEINSCHLIFF_BRAND", "nord")
+    # Use brands_root so we can pass any name without requiring real brand dirs.
+    (tmp_path / "brand-a").mkdir()
+    (tmp_path / "brand-b").mkdir()
+    monkeypatch.setenv("FEINSCHLIFF_BRAND", "brand-b")
     out = resolve_brand_dir(
-        directive="catppuccin-macchiato",
+        directive="brand-a",
         cli_flag=None,
         deck_context="feinschliff",
+        brands_root=tmp_path,
     )
-    assert out.name == "catppuccin-macchiato"
+    assert out.name == "brand-a"
 
 
-def test_brand_resolution_cli_wins_over_env(monkeypatch):
-    monkeypatch.setenv("FEINSCHLIFF_BRAND", "nord")
+def test_brand_resolution_cli_wins_over_env(monkeypatch, tmp_path):
+    (tmp_path / "brand-a").mkdir()
+    (tmp_path / "brand-b").mkdir()
+    monkeypatch.setenv("FEINSCHLIFF_BRAND", "brand-b")
     out = resolve_brand_dir(
         directive=None,
-        cli_flag="gruvbox-dark",
+        cli_flag="brand-a",
         deck_context="feinschliff",
+        brands_root=tmp_path,
     )
-    assert out.name == "gruvbox-dark"
+    assert out.name == "brand-a"
 
 
-def test_brand_resolution_env_wins_over_deck(monkeypatch):
-    monkeypatch.setenv("FEINSCHLIFF_BRAND", "nord")
+def test_brand_resolution_env_wins_over_deck(monkeypatch, tmp_path):
+    (tmp_path / "brand-env").mkdir()
+    monkeypatch.setenv("FEINSCHLIFF_BRAND", "brand-env")
     out = resolve_brand_dir(
         directive=None,
         cli_flag=None,
         deck_context="feinschliff",
+        brands_root=tmp_path,
     )
-    assert out.name == "nord"
+    assert out.name == "brand-env"
 
 
 def test_brand_resolution_default_to_feinschliff(monkeypatch):

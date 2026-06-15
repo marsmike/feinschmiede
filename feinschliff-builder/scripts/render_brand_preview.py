@@ -49,7 +49,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # Toolkit layouts moved out of feinschliff-builder when the packages were
 # split: shared `.slide.dsl` files now live in sibling `feinschliff/layouts`,
 # and the per-layout content fixtures stayed under feinschliff/tests.
-SHARED_LAYOUTS = REPO_ROOT.parent / "feinschliff" / "layouts"
+SHARED_LAYOUTS = REPO_ROOT.parent / "feinschliff" / "brands" / "feinschliff" / "layouts"
 SHARED_CONTENT = REPO_ROOT.parent / "feinschliff" / "tests" / "fixtures" / "layouts"
 
 PDFUNITE = shutil.which("pdfunite") or "/opt/homebrew/bin/pdfunite"

@@ -22,10 +22,9 @@ def test_brand_roots_cover_core_and_extra():
     assert "annual-review" in rba.BRAND_ROOTS  # feinschliff-extra
 
 
-def test_default_enumeration_excludes_blank():
+def test_default_enumeration_covers_core_and_extra():
     brands = rba._all_brands()
-    assert "blank" not in brands
-    assert {"feinschliff", "claude", "spotify", "scientific"} <= set(brands)
+    assert {"feinschliff", "scientific"} <= set(brands)
 
 
 def test_discovery_finds_shared_and_brand_layouts():
@@ -35,8 +34,3 @@ def test_discovery_finds_shared_and_brand_layouts():
     assert rba._find_content("feinschliff", "agenda") is not None
 
 
-def test_brand_chain_crosses_plugin_roots():
-    """annual-review (feinschliff-extra) extends feinschliff (core) — the
-    cache-invalidation chain must cross the plugin boundary."""
-    chain = rba._brand_chain(rba.BRAND_ROOTS["annual-review"])
-    assert rba.BRAND_ROOTS["feinschliff"] in chain

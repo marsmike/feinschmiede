@@ -14,7 +14,7 @@ def test_ship_runs_build_verify_quality_and_emits_consolidated_report(tmp_path):
         "brand: feinschliff\n"
         f"out: {tmp_path / 'deck.pptx'}\n"
         "slides:\n"
-        f"  - layout: {REPO_ROOT / 'layouts' / 'executive-summary.slide.dsl'}\n"
+        f"  - layout: {REPO_ROOT / 'brands' / 'feinschliff' / 'layouts' / 'executive-summary.slide.dsl'}\n"
         f"    content_file: {Path(__file__).resolve().parent / 'fixtures' / 'verify_quality' / 'executive-summary-content.yaml'}\n"
     )
     proc = subprocess.run(
@@ -74,7 +74,7 @@ def test_ship_fails_when_build_aborts(tmp_path):
         "brand: feinschliff\n"
         f"out: {tmp_path / 'deck.pptx'}\n"
         "slides:\n"
-        f"  - layout: {REPO_ROOT / 'layouts' / 'executive-summary.slide.dsl'}\n"
+        f"  - layout: {REPO_ROOT / 'brands' / 'feinschliff' / 'layouts' / 'executive-summary.slide.dsl'}\n"
         f"    content_file: {tmp_path / 'does-not-exist.yaml'}\n"
     )
     proc = subprocess.run(

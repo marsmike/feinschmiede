@@ -62,18 +62,31 @@ def _resolve_layout_path(layouts_path: Path | None, name: str) -> Path | None:
 
 
 def _brand_layout_table(layouts_path: Path | None) -> dict[str, Path]:
-    """Toolkit-discovered layouts overlaid with brand-local ones (brand wins).
+    """Layout pool for picker scoring.
 
-    This is the full ranking universe the picker sees for a brand — including
-    brand-only layouts the toolkit knows nothing about.
+    When the brand ships a non-empty ``layouts/`` directory (brand-owned
+    layouts), the pool contains ONLY those brand-local layouts — toolkit
+    overlay layouts are excluded. This structural enforcement prevents
+    brand-chrome leaks: the content-assembly LLM cannot accidentally pick
+    a toolkit layout when the brand owns its full layout vocabulary.
+
+    When ``layouts_path`` is None or empty (no brand-local layouts), the
+    pool is empty. Each brand owns its full layout vocabulary; port DSL
+    templates manually when a brand needs a layout from the toolkit.
     """
-    paths = dict(layout_discovery.discover_layout_paths())
+    suffix = ".slide.dsl"
     if layouts_path is not None:
-        suffix = ".slide.dsl"
-        for candidate in sorted(layouts_path.glob(f"*{suffix}")):
-            name = candidate.name[: -len(suffix)]
-            paths[name] = candidate  # brand-local wins
-    return paths
+        brand_local = {
+            candidate.name[: -len(suffix)]: candidate
+            for candidate in sorted(layouts_path.glob(f"*{suffix}"))
+        }
+        if brand_local:
+            # Non-empty brand layouts/ → brand-owned pool only.
+            return brand_local
+    # No brand-local layouts (or empty layouts/) → empty pool.
+    # Each brand owns its layout vocabulary; copy/port DSL templates manually
+    # when a brand needs layouts from the toolkit.
+    return {}
 
 
 # ── LayoutMatch ───────────────────────────────────────────────────────────────

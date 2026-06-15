@@ -1,5 +1,4 @@
 ---
-extends: feinschliff
 version: alpha
 name: Geometric
 description: 'Port of Microsoft''s free "The power of communication" (Geometric design) template — bold flat color blocks, Arial Black display over Sabon Next LT body. Source: powerpoint.cloud.microsoft.'
@@ -7,7 +6,6 @@ typography:
   display: Arial Black
   body: Sabon Next LT
 ---
-
 ## Overview
 
 Geometric is a faithful brand-pack port of Microsoft's free **"The power of

@@ -20,7 +20,7 @@ from feinschmiede.diagnostics import DiagnosticBag, Severity
 REPO_ROOT = Path(__file__).resolve().parents[2] / "feinschliff"
 BRANDS_DIR = REPO_ROOT / "brands"
 BRAND_DIR = REPO_ROOT / "brands" / "feinschliff"
-LAYOUTS_DIR = REPO_ROOT / "layouts"
+LAYOUTS_DIR = REPO_ROOT / "brands" / "feinschliff" / "layouts"
 BRAND_PACK = BrandPack.load(BRAND_DIR)
 
 

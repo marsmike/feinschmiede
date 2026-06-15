@@ -9,6 +9,11 @@ Usage::
     pack = BrandPack.load(Path("brands/feinschliff"))
     hex_color = pack.resolve_token("color.accent")   # "#C9A24A"
     compound = pack.find_compound("footer")          # FoundCompound or None
+
+    # Theme-aware loading (new):
+    theme = pack.theme("claude")                     # ThemePack
+    theme = pack.default_theme                       # ThemePack for the default
+    resolved = theme.tokens                          # merged Tokens (brand + theme)
 """
 from __future__ import annotations
 
@@ -24,6 +29,113 @@ class FoundCompound:
     name: str
     path: Path
     origin: str  # "brand-local" | "toolkit"
+
+
+# ---------------------------------------------------------------------------
+# ThemePack
+# ---------------------------------------------------------------------------
+
+class ThemePack:
+    """A color/font variant of a BrandPack.
+
+    Resolved tokens = deep_merge(brand.tokens, theme.tokens). When the brand
+    has no ``themes/`` directory, a synthetic ThemePack is created pointing at
+    the brand's own ``tokens.json`` (so unmigrated packs work unchanged).
+
+    Parameters are private; use ``BrandPack.theme(name)`` or
+    ``BrandPack.default_theme`` to obtain instances.
+    """
+
+    def __init__(
+        self,
+        brand: "BrandPack",
+        name: str,
+        theme_root: Path | None,
+        *,
+        synthetic: bool = False,
+    ) -> None:
+        self._brand = brand
+        self._name = name
+        self._theme_root = theme_root
+        self._synthetic = synthetic
+        self._tokens_cache: Any | None = None
+
+    @property
+    def name(self) -> str:
+        """Theme name, e.g. ``'default'`` or ``'claude'``."""
+        return self._name
+
+    @property
+    def brand(self) -> "BrandPack":
+        return self._brand
+
+    @property
+    def theme_root(self) -> Path | None:
+        """Path to the theme directory (``themes/<name>/``), or None for synthetic."""
+        return self._theme_root
+
+    @property
+    def tokens_path(self) -> Path | None:
+        """Path to the theme's tokens.json, or None for synthetic."""
+        if self._theme_root is None:
+            return None
+        p = self._theme_root / "tokens.json"
+        return p if p.is_file() else None
+
+    @property
+    def tokens(self) -> Any:
+        """Resolved Tokens (brand-level deep-merged with theme tokens).
+
+        Lazily computed and cached. For synthetic themes (no ``themes/``
+        directory), delegates to the brand's own token loading.
+        """
+        if self._tokens_cache is None:
+            self._tokens_cache = self._resolve_tokens()
+        return self._tokens_cache
+
+    def _resolve_tokens(self) -> Any:
+        from feinschmiede.dsl.tokens import load_tokens, Tokens
+        from feinschmiede.jsonwalk import deep_merge
+
+        if self._synthetic:
+            # No themes/ — just load the brand tokens (extends chain already resolved)
+            return load_tokens(self._brand.root)
+
+        theme_tj = self._theme_root / "tokens.json" if self._theme_root else None
+        if theme_tj is None or not theme_tj.is_file():
+            return load_tokens(self._brand.root)
+
+        # Brand tokens (resolves extends chain) then deep-merge theme on top.
+        # We use load_tokens on brand root for the base (schema-validated, extends-resolved).
+        # Then deep-merge the theme's raw tokens.json on top, and re-validate.
+        brand_merged = load_tokens(self._brand.root)
+        theme_raw = json.loads(theme_tj.read_bytes())
+        combined = deep_merge(brand_merged.raw, theme_raw)
+        # Re-validate the combined result against the schema.
+        from feinschmiede.dsl.tokens import validate_tokens
+        validate_tokens(combined, f"{self._brand.name}:{self._name}")
+        return Tokens(raw=combined, brand_name=f"{self._brand.name}:{self._name}")
+
+    @property
+    def tokens_hash(self) -> str:
+        """12-char SHA-1 of the combined (brand + theme) token bytes.
+
+        Used as the diagram cache key. Two themes of the same brand produce
+        different hashes. For synthetic themes, equals the brand's tokens_hash.
+        """
+        if self._synthetic:
+            return self._brand.tokens_hash
+        brand_tj = self._brand.root / "tokens.json"
+        theme_tj = self._theme_root / "tokens.json" if self._theme_root else None
+        h = hashlib.sha1()
+        if brand_tj.is_file():
+            h.update(brand_tj.read_bytes())
+        if theme_tj is not None and theme_tj.is_file():
+            h.update(theme_tj.read_bytes())
+        return h.hexdigest()[:12]
+
+    def __repr__(self) -> str:
+        return f"ThemePack(brand={self._brand.name!r}, theme={self._name!r})"
 
 
 # ---------------------------------------------------------------------------
@@ -48,6 +160,7 @@ class BrandPack:
         self._tokens = tokens
         self._tokens_hash = tokens_hash
         self._image_provider_config = image_provider_config
+        self._themes_cache: dict[str, ThemePack] | None = None
 
     # ------------------------------------------------------------------
     # Factory
@@ -132,6 +245,84 @@ class BrandPack:
         """Path to DESIGN.md if present (used by feinschliff-builder brand inspect)."""
         p = self._root / "DESIGN.md"
         return p if p.is_file() else None
+
+    # ------------------------------------------------------------------
+    # Theme discovery
+    # ------------------------------------------------------------------
+
+    @property
+    def _themes_dir(self) -> Path | None:
+        p = self._root / "themes"
+        return p if p.is_dir() else None
+
+    def _build_themes(self) -> dict[str, ThemePack]:
+        themes_dir = self._themes_dir
+        if themes_dir is None:
+            # No themes/ — synthesize a single "default" theme pointing at
+            # the brand root's own tokens.json (back-compat for unmigrated packs).
+            return {"default": ThemePack(self, "default", None, synthetic=True)}
+        result: dict[str, ThemePack] = {}
+        for entry in sorted(themes_dir.iterdir()):
+            if entry.is_dir() and (entry / "tokens.json").is_file():
+                result[entry.name] = ThemePack(self, entry.name, entry)
+        if not result:
+            # themes/ exists but is empty — treat same as absent
+            return {"default": ThemePack(self, "default", None, synthetic=True)}
+        return result
+
+    @property
+    def themes(self) -> dict[str, ThemePack]:
+        """All themes for this brand, keyed by theme name.
+
+        For brands without a ``themes/`` directory, returns ``{"default": <synthetic>}``.
+        """
+        if self._themes_cache is None:
+            self._themes_cache = self._build_themes()
+        return self._themes_cache
+
+    @property
+    def default_theme_name(self) -> str:
+        """The default theme name, declared in tokens.json as ``$default_theme``.
+
+        Falls back to ``"default"`` when absent.
+        """
+        declared = self._tokens.get("$default_theme")
+        if isinstance(declared, str) and declared:
+            return declared
+        return "default"
+
+    @property
+    def default_theme(self) -> ThemePack:
+        """The brand's default ThemePack."""
+        name = self.default_theme_name
+        themes = self.themes
+        if name in themes:
+            return themes[name]
+        # Fallback: first theme alphabetically
+        first = next(iter(themes.values()))
+        return first
+
+    def theme(self, name: str) -> ThemePack:
+        """Return a named ThemePack, or raise ValueError with available themes.
+
+        Parameters
+        ----------
+        name:
+            Theme name, e.g. ``'default'``, ``'claude'``.
+
+        Raises
+        ------
+        ValueError
+            When the theme is not found for this brand.
+        """
+        themes = self.themes
+        if name in themes:
+            return themes[name]
+        available = sorted(themes.keys())
+        raise ValueError(
+            f"theme '{name}' not found for brand '{self.name}'. "
+            f"Available themes: {', '.join(available)}"
+        )
 
     # ------------------------------------------------------------------
     # Token resolution

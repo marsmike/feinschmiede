@@ -20,7 +20,7 @@ import re
 from pathlib import Path
 
 
-LAYOUT = Path(__file__).resolve().parents[2] / "feinschliff" / "layouts" / "stacked-bar.slide.dsl"
+LAYOUT = Path(__file__).resolve().parents[2] / "feinschliff" / "brands" / "feinschliff" / "layouts" / "stacked-bar.slide.dsl"
 
 # Total labels live at y=320, maxheight=24 → bottom y=344. Bar accent bands
 # (top of each bar) must start at this y or later.

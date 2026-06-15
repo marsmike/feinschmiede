@@ -16,7 +16,7 @@ import re
 from pathlib import Path
 
 
-LAYOUT = Path(__file__).resolve().parents[2] / "feinschliff" / "layouts" / "risk-matrix.slide.dsl"
+LAYOUT = Path(__file__).resolve().parents[2] / "feinschliff" / "brands" / "feinschliff" / "layouts" / "risk-matrix.slide.dsl"
 
 # Match the 60×60 markers (the matrix dots). The legend dots are 32×32 and
 # don't have the contrast issue since they sit on the cream paper, not on

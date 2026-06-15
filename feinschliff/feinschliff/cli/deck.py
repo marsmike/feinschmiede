@@ -54,7 +54,7 @@ from feinschliff.deck.orchestrate import (
 )
 
 from feinschliff.dsl.parser import parse_file, split_frontmatter
-from feinschmiede.dsl.tokens import load_tokens
+from feinschmiede.dsl.tokens import load_tokens, load_tokens_with_theme
 from feinschliff.dsl.expander import (
     interpolate_nodes,
     expand_compounds,
@@ -249,6 +249,14 @@ def register(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Suppress the automatic 'NN / TOTAL' slide-number footer that is "
              "stamped in the bottom-right corner of every slide by default.",
+    )
+    p_build.add_argument(
+        "--theme",
+        metavar="NAME",
+        default=None,
+        help="Color theme to apply to the default brand (e.g. 'default', 'claude'). "
+             "Overrides the brand's declared $default_theme. Has no effect on "
+             "brands that have no themes/ directory.",
     )
     p_build.set_defaults(func=cmd_build)
 
@@ -745,6 +753,7 @@ def cmd_build(args) -> int:
         )
 
     default_brand = plan.get("brand", "feinschliff")
+    default_theme = getattr(args, "theme", None) or plan.get("theme")
     # Notes lint reads the deck-level verbosity (mirrors design_brief.verbosity)
     # to pick a per-slide word budget. Unset → budget check is skipped.
     plan_verbosity = plan.get("verbosity")
@@ -992,13 +1001,19 @@ def cmd_build(args) -> int:
                     return 2
 
             brand = spec.get("brand", default_brand)
+            # Per-slide theme: explicit slide `theme:` key > CLI --theme / plan theme:
+            slide_theme = spec.get("theme", default_theme)
             try:
                 brand_dir = find_brand(brand).root
             except ValueError as e:
                 print(f"deck: slide {i}: {e}", file=sys.stderr)
                 return 2
 
-            tokens = load_tokens(brand_dir)
+            try:
+                tokens = load_tokens_with_theme(brand_dir, slide_theme)
+            except ValueError as e:
+                print(f"deck: slide {i}: {e}", file=sys.stderr)
+                return 2
             compounds = load_compounds_for_brand(
                 brand_dir, std_dir=_bundled_compounds()
             )

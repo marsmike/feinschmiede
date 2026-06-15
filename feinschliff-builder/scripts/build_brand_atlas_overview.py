@@ -35,12 +35,7 @@ for _root in (REPO / "feinschliff" / "brands", REPO / "feinschliff-extra" / "bra
             if _d.is_dir() and (_d / "tokens.json").is_file():
                 BRAND_ROOTS.setdefault(_d.name, _d)
 
-DARK_FIRST = {
-    "binance", "ferrari", "spotify",
-    "catppuccin-macchiato",
-    "gruvbox-dark", "nord", "solarized-dark",
-    "feinschliff-dark",
-}
+DARK_FIRST: frozenset[str] = frozenset()  # no dark-first standalone brands remain
 
 
 def _brand_bg(brand: str) -> tuple[int, int, int]:

@@ -8,7 +8,7 @@ from feinschliff.pipeline import CompileResult, compile_slide
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2] / "feinschliff"
-SAMPLE_LAYOUT = REPO_ROOT / "layouts" / "executive-summary.slide.dsl"
+SAMPLE_LAYOUT = REPO_ROOT / "brands" / "feinschliff" / "layouts" / "executive-summary.slide.dsl"
 SAMPLE_BRAND = REPO_ROOT / "brands" / "feinschliff"
 
 

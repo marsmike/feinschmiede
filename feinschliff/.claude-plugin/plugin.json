@@ -1,6 +1,6 @@
 {
   "name": "feinschliff",
-  "description": "Office / decks (PowerPoint) for Claude Code — brand-pluggable design system via the `feinschliff` CLI. Ships the feinschliff, blank, and claude brand packs. Image/2D, video, and audio live in the sibling feinbild, feinschnitt, and feinklang plugins.",
+  "description": "Office / decks (PowerPoint) for Claude Code — brand-pluggable design system via the `feinschliff` CLI. Ships the feinschliff brand pack with 8 themes (default, claude, catppuccin-latte, catppuccin-macchiato, feinschliff-dark, gruvbox-dark, nord, solarized-dark). Image/2D, video, and audio live in the sibling feinbild, feinschnitt, and feinklang plugins.",
   "author": {
     "name": "Mike Mueller",
     "email": "mike@objektarium.de"

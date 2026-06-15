@@ -96,7 +96,7 @@ def _title_on_grid(artifact: Path, brand_dir: Path, *, tol: float = 8.0) -> bool
     """
     from feinschmiede.dsl.tokens import load_tokens
 
-    tokens = load_tokens(brand_dir, brands_dir=brand_dir.parent)
+    tokens = load_tokens(brand_dir)
     pad_x = tokens.slide("padding-x")
     try:
         pad_y_top = tokens.slide("padding-y-top")
@@ -124,7 +124,7 @@ def _footer_overridable(artifact: Path, brand_dir: Path) -> bool:
     """
     from feinschmiede.dsl.tokens import load_tokens
 
-    tokens = load_tokens(brand_dir, brands_dir=brand_dir.parent)
+    tokens = load_tokens(brand_dir)
     brand = tokens.raw.get("brand", {})
     literals = [
         brand.get(k, {}).get("$value")

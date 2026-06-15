@@ -1,7 +1,6 @@
 ---
 version: alpha
 name: Grundschule Ramspau
-extends: feinschliff
 description: "Schule im Grünen — German primary school brand. Wiese green + tief deep-ink + warm papier. Inherits font-size/weight/slide tokens from feinschliff; overrides palette + display font."
 colors:
   accent: "#9eb05c"
@@ -22,7 +21,6 @@ colors:
 typography:
   inherit: feinschliff
 ---
-
 ## Overview
 
 Grundschule Ramspau ("primary school Ramspau") is a small Bavarian

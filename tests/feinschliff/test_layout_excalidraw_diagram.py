@@ -9,7 +9,7 @@ import pytest
 
 REPO = Path(__file__).resolve().parents[2]
 FEINSCHLIFF = REPO / "feinschliff"
-LAYOUT = FEINSCHLIFF / "layouts" / "excalidraw-diagram.slide.dsl"
+LAYOUT = FEINSCHLIFF / "brands" / "feinschliff" / "layouts" / "excalidraw-diagram.slide.dsl"
 CONTENT = Path(__file__).resolve().parent / "fixtures" / "layouts" / "excalidraw-diagram.yaml"
 
 

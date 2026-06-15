@@ -23,7 +23,7 @@ import yaml
 from feinschliff.cli import deck
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[2] / "feinschliff"
-LAYOUT = PLUGIN_ROOT / "layouts" / "executive-summary.slide.dsl"
+LAYOUT = PLUGIN_ROOT / "brands" / "feinschliff" / "layouts" / "executive-summary.slide.dsl"
 
 # Exceeds executive-summary's action_title budget (max_lines=1, ~84 chars).
 _OVERFLOW_TITLE = (
