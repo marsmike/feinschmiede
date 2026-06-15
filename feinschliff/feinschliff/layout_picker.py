@@ -212,6 +212,7 @@ def pick_layout(
     predecessor: dict | None = None,
     top_k: int = 3,
     profiles: dict[str, dict] | None = None,
+    visual_style: str | None = None,
 ) -> list[dict]:
     """Return up to `top_k` candidate layouts ranked by affinity score.
 
@@ -261,6 +262,15 @@ def pick_layout(
     the discovered layout set is used. The brand-aware
     :class:`feinschliff.deck.picker.LayoutPicker` passes a brand-merged
     table so brand overrides and brand-only layouts are ranked too.
+
+    `visual_style` is the deck-brief's ``visual_style`` field. Allowed
+    values mirror the intake schema enum: ``"rich-imagery"``,
+    ``"process-flow"``, ``"org-hierarchy"``, ``"data-dense"``,
+    ``"concept-text"``, ``"mixed"``. ``None`` (the default) is neutral —
+    identical scoring to today. Currently only ``"rich-imagery"`` has an
+    active effect: it triples the image-default bonus from +1.5 to +4.5
+    so image-bearing layouts win against role-matched text-only layouts
+    when the operator explicitly asked for imagery.
     """
     if narrative_act is not None and narrative_act not in _VALID_NARRATIVE_ACTS:
         raise ValueError(
@@ -532,9 +542,17 @@ def pick_layout(
         if _img_count and _content_role and not exempt:
             # Uniform +1.5 for any image-bearing layout — picks should
             # rotate across the 1I/2I/3I/7I spectrum, not concentrate on
-            # the densest.
-            score += 1.5
-            rationale_parts.append(f"image-default(+1.5, {_img_count}I)")
+            # the densest. When the brief requests rich-imagery the bonus
+            # triples to +4.5 so image-bearing layouts beat role-matched
+            # text-only layouts (role-match weight is +3).
+            _img_bonus = 4.5 if visual_style == "rich-imagery" else 1.5
+            score += _img_bonus
+            if visual_style == "rich-imagery":
+                rationale_parts.append(
+                    f"image-default(rich-imagery)(+{_img_bonus}, {_img_count}I)"
+                )
+            else:
+                rationale_parts.append(f"image-default(+{_img_bonus}, {_img_count}I)")
             # Concept-count match: one image per concept is a strong
             # composition signal (side-by-side comparison, gallery, team
             # intro). +2.0 is decisive — it overcomes the density gap
