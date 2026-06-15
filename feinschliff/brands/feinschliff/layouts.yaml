@@ -1,0 +1,3 @@
+# Feinschliff house brand is snippet-only — every layout is a
+# ClonePlan against snippets.yaml. No FillPlan entries.
+layouts: []
