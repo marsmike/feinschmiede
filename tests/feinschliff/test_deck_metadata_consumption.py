@@ -208,7 +208,12 @@ def test_layout_picker_without_deck_map_brand_cover_not_boosted(tmp_path):
 
 # ── Feature 1: plan-skeleton end-to-end wiring ───────────────────────────────
 
-def test_plan_skeleton_applies_deck_map_and_pin(tmp_path, monkeypatch):
+def test_plan_skeleton_emits_unpicked_skeleton(tmp_path, monkeypatch):
+    """plan-skeleton no longer runs the deterministic picker — it emits
+    `layout: null` per slide and the orchestrating LLM picks via the
+    cascade in `skills/deck/references/picking.md`. The Python picker
+    was blind to per-layout semantic annotations and mis-matched layouts
+    that structurally fit but were semantically wrong."""
     from feinschliff.cli.deck_subcommands.plan_log import cmd_plan_skeleton
 
     root = _garden_pack(tmp_path)
@@ -219,8 +224,7 @@ def test_plan_skeleton_applies_deck_map_and_pin(tmp_path, monkeypatch):
         "brand": "verdant-garden",
         "slides": [
             {"index": 0, "title": "Opening the garden year", "role": "title-primary"},
-            {"index": 1, "title": "Pinned divider", "role": "title-primary",
-             "layout": "title-ink"},
+            {"index": 1, "title": "Section divider", "role": "title-primary"},
         ],
     }), encoding="utf-8")
 
@@ -233,13 +237,12 @@ def test_plan_skeleton_applies_deck_map_and_pin(tmp_path, monkeypatch):
 
     skeleton = yaml.safe_load(out.read_text(encoding="utf-8"))
     slides = skeleton["slides"]
-    # Slide 0: deck-map default → brand-local cover, pinned as an
-    # absolute path (brand layouts don't resolve relative to a deck dir).
-    assert slides[0]["layout"] == str(root / "layouts" / "garden-cover.slide.dsl")
-    assert "deck-map" in slides[0]["_meta"]["layout_rationale"]
-    # Slide 1: explicit pin wins over the deck-map default.
-    assert slides[1]["layout"] == "layouts/title-ink.slide.dsl"
-    assert slides[1]["_meta"]["layout_rationale"] == ["pinned"]
+    assert all(s["layout"] is None for s in slides)
+    assert all(s["_meta"]["layout_rationale"] == "cascade:pending" for s in slides)
+    assert all(s["content"] == {} for s in slides)
+    # Slide metadata still flows through so the orchestrator can read it.
+    assert slides[0]["_meta"]["title"] == "Opening the garden year"
+    assert slides[0]["_meta"]["role"] == "title-primary"
 
 
 # ── Features 2+3: profile passthrough ────────────────────────────────────────

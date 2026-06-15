@@ -13,10 +13,6 @@ from pathlib import Path
 
 import yaml
 
-from feinschliff.deck.orchestrate import (
-    signals_from_slide as _signals_from_slide_fn,
-    slot_budgets_for_layout as _slot_budgets_for_layout_fn,
-)
 from feinschliff.pipeline_log import (
     log_event,
     read_events,
@@ -65,28 +61,18 @@ def cmd_timing(args) -> int:
 
 
 def cmd_plan_skeleton(args) -> int:
-    """`feinschliff deck plan-skeleton <content_plan>` — centralized layout
-    pick. Reads a content_plan (JSON or YAML) and writes a skeleton
-    plan.yaml: one entry per slide, `layout:` filled, `content: {}` left
-    empty for parallel authoring subagents to fill in.
+    """`feinschliff deck plan-skeleton <content_plan>` — emit an unpicked
+    skeleton plan.yaml. One entry per slide, `layout: null`, `content: {}`.
 
-    Layout selection runs a two-pass planner (`lib.layout_budget`) that
-    re-ranks per-slide picker output with a deck-wide usage budget, so
-    eligible-but-overlooked layouts (e.g. `vertical-bullets`,
-    `funnel`, `pyramid`) surface instead of the same 2-3 winners
-    repeating across the deck.
-
-    Each slide's ``_meta`` block carries a ``slot_budgets`` mapping derived
-    from the picked layout DSL + brand tokens.  Authoring subagents should
-    honour these limits when filling ``content`` slots to avoid
-    ``slot-overflow`` defects at pre-render content-lint time."""
+    Layout picking is the orchestrating LLM's job via the cascade in
+    `skills/deck/references/picking.md`. It reads each layout's semantic
+    annotations (`primary_message`, `when_not_to_use`, `chrome_subject`,
+    …) and fills in `layout:` per slide. The deterministic signal-based
+    picker that used to seed this skeleton is gone: it was blind to
+    semantics and mis-matched pie / Gantt / swatch layouts that
+    *structurally* fit. Trust the LLM with the semantic data.
+    """
     import json as _json
-    from feinschliff.deck.content_metadata import load_deck_map
-    from feinschliff.deck.picker import _brand_layout_table
-    from feinschliff.layout_budget import plan_deck_layouts
-    from feinschliff.layout_profile import build_profile_table
-    from feinschmiede.brand_discovery import find_brand
-    from feinschmiede.dsl.tokens import load_tokens
 
     cp_path = Path(args.content_plan).resolve()
     if not cp_path.is_file():
@@ -103,72 +89,20 @@ def cmd_plan_skeleton(args) -> int:
     brand = args.brand or plan.get("brand") or "feinschliff"
     out_pptx = args.out_pptx or "out/deck.pptx"
 
-    try:
-        brand_obj = find_brand(brand)
-        brand_root = brand_obj.root
-        tokens = load_tokens(brand_root)
-    except Exception as exc:  # noqa: BLE001
-        print(
-            f"deck plan-skeleton: could not load brand {brand!r}: {exc}; "
-            "slot_budgets will be empty for all slides",
-            file=sys.stderr,
-        )
-        brand_root = None
-        tokens = None
-
-    # Brand-pack content metadata: rank the brand's own layouts alongside
-    # the toolkit pool, and load deck-map.yaml so the pack's declared
-    # cover / agenda / section / quote / closer layouts become the
-    # default picks for the matching slide roles.
-    profiles = None
-    deck_map = None
-    if brand_root is not None:
-        layouts_path = brand_root / "layouts"
-        if layouts_path.is_dir():
-            profiles = build_profile_table(
-                _brand_layout_table(layouts_path), strict=False
-            )
-        deck_map = load_deck_map(brand_root)
-
-    signals = [_signals_from_slide_fn(s) for s in plan["slides"]]
-    visual_style = plan.get("visual_style") or None
-    assignments = plan_deck_layouts(
-        signals, profiles=profiles, deck_map=deck_map, visual_style=visual_style
-    )
-
-    skeleton_slides: list[dict] = []
-    for slide, assignment in zip(plan["slides"], assignments):
-        layout = assignment["layout"]
-        if layout.endswith(".slide.dsl"):
-            # Pinned as an explicit path — carry through verbatim.
-            layout_ref = layout
-            layout = Path(layout).name[: -len(".slide.dsl")]
-        else:
-            layout_ref = f"layouts/{layout}.slide.dsl"
-            if brand_root is not None:
-                brand_local = brand_root / "layouts" / f"{layout}.slide.dsl"
-                if brand_local.is_file():
-                    # Brand-local layouts don't resolve relative to the
-                    # deck dir or toolkit root — pin the absolute path.
-                    layout_ref = str(brand_local)
-        if brand_root is not None and tokens is not None:
-            slot_budgets = _slot_budgets_for_layout_fn(layout, brand_root, tokens)
-        else:
-            slot_budgets = {}
-        skeleton_slides.append({
-            "layout": layout_ref,
-            "content": {},
-            "_meta": {
-                "index": slide.get("index"),
-                "title": slide.get("title")
-                          or slide.get("title_draft")
-                          or "(untitled)",
-                "role": slide.get("role") or slide.get("purpose"),
-                "diagram_kind": slide.get("diagram_kind"),
-                "layout_rationale": assignment["rationale"],
-                "slot_budgets": slot_budgets,
-            },
-        })
+    skeleton_slides = [{
+        "layout": None,
+        "content": {},
+        "_meta": {
+            "index": slide.get("index"),
+            "title": slide.get("title")
+                      or slide.get("title_draft")
+                      or "(untitled)",
+            "role": slide.get("role") or slide.get("purpose"),
+            "diagram_kind": slide.get("diagram_kind"),
+            "layout_rationale": "cascade:pending",
+            "slot_budgets": {},
+        },
+    } for slide in plan["slides"]]
 
     out = {"brand": brand, "out": out_pptx, "slides": skeleton_slides}
     out_path = Path(args.output).resolve()
@@ -177,12 +111,11 @@ def cmd_plan_skeleton(args) -> int:
         yaml.safe_dump(out, sort_keys=False, allow_unicode=True),
         encoding="utf-8",
     )
-    chosen = [a["layout"] for a in assignments]
     log_event(out_path.parent, "skeleton:write", "tick",
-              slides=len(skeleton_slides), brand=brand,
-              distinct_layouts=len(set(chosen)))
-    print(f"wrote {out_path} ({len(skeleton_slides)} slides, brand={brand})")
-    print(f"layouts ({len(set(chosen))} distinct): {', '.join(chosen)}")
+              slides=len(skeleton_slides), brand=brand)
+    print(f"wrote {out_path} ({len(skeleton_slides)} slides, brand={brand}) "
+          f"— layouts unpicked; orchestrator runs the cascade per "
+          f"picking.md")
     return 0
 
 
@@ -258,8 +191,73 @@ def cmd_plan_merge(args) -> int:
     return 0
 
 
+def cmd_plan_budgets(args) -> int:
+    """`feinschliff deck plan-budgets <plan.yaml>` — enrich a picked plan.yaml
+    with ``_meta.slot_budgets`` per slide.
+
+    Idempotent: re-running overwrites the ``_meta.slot_budgets`` key but
+    leaves all other plan content unchanged.  Designed to run just after the
+    cascade orchestrator fills in ``layout:`` per slide and before authoring
+    fan-out so subagents know which chart slots exist and which ones
+    ``must_bind: true``.
+
+    Exits 0 on success, 2 on fatal input errors.
+    """
+
+    from feinschliff.deck.orchestrate import slot_budgets_for_layout
+    from feinschmiede.brand_discovery import find_brand
+    from feinschmiede.dsl.tokens import load_tokens
+
+    plan_path = Path(args.plan).resolve()
+    if not plan_path.is_file():
+        print(f"deck plan-budgets: not found: {plan_path}", file=sys.stderr)
+        return 2
+
+    plan = yaml.safe_load(plan_path.read_text(encoding="utf-8")) or {}
+    if not isinstance(plan, dict) or not isinstance(plan.get("slides"), list):
+        print(f"deck plan-budgets: {plan_path}: missing `slides` list",
+              file=sys.stderr)
+        return 2
+
+    brand_name = args.brand or plan.get("brand") or "feinschliff"
+    try:
+        brand_obj = find_brand(brand_name)
+    except ValueError as e:
+        print(f"deck plan-budgets: {e}", file=sys.stderr)
+        return 2
+    brand_root = brand_obj.root
+    tokens = load_tokens(brand_root)
+
+    enriched = 0
+    for slide in plan["slides"]:
+        layout_raw = slide.get("layout")
+        if not layout_raw:
+            continue
+        # Strip path prefix + .slide.dsl suffix to get bare layout name.
+        layout_name = Path(layout_raw).stem
+        if layout_name.endswith(".slide"):
+            layout_name = layout_name[:-len(".slide")]
+
+        budgets = slot_budgets_for_layout(layout_name, brand_root, tokens)
+        if "_meta" not in slide or not isinstance(slide["_meta"], dict):
+            slide["_meta"] = {}
+        slide["_meta"]["slot_budgets"] = budgets
+        enriched += 1
+
+    out_path = Path(args.output).resolve() if args.output else plan_path
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(
+        yaml.safe_dump(plan, sort_keys=False, allow_unicode=True),
+        encoding="utf-8",
+    )
+    log_event(plan_path.parent, "plan-budgets", "tick",
+              enriched=enriched, brand=brand_name)
+    print(f"deck plan-budgets: enriched {enriched} slide(s) → {out_path}")
+    return 0
+
+
 def register(sub: argparse._SubParsersAction) -> None:
-    """Add the log/timing/plan-skeleton/plan-merge parsers to `sub`."""
+    """Add the log/timing/plan-skeleton/plan-merge/plan-budgets parsers to `sub`."""
     p_log = sub.add_parser(
         "log-event",
         help="Append one event to the deck's timing.jsonl. Used by the "
@@ -320,3 +318,20 @@ def register(sub: argparse._SubParsersAction) -> None:
     p_merge.add_argument("-o", "--output", required=True,
                          help="Output path for the merged plan.yaml.")
     p_merge.set_defaults(func=cmd_plan_merge)
+
+    p_budgets = sub.add_parser(
+        "plan-budgets",
+        help="Enrich a picked plan.yaml with _meta.slot_budgets per slide "
+             "(text slots + chart_N_* slots). Idempotent. Run after the cascade "
+             "fills layout: and before authoring fan-out.",
+    )
+    p_budgets.add_argument("plan", help="Path to the plan.yaml (must have layout: per slide).")
+    p_budgets.add_argument(
+        "-o", "--output", default=None,
+        help="Output path. Default: overwrite the input plan in-place.",
+    )
+    p_budgets.add_argument(
+        "--brand", default=None,
+        help="Override brand. Default: from plan.brand or 'feinschliff'.",
+    )
+    p_budgets.set_defaults(func=cmd_plan_budgets)

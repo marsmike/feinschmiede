@@ -11,10 +11,9 @@ import os
 import re
 import sys
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
-if TYPE_CHECKING:
-    from feinschliff.slot_budget import SlotBudget
+from feinschliff.slot_budget import SlotBudget  # needed at runtime for isinstance check
 
 
 # Matches common numeric anchors in so_what text: integers, decimals,
@@ -600,12 +599,52 @@ def iter_slot_values(
     return out
 
 
+def check_unbound_must_bind_slots(
+    ctx: dict,
+    *,
+    slot_budgets: dict,
+    slide_index: int,
+) -> list[ContentDefect]:
+    """Flag chart slots with ``must_bind: true`` that are not bound in *ctx*.
+
+    Each slot budget entry that carries ``must_bind: true`` represents a slot
+    whose baked default data will ship verbatim unless the deck plan overrides
+    it.  This is almost always wrong for chart data (stock "Q1: 8.2" values).
+
+    Only fires for slot names whose budget dict has the ``must_bind`` key set
+    to ``True`` — text slot budgets use ``chars_per_line`` / ``max_lines`` /
+    ``max_chars`` and will never trigger this check.
+    """
+    defects: list[ContentDefect] = []
+    for slot_name, budget in slot_budgets.items():
+        if not isinstance(budget, dict):
+            continue
+        if not budget.get("must_bind"):
+            continue
+        # The slot is bound if ctx has a non-None, non-empty value for it.
+        value = ctx.get(slot_name)
+        bound = value is not None and value != "" and value != []
+        if not bound:
+            defects.append(ContentDefect(
+                kind="unbound-must-bind-slot",
+                slide_index=slide_index,
+                slot=slot_name,
+                message=(
+                    f"slot '{slot_name}' has must_bind:true but is not bound "
+                    f"in content — baked stock data will ship. "
+                    f"Hint: {budget.get('hint', '')}"
+                ),
+                severity="fatal",
+            ))
+    return defects
+
+
 def validate_content(
     ctx: dict,
     *,
     slide_index: int = 1,
     layout: str | None = None,
-    slot_budgets: dict[str, SlotBudget] | None = None,
+    slot_budgets: dict | None = None,
     chrome_bboxes: list | None = None,
 ) -> list[ContentDefect]:
     """Walk the content dict; return all defects.
@@ -668,9 +707,14 @@ def validate_content(
             ))
 
     if slot_budgets:
+        # Check unbound must-bind slots (chart_N_* with must_bind:true)
+        # before the text-overflow checks so the fatal defect surfaces first.
+        defects.extend(check_unbound_must_bind_slots(
+            ctx, slot_budgets=slot_budgets, slide_index=slide_index,
+        ))
         for norm_path, raw_path, value in iter_slot_values(ctx):
             budget = slot_budgets.get(norm_path)
-            if budget is not None:
+            if budget is not None and isinstance(budget, SlotBudget):
                 defects.extend(check_slot_overflow(
                     value, slot=raw_path, budget=budget, slide_index=slide_index,
                 ))

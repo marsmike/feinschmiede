@@ -24,6 +24,7 @@ from feinschliff.slot_budget import compute_slot_budgets
 from feinschliff.pipeline import compile_slide
 from feinschliff.defects import fatal_kinds, format_defect
 from feinschliff.io.image_provider import discover_providers, get_provider
+from feinschliff.io.image_providers import chain_from_brand_config
 
 
 def _bundled_assets() -> Path:
@@ -85,15 +86,25 @@ def cmd_build(args) -> int:
         return 2
     brand_dir = brand.root
 
-    # Resolve build-time image provider from `$image_provider` in the
-    # brand's tokens.json (extends-resolved by `discover_brands`). Absent
-    # → provider is None and any `picture query:` raises a loud DSLError
-    # inside the emitter; brands that only use `picture path:` build as
-    # before. `get_provider` raises KeyError with a registry listing on a
-    # typo'd kind, which surfaces as the normal CLI traceback.
+    # Resolve build-time image provider / provider chain from the brand's
+    # tokens.json. The new `$image_providers` (plural list) takes precedence
+    # and builds a ProviderChain; the legacy `$image_provider` (singular dict)
+    # still works via chain_from_brand_config's backwards-compat path.
+    # Absent → chain and provider are both None; any `picture query:` raises a
+    # loud DSLError inside the emitter; brands using only `picture path:` build
+    # as before.
     discover_providers()
     provider = None
-    if brand.image_provider_config:
+    chain = None
+    # The new `$image_providers` (plural list) is consumed only when a brand
+    # opts in. Legacy `$image_provider` (singular dict) stays on the original
+    # `get_provider` path — it resolves arbitrary `kind`s via the registry,
+    # including test-only kinds the chain doesn't whitelist.
+    _raw_tokens = getattr(brand, "tokens", {}) or {}
+    _ip_list = _raw_tokens.get("$image_providers")
+    if _ip_list is not None:
+        chain = chain_from_brand_config(_ip_list, brand_root=brand.root)
+    elif brand.image_provider_config:
         cfg = brand.image_provider_config
         provider = get_provider(cfg["kind"], cfg.get("config"))
 
@@ -182,10 +193,16 @@ def cmd_build(args) -> int:
         asset_root=asset_root,
         asset_root_fallback=asset_root_fallback,
         image_provider=provider,
+        provider_chain=chain,
         deck_dir=out_path.parent,
     )
     missing = getattr(prs, "missing_assets", []) or []
-    if missing and not getattr(args, "allow_missing_assets", False):
+    # --allow-missing-assets is suppressed when a provider chain is configured
+    # and failed — the operator must fix the chain config, not ship a blank deck.
+    chain_failed = chain is not None and any(
+        e.get("kind") == "chain-miss" for e in missing
+    )
+    if missing and (chain_failed or not getattr(args, "allow_missing_assets", False)):
         for entry in missing:
             kind = entry.get("kind", "missing")
             path = entry.get("path") or "(unset)"

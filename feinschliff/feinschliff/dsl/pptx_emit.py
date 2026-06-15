@@ -55,6 +55,7 @@ if TYPE_CHECKING:
     from ..io.image_provider import ImageProvider
     from feinschmiede.brand import BrandPack
     from feinschmiede.dsl.ast import Document, Element
+    from feinschliff.io.image_providers import ProviderChain
 
 
 class DSLError(Exception):
@@ -264,6 +265,11 @@ class EmitContext:
     # circular-import risk between `feinschliff.dsl.pptx_emit` and `feinschliff.io.image_provider`.
     # Defaults to None so existing callers that never set it keep working.
     image_provider: "ImageProvider | None" = None
+    # Brand-configurable provider chain (replaces single image_provider when
+    # set). When present, _resolve_provider_image walks the chain in order
+    # instead of calling image_provider directly. Backwards-compat: when None,
+    # the legacy image_provider path is used unchanged.
+    provider_chain: "ProviderChain | None" = None
     # Deck output directory — used by the picture-query path to write the
     # `asset_lock.json` manifest and the `.cache/` of downloaded images
     # alongside the produced `.pptx`. Defaults to None; the picture-query
@@ -1124,27 +1130,66 @@ def _resolve_provider_image(
     pos_xy: str,
     pos_wh: str,
 ) -> "Path | None":
-    """Search the active image provider for *query*, materialise the hit, and
-    return the local Path.  On any failure appends to ctx.missing_assets,
-    emits a placeholder rect, and returns None.  Caller must not emit a
-    further placeholder when None is returned."""
-    hit = _img_mat.lookup_lock_then_search(
-        ctx.image_provider, ctx.deck_dir, slot_id, query,
-    )
-    if hit is None or isinstance(hit, _img_mat._SearchError):
-        entry: dict = {
-            "kind": "search-error" if isinstance(hit, _img_mat._SearchError) else "no-hit",
-            "query": query,
-            "slot_id": slot_id,
-            "provider": ctx.image_provider.name,  # type: ignore[union-attr]
-            "line_no": node.line_no,
-            "source": node.source,
-        }
-        if isinstance(hit, _img_mat._SearchError):
-            entry["exc_type"] = hit.exc_type.__name__
-        ctx.missing_assets.append(entry)
-        _emit_picture_placeholder(slide, pos_xy=pos_xy, pos_wh=pos_wh, node=node, ctx=ctx)
-        return None
+    """Search the active image provider (or provider chain) for *query*,
+    materialise the hit, and return the local Path.
+
+    When ``ctx.provider_chain`` is set, walks the chain in order (brand
+    folders → Unsplash → LLM websearch).  On total chain failure a
+    :class:`~feinschmiede.image_providers.LLMResolutionPending` exception
+    propagates up when an LLM provider was reached; otherwise appends to
+    ``ctx.missing_assets``, emits a placeholder rect, and returns ``None``.
+    The legacy single-provider path (``ctx.image_provider``) is used when no
+    chain is configured.
+
+    Caller must not emit a further placeholder when None is returned."""
+    # ── Provider-chain path ────────────────────────────────────────────────
+    if ctx.provider_chain is not None:
+        from feinschliff.io.image_providers import ResolutionResult, ResolutionTrace
+
+        # LLMResolutionPending propagates up — build engine catches it.
+        result = ctx.provider_chain.resolve(query, slot_id, ctx.deck_dir)
+        if isinstance(result, ResolutionTrace):
+            entry: dict = {
+                "kind": "chain-miss",
+                "query": query,
+                "slot_id": slot_id,
+                "provider": "chain",
+                "chain_trace": [
+                    {"provider": m.provider_name, "reason": m.reason,
+                     "detail": m.detail}
+                    for m in result.misses
+                ],
+                "line_no": node.line_no,
+                "source": node.source,
+            }
+            ctx.missing_assets.append(entry)
+            _emit_picture_placeholder(slide, pos_xy=pos_xy, pos_wh=pos_wh, node=node, ctx=ctx)
+            return None
+        # Success — materialise the hit.
+        assert isinstance(result, ResolutionResult)
+        hit = result.hit
+        provider_name = result.provider_name
+    else:
+        # ── Legacy single-provider path ────────────────────────────────────
+        hit = _img_mat.lookup_lock_then_search(
+            ctx.image_provider, ctx.deck_dir, slot_id, query,
+        )
+        provider_name = getattr(ctx.image_provider, "name", "unknown")
+        if hit is None or isinstance(hit, _img_mat._SearchError):
+            entry = {
+                "kind": "search-error" if isinstance(hit, _img_mat._SearchError) else "no-hit",
+                "query": query,
+                "slot_id": slot_id,
+                "provider": provider_name,
+                "line_no": node.line_no,
+                "source": node.source,
+            }
+            if isinstance(hit, _img_mat._SearchError):
+                entry["exc_type"] = hit.exc_type.__name__
+            ctx.missing_assets.append(entry)
+            _emit_picture_placeholder(slide, pos_xy=pos_xy, pos_wh=pos_wh, node=node, ctx=ctx)
+            return None
+
     cache_dir = (ctx.deck_dir / ".cache") if ctx.deck_dir else None
     if cache_dir is None:
         cache_dir = Path(tempfile.mkdtemp(prefix="feinschliff-imgcache-"))
@@ -1166,7 +1211,7 @@ def _resolve_provider_image(
             "query": query,
             "slot_id": slot_id,
             "url": hit.url,
-            "provider": ctx.image_provider.name,  # type: ignore[union-attr]
+            "provider": provider_name,
             "line_no": node.line_no,
             "source": node.source,
         }
@@ -1252,16 +1297,17 @@ def _emit_picture(slide, node: DSLNode, ctx: EmitContext) -> None:
     # below when no provider is wired, because that combination can never
     # produce an image.
     if query and not path:
-        if not ctx.image_provider:
+        if not ctx.image_provider and not ctx.provider_chain:
             # The brand author wrote `query:` in a layout but forgot to
-            # wire `$image_provider` in tokens.json. Silent-fallback to a
-            # placeholder rect would mask the misconfiguration — fail
-            # loud so the next build run surfaces the problem.
+            # wire `$image_provider` / `$image_providers` in tokens.json.
+            # Silent-fallback to a placeholder rect would mask the
+            # misconfiguration — fail loud so the next build run surfaces it.
             raise DSLError(
                 f"picture at line {node.line_no}: `query:{query!r}` requires "
-                f"an image_provider on the EmitContext, but ctx.image_provider "
-                f"is None. Add `$image_provider` to your brand's tokens.json "
-                f"(or your `extends` ancestor) so the build can resolve it."
+                f"an image provider on the EmitContext, but neither "
+                f"ctx.image_provider nor ctx.provider_chain is set. "
+                f"Add `$image_provider` or `$image_providers` to your brand's "
+                f"tokens.json so the build can resolve it."
             )
         slot_id = node.label or _img_mat._slot_id_from_query(query)
         materialised = _resolve_provider_image(
@@ -1309,7 +1355,7 @@ def _emit_picture(slide, node: DSLNode, ctx: EmitContext) -> None:
         # search query. This lets plan authors write
         # image: "regensburg aerial" and have it resolve through e.g.
         # Unsplash without requiring query: in every layout DSL file.
-        if ctx.image_provider:
+        if ctx.image_provider or ctx.provider_chain:
             provider_query = query or path
             slot_id = node.label or _img_mat._slot_id_from_query(provider_query)
             materialised = _resolve_provider_image(
@@ -2296,6 +2342,7 @@ def _append_slide(prs: Presentation, nodes: list[DSLNode], tokens: Tokens, *,
                   asset_root_fallback: Path | None = None,
                   missing_assets: list[dict] | None = None,
                   image_provider: "ImageProvider | None" = None,
+                  provider_chain: "ProviderChain | None" = None,
                   deck_dir: Path | None = None,
                   notes: str | None = None,
                   slide_number: int | None = None,
@@ -2316,7 +2363,8 @@ def _append_slide(prs: Presentation, nodes: list[DSLNode], tokens: Tokens, *,
 
     ctx = EmitContext(tokens=tokens, canvas_w=cw, canvas_h=ch,
                       asset_root=asset_root, asset_root_fallback=asset_root_fallback,
-                      image_provider=image_provider, deck_dir=deck_dir)
+                      image_provider=image_provider, provider_chain=provider_chain,
+                      deck_dir=deck_dir)
     for n in nodes:
         cond = n.kw_args.get("if")
         if cond is not None:
@@ -2386,6 +2434,7 @@ def build_presentation(nodes: list[DSLNode], tokens: Tokens, *,
                        asset_root: Path | None = None,
                        asset_root_fallback: Path | None = None,
                        image_provider: "ImageProvider | None" = None,
+                       provider_chain: "ProviderChain | None" = None,
                        deck_dir: Path | None = None,
                        notes: str | None = None) -> Presentation:
     """Walk primitive nodes, build a Presentation with one filled slide.
@@ -2430,6 +2479,7 @@ def build_presentation(nodes: list[DSLNode], tokens: Tokens, *,
                   asset_root_fallback=asset_root_fallback,
                   missing_assets=missing,
                   image_provider=image_provider,
+                  provider_chain=provider_chain,
                   deck_dir=deck_dir,
                   notes=notes)
     for slide in prs.slides:
@@ -2557,6 +2607,7 @@ def build_multi_slide(
     *,
     asset_root_fallback: Path | None = None,
     image_provider: "ImageProvider | None" = None,
+    provider_chain: "ProviderChain | None" = None,
     deck_dir: Path | None = None,
     slide_numbers: bool = False,
 ) -> Presentation:
@@ -2569,7 +2620,8 @@ def build_multi_slide(
     :func:`build_presentation` for semantics.
 
     `image_provider` and `deck_dir` are the optional pair for the picture
-    ``query:`` branch (Task 7).
+    ``query:`` branch (Task 7). `provider_chain` is the newer multi-provider
+    alternative; when set, it takes precedence over `image_provider`.
 
     The optional 4th element of each slide tuple is speaker-notes text
     written into the PPTX notes pane for that slide.
@@ -2619,6 +2671,7 @@ def build_multi_slide(
                       asset_root_fallback=asset_root_fallback,
                       missing_assets=per_slide,
                       image_provider=image_provider,
+                      provider_chain=provider_chain,
                       deck_dir=deck_dir,
                       notes=notes,
                       slide_number=slide_idx if slide_numbers else None,
