@@ -654,6 +654,15 @@ entries that `feinschliff deck build` consumes directly (see Step 3).
    [`picking.md`](picking.md) to fill each slide's `layout:` by reading
    the per-layout semantic annotations. Emit `out/pick_trace.md` as you
    go. The deterministic picker is gone — it was blind to semantics.
+2a. **Enrich slot budgets** (Step 2a — after cascade picks, before fan-out):
+   ```bash
+   feinschliff deck plan-budgets <deck-dir>/plan.skeleton.yaml
+   ```
+   Walks each slide's picked layout and fills `_meta.slot_budgets` with text
+   slot budgets AND chart slot entries (`chart_N_values`, `chart_N_categories`,
+   `chart_N_colors`). Chart slots with `must_bind: true` will ship baked stock
+   data ("Q1: 8.2") unless authoring subagents override them. Idempotent —
+   safe to re-run if layouts change.
 3. Emit a one-page **color contract** (`<deck-dir>/color_contract.md`)
    that pins semantic→token mappings so subagents don't pick divergent
    colors. Sample contract:
@@ -675,10 +684,13 @@ entries that `feinschliff deck build` consumes directly (see Step 3).
      the shape `{index: N, content: {...}}`. Use the color contract verbatim.
      Do not change the `layout:` unless you have a strong reason.
      **Honor the slot budgets.** Each skeleton entry carries
-     `_meta.slot_budgets` — a mapping of slot name to
-     `{chars_per_line, max_lines, max_chars}`. Keep every slot value
-     within its `max_chars` limit and individual lines within
-     `chars_per_line`. Violations produce `slot-overflow` defects at
+     `_meta.slot_budgets` — a mapping of slot name to budget info.
+     Text slots: `{chars_per_line, max_lines, max_chars}` — keep every slot
+     value within `max_chars` and individual lines within `chars_per_line`.
+     **Chart slots** (`chart_N_values`, `chart_N_categories`, `chart_N_colors`):
+     any slot with `must_bind: true` MUST be overridden — baked stock data
+     (e.g. 'Q1: 8.2') ships verbatim if the slot is left unbound.
+     Violations produce `unbound-must-bind-slot` or `slot-overflow` defects at
      pre-render content-lint time and cost an iteration to fix."
 5. Wait for all subagents to return.
 6. Merge:

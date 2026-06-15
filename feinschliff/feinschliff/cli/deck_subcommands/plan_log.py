@@ -191,8 +191,74 @@ def cmd_plan_merge(args) -> int:
     return 0
 
 
+def cmd_plan_budgets(args) -> int:
+    """`feinschliff deck plan-budgets <plan.yaml>` — enrich a picked plan.yaml
+    with ``_meta.slot_budgets`` per slide.
+
+    Idempotent: re-running overwrites the ``_meta.slot_budgets`` key but
+    leaves all other plan content unchanged.  Designed to run just after the
+    cascade orchestrator fills in ``layout:`` per slide and before authoring
+    fan-out so subagents know which chart slots exist and which ones
+    ``must_bind: true``.
+
+    Exits 0 on success, 2 on fatal input errors.
+    """
+    import json as _json
+
+    from feinschliff.deck.orchestrate import slot_budgets_for_layout, resolve_layout_path
+    from feinschmiede.brand_discovery import find_brand
+    from feinschmiede.dsl.tokens import load_tokens
+
+    plan_path = Path(args.plan).resolve()
+    if not plan_path.is_file():
+        print(f"deck plan-budgets: not found: {plan_path}", file=sys.stderr)
+        return 2
+
+    plan = yaml.safe_load(plan_path.read_text(encoding="utf-8")) or {}
+    if not isinstance(plan, dict) or not isinstance(plan.get("slides"), list):
+        print(f"deck plan-budgets: {plan_path}: missing `slides` list",
+              file=sys.stderr)
+        return 2
+
+    brand_name = args.brand or plan.get("brand") or "feinschliff"
+    try:
+        brand_obj = find_brand(brand_name)
+    except ValueError as e:
+        print(f"deck plan-budgets: {e}", file=sys.stderr)
+        return 2
+    brand_root = brand_obj.root
+    tokens = load_tokens(brand_root)
+
+    enriched = 0
+    for slide in plan["slides"]:
+        layout_raw = slide.get("layout")
+        if not layout_raw:
+            continue
+        # Strip path prefix + .slide.dsl suffix to get bare layout name.
+        layout_name = Path(layout_raw).stem
+        if layout_name.endswith(".slide"):
+            layout_name = layout_name[:-len(".slide")]
+
+        budgets = slot_budgets_for_layout(layout_name, brand_root, tokens)
+        if "_meta" not in slide or not isinstance(slide["_meta"], dict):
+            slide["_meta"] = {}
+        slide["_meta"]["slot_budgets"] = budgets
+        enriched += 1
+
+    out_path = Path(args.output).resolve() if args.output else plan_path
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(
+        yaml.safe_dump(plan, sort_keys=False, allow_unicode=True),
+        encoding="utf-8",
+    )
+    log_event(plan_path.parent, "plan-budgets", "tick",
+              enriched=enriched, brand=brand_name)
+    print(f"deck plan-budgets: enriched {enriched} slide(s) → {out_path}")
+    return 0
+
+
 def register(sub: argparse._SubParsersAction) -> None:
-    """Add the log/timing/plan-skeleton/plan-merge parsers to `sub`."""
+    """Add the log/timing/plan-skeleton/plan-merge/plan-budgets parsers to `sub`."""
     p_log = sub.add_parser(
         "log-event",
         help="Append one event to the deck's timing.jsonl. Used by the "
@@ -253,3 +319,20 @@ def register(sub: argparse._SubParsersAction) -> None:
     p_merge.add_argument("-o", "--output", required=True,
                          help="Output path for the merged plan.yaml.")
     p_merge.set_defaults(func=cmd_plan_merge)
+
+    p_budgets = sub.add_parser(
+        "plan-budgets",
+        help="Enrich a picked plan.yaml with _meta.slot_budgets per slide "
+             "(text slots + chart_N_* slots). Idempotent. Run after the cascade "
+             "fills layout: and before authoring fan-out.",
+    )
+    p_budgets.add_argument("plan", help="Path to the plan.yaml (must have layout: per slide).")
+    p_budgets.add_argument(
+        "-o", "--output", default=None,
+        help="Output path. Default: overwrite the input plan in-place.",
+    )
+    p_budgets.add_argument(
+        "--brand", default=None,
+        help="Override brand. Default: from plan.brand or 'feinschliff'.",
+    )
+    p_budgets.set_defaults(func=cmd_plan_budgets)
