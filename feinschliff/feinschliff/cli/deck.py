@@ -823,16 +823,15 @@ def cmd_build(args) -> int:
         print(f"deck: {e}", file=sys.stderr)
         return 2
     if not getattr(args, "no_image_provider", False):
+        # New `$image_providers` (plural list) → ProviderChain.
+        # Legacy `$image_provider` (singular dict) stays on the original
+        # `get_provider` path — that one resolves arbitrary kinds via the
+        # registry, including test-only kinds the chain doesn't whitelist.
         _raw_tokens = getattr(default_brand_obj, "tokens", {}) or {}
         _ip_list = _raw_tokens.get("$image_providers")
         if _ip_list is not None:
             chain = chain_from_brand_config(_ip_list, brand_root=default_brand_obj.root)
         elif default_brand_obj.image_provider_config:
-            # Backwards compat: singular $image_provider → one-element chain.
-            chain = chain_from_brand_config(
-                default_brand_obj.image_provider_config,
-                brand_root=default_brand_obj.root,
-            )
             cfg = default_brand_obj.image_provider_config
             provider = get_provider(cfg["kind"], cfg.get("config"))
 

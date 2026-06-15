@@ -96,15 +96,15 @@ def cmd_build(args) -> int:
     discover_providers()
     provider = None
     chain = None
-    # Load raw tokens to check for plural $image_providers key.
+    # The new `$image_providers` (plural list) is consumed only when a brand
+    # opts in. Legacy `$image_provider` (singular dict) stays on the original
+    # `get_provider` path — it resolves arbitrary `kind`s via the registry,
+    # including test-only kinds the chain doesn't whitelist.
     _raw_tokens = getattr(brand, "tokens", {}) or {}
     _ip_list = _raw_tokens.get("$image_providers")
     if _ip_list is not None:
         chain = chain_from_brand_config(_ip_list, brand_root=brand.root)
     elif brand.image_provider_config:
-        # Backwards compat: singular $image_provider → one-element chain.
-        chain = chain_from_brand_config(brand.image_provider_config, brand_root=brand.root)
-        # Also set legacy provider for callers that use it directly.
         cfg = brand.image_provider_config
         provider = get_provider(cfg["kind"], cfg.get("config"))
 
