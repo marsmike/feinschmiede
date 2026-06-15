@@ -50,11 +50,21 @@ _DECK_MAP_WINDOW = 20
 # can monkeypatch ``feinschliff.layout_discovery.find_layout``.
 
 def _resolve_layout_path(layouts_path: Path | None, name: str) -> Path | None:
-    """Brand-local ``layouts/`` wins over toolkit discovery; else None."""
+    """Brand-local ``layouts/`` wins over toolkit discovery; else None.
+
+    A ``<brand>-<stem>`` name is also resolved against sibling brand packs
+    under the same ``brands/`` parent (see
+    :func:`feinschliff.layout_discovery.resolve_brand_prefixed`), so plans
+    can address a specific brand's layout unambiguously when two packs
+    ship the same stem (``bosch-slide-25`` vs ``bsh-slide-25``).
+    """
     if layouts_path is not None:
         candidate = layouts_path / f"{name}.slide.dsl"
         if candidate.is_file():
             return candidate
+        cross = layout_discovery.resolve_brand_prefixed(layouts_path.parent, name)
+        if cross is not None:
+            return cross
     found = layout_discovery.find_layout(name)
     if found is not None:
         return found.path

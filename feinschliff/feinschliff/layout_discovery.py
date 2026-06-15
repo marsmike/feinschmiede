@@ -162,6 +162,35 @@ def find_layout(name: str) -> Layout | None:
 _SUFFIX = ".slide.dsl"
 
 
+def resolve_brand_prefixed(brand_root: Path | None, name: str) -> Path | None:
+    """Resolve a ``<brand>-<stem>`` layout name against sibling brand packs.
+
+    Brand packs live at ``<packs_root>/<brand>/layouts/<stem>.slide.dsl``.
+    When a plan references ``bsh-slide-25`` from inside the ``bosch`` brand,
+    this helper walks to ``bsh``'s sibling ``layouts/`` directory and looks
+    up the bare stem there. Returns ``None`` when *brand_root* is missing,
+    *name* has no ``-`` separator, the prefix does not match a sibling
+    directory, or the resolved file is absent.
+
+    The split is greedy on the **leftmost** ``-`` so brand names without
+    a ``-`` work (e.g. ``bsh-slide-25`` → ``bsh`` / ``slide-25``). Brand
+    names containing ``-`` (``gs-ramspau-slide-01``) are resolved by
+    falling through to the first prefix that names a sibling on disk.
+    """
+    if brand_root is None or "-" not in name:
+        return None
+    packs_root = brand_root.parent
+    parts = name.split("-")
+    # Try increasingly long prefixes so multi-word brand names match.
+    for split in range(1, len(parts)):
+        prefix = "-".join(parts[:split])
+        stem = "-".join(parts[split:])
+        candidate = packs_root / prefix / "layouts" / f"{stem}{_SUFFIX}"
+        if candidate.is_file():
+            return candidate
+    return None
+
+
 # One-shot per (name, winner-path) so a long-running process doesn't
 # re-warn every time the picker rebuilds its profile table.
 _WARNED_COLLISIONS: set[tuple[str, str]] = set()
