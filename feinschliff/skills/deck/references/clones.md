@@ -39,7 +39,7 @@ If a snippet doesn't have an `anchors` field but you still want to see its text 
 
 ```python
 from collections import Counter
-from feinschliff.master_template._brand import master_path
+from feinschliff import master_path
 from pptx import Presentation
 ns = "http://schemas.openxmlformats.org/drawingml/2006/main"
 s = Presentation(str(master_path(brand_dir))).slides[N]

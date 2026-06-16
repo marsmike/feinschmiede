@@ -130,33 +130,6 @@ def _sample_plans(brand_dir: Path) -> list[FillPlan]:
     return plans
 
 
-def _render_brand(brand_dir: Path, work_dir: Path) -> dict:
-    """Render -> soffice -> pdftoppm. Each worker gets its own LibreOffice
-    user-installation dir so parallel soffice invocations don't race over
-    the global profile lock (which silently drops conversions).
-    """
-    work_dir.mkdir(parents=True, exist_ok=True)
-    pptx = work_dir / "showcase.pptx"
-    plans = _sample_plans(brand_dir)
-    render(brand_dir, plans, pptx)
-
-    profile = work_dir / "_lo-profile"
-    subprocess.run(
-        ["soffice", f"-env:UserInstallation=file://{profile}",
-         "--headless", "--convert-to", "pdf", "--outdir", str(work_dir), str(pptx)],
-        check=True, capture_output=True,
-    )
-    pdf = work_dir / "showcase.pdf"
-    if not pdf.exists():
-        raise RuntimeError(f"soffice produced no PDF for {brand_dir.name}")
-    subprocess.run(
-        ["pdftoppm", "-png", "-r", "120", str(pdf), str(work_dir / "slide")],
-        check=True, capture_output=True,
-    )
-    pngs = sorted(work_dir.glob("slide-*.png"))
-    return {"brand": brand_dir.name, "n_slides": len(pngs), "pngs": [str(p) for p in pngs]}
-
-
 def _atlas(pngs: list[Path], out: Path, cols: int = 2) -> None:
     """4-up (or N-up) grid composite of the showcase PNGs."""
     if not pngs:
