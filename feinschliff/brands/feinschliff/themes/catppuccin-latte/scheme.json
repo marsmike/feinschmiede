@@ -1,0 +1,18 @@
+{
+  "$description": "Catppuccin Latte \u2014 Light, warm pastel theme \u2014 Catppuccin's daylight flavor. Upstream catppuccin/palette (MIT).",
+  "$theme_for": "feinschliff",
+  "scheme": {
+    "dk1": "#4C4F69",
+    "lt1": "#EFF1F5",
+    "dk2": "#5C5F77",
+    "lt2": "#ACB0BE",
+    "accent1": "#8839EF",
+    "accent2": "#EA76CB",
+    "accent3": "#7287FD",
+    "accent4": "#40a02b",
+    "accent5": "#df8e1d",
+    "accent6": "#d20f39",
+    "hlink": "#EA76CB",
+    "folHlink": "#7287FD"
+  }
+}

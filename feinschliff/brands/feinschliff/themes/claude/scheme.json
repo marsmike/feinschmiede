@@ -1,0 +1,18 @@
+{
+  "$description": "Claude theme \u2014 warm cream canvas + coral accent + serif editorial register.",
+  "$theme_for": "feinschliff",
+  "scheme": {
+    "dk1": "#141413",
+    "lt1": "#FAF9F5",
+    "dk2": "#252523",
+    "lt2": "#8E8B82",
+    "accent1": "#CC785C",
+    "accent2": "#E8A55A",
+    "accent3": "#A9583E",
+    "accent4": "#5DB872",
+    "accent5": "#D4A017",
+    "accent6": "#C8553D",
+    "hlink": "#E8A55A",
+    "folHlink": "#A9583E"
+  }
+}

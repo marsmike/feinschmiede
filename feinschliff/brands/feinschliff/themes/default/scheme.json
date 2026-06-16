@@ -1,0 +1,18 @@
+{
+  "$description": "Feinschliff default theme \u2014 navy ramp + warm paper + single gold accent.",
+  "$theme_for": "feinschliff",
+  "scheme": {
+    "dk1": "#0B1A33",
+    "lt1": "#FAF8F3",
+    "dk2": "#2D3A52",
+    "lt2": "#A9BCD6",
+    "accent1": "#C9A24A",
+    "accent2": "#E4C27A",
+    "accent3": "#8A6F2E",
+    "accent4": "#3F8553",
+    "accent5": "#C9A24A",
+    "accent6": "#A8442A",
+    "hlink": "#E4C27A",
+    "folHlink": "#8A6F2E"
+  }
+}
