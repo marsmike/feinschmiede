@@ -8,10 +8,11 @@ synthetic fills against bare layouts.
 Two levels, so the reader can pick a brand pack *and* a color scheme and
 then see every slide:
 
-  Level 1  docs/brands/index.html — one card per brand pack, with its
-           color schemes (base "as authored" + each theme) as links.
-  Level 2  docs/brand-previews/<brand>/<scheme>/index.html — every slide
-           of that master in that scheme, plus a scheme switcher.
+  Level 1  docs/brands/index.html — one card per brand pack (feinschliff
+           first), color schemes deep-linking into the brand page.
+  Level 2  docs/brand-previews/<brand>/index.html — every slide of that
+           master, with a color-scheme selector that swaps all images in
+           place via JS. Images live per scheme at <brand>/<scheme>/.
 
 Per (brand, scheme): open the master, overlay the scheme's colors for a
 theme variant, soffice -> PDF, pdftoppm -> one PNG per slide, Pillow ->
@@ -51,6 +52,12 @@ DEFAULT_WORKERS = max(1, (os.cpu_count() or 2) // 2)
 # slides (title / section / hero content), so the first few make the tile.
 MAX_TILES = 4      # slides composited into a card's atlas thumbnail
 DETAIL_DPI = 110   # per-slide rasterization for the detail page
+# Per-deploy cache-bust appended to slide <img> URLs. Slide filenames are
+# stable across deploys (slide-01.png ...), so without this a returning
+# visitor keeps seeing the browser-cached copy from before a re-render.
+# GitHub Actions sets GITHUB_SHA; locally it's empty (no query appended).
+VERSION = os.environ.get("GITHUB_SHA", "")[:8]
+FIRST_BRAND = "feinschliff"  # pinned to the top of the overview; rest alphabetical
 
 
 def _slug(name: str) -> str:
@@ -162,7 +169,7 @@ _STYLE = """
   .card h3 a:hover { text-decoration: underline; }
   .schemes { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
   .schemes a { display: inline-block; padding: 0.2rem 0.6rem; border: 1px solid #ccd; border-radius: 999px;
-               font-size: 0.82rem; text-decoration: none; text-transform: capitalize; }
+               cursor: pointer; font-size: 0.82rem; text-decoration: none; text-transform: capitalize; }
   .schemes a.current { background: #0b6; border-color: #0b6; color: #fff; }
   .slides { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 1.25rem; margin-top: 1.5rem; }
   figure { margin: 0; border: 1px solid #e3e3e3; border-radius: 6px; overflow: hidden; }
@@ -172,45 +179,70 @@ _STYLE = """
 """
 
 
-def _scheme_nav(siblings: list[dict], current_slug: str, prefix: str) -> str:
-    """Pill links to each sibling scheme. `prefix` reaches the variant dirs."""
-    links = []
-    for s in siblings:
-        cls = ' class="current"' if s["slug"] == current_slug else ""
-        links.append(f'<a{cls} href="{prefix}{s["slug"]}/">{s["scheme"]}</a>')
-    return f'<nav class="schemes">{"".join(links)}</nav>'
+def _ordered_brands(groups: dict[str, list[dict]]) -> list[str]:
+    """FIRST_BRAND pinned to the top of the overview, the rest alphabetical."""
+    rest = sorted(b for b in groups if b != FIRST_BRAND)
+    return ([FIRST_BRAND] if FIRST_BRAND in groups else []) + rest
 
 
-def _detail_html(variant: dict, siblings: list[dict]) -> str:
-    """Level 2 — every slide of one (brand, scheme), with a scheme switcher.
-    Lives at brand-previews/<brand>/<slug>/index.html, beside its images."""
+def _brand_detail_html(brand: str, variants: list[dict]) -> str:
+    """One page per brand at brand-previews/<brand>/index.html: every slide,
+    plus a color-scheme selector that swaps all images in place via JS (no page
+    reload). Images live in per-scheme subdirs (<slug>/slide-NN.png)."""
+    primary = variants[0]                       # "as authored"
+    vq = f"?v={VERSION}" if VERSION else ""
+    buttons = "".join(
+        f'<a data-slug="{v["slug"]}" class="{"current" if v is primary else ""}" '
+        f'href="#{v["slug"]}" onclick="pickScheme(\'{v["slug"]}\');return false;">{v["scheme"]}</a>'
+        for v in variants
+    )
     figures = "".join(
-        f'\n  <figure><img loading="lazy" src="{fn}" alt="slide {i}"><figcaption>Slide {i}</figcaption></figure>'
-        for i, fn in enumerate(variant["slides"], 1)
+        f'\n  <figure><img loading="lazy" data-file="{fn}" src="{primary["slug"]}/{fn}{vq}"'
+        f' alt="slide {i}"><figcaption>Slide {i}</figcaption></figure>'
+        for i, fn in enumerate(primary["slides"], 1)
     )
     return f"""<!doctype html>
 <meta charset="utf-8">
-<title>{variant['brand']} — {variant['scheme']} — feinschmiede</title>
-<link rel="icon" type="image/svg+xml" href="../../../feinschmiede-mark.svg">
+<title>{brand} — feinschmiede brand gallery</title>
+<link rel="icon" type="image/svg+xml" href="../../feinschmiede-mark.svg">
 <style>{_STYLE}</style>
-<a class="back" href="../../../brands/">← all brand packs</a>
-<h1 style="text-transform: capitalize">{variant['brand']}</h1>
-<p class="lead">Color scheme — pick one to recolor every slide:</p>
-{_scheme_nav(siblings, variant['slug'], "../")}
-<section class="slides">{figures}
+<a class="back" href="../../brands/">← all brand packs</a>
+<h1 style="text-transform: capitalize">{brand}</h1>
+<p class="lead">Color scheme — pick one to recolor every slide instantly:</p>
+<nav class="schemes" id="selector">{buttons}</nav>
+<section class="slides" id="slides">{figures}
 </section>
+<script>
+  var VQ = "{vq}";
+  function pickScheme(slug) {{
+    document.querySelectorAll('#slides img').forEach(function (img) {{
+      img.src = slug + '/' + img.dataset.file + VQ;
+    }});
+    document.querySelectorAll('#selector a').forEach(function (a) {{
+      a.classList.toggle('current', a.dataset.slug === slug);
+    }});
+    if (history.replaceState) history.replaceState(null, '', '#' + slug);
+  }}
+  (function () {{
+    var h = decodeURIComponent(location.hash.slice(1));
+    if (h && document.querySelector('#selector a[data-slug="' + h + '"]')) pickScheme(h);
+  }})();
+</script>
 """
 
 
 def _index_html(groups: dict[str, list[dict]]) -> str:
-    """Level 1 — one card per brand pack, color schemes as links into level 2."""
+    """The overview — one card per brand pack, color schemes deep-linking into
+    that brand's page (#<scheme> preselects it)."""
     cards = []
-    for brand in sorted(groups):
+    for brand in _ordered_brands(groups):
         variants = groups[brand]
-        primary = variants[0]  # "as authored" — the card thumbnail
-        detail = f"../brand-previews/{primary['dir']}/"
+        primary = variants[0]
+        detail = f"../brand-previews/{brand}/"
         atlas = f"../{primary['atlas']}"
-        chips = _scheme_nav(variants, primary["slug"], f"../brand-previews/{brand}/")
+        chips = "".join(
+            f'<a href="{detail}#{v["slug"]}">{v["scheme"]}</a>' for v in variants
+        )
         n_schemes = len(variants)
         schemes_label = "1 color scheme" if n_schemes == 1 else f"{n_schemes} color schemes"
         cards.append(f"""
@@ -218,7 +250,7 @@ def _index_html(groups: dict[str, list[dict]]) -> str:
     <a href="{detail}"><img src="{atlas}" alt="{brand}"></a>
     <h3><a href="{detail}">{brand}</a></h3>
     <p>{primary['n_slides']} slides · {schemes_label}</p>
-    {chips}
+    <nav class="schemes">{chips}</nav>
   </article>""")
     n_variants = sum(len(v) for v in groups.values())
     return f"""<!doctype html>
@@ -282,17 +314,17 @@ def main(argv: list[str]) -> int:
             except Exception as e:
                 print(f"  FAIL {futures[fut]:34} {type(e).__name__}: {e}", file=sys.stderr)
 
-    # Group variants by brand, ordered "as authored" first then the rest.
+    # Group variants by brand, "as authored" first then the rest, and write
+    # one in-place-selector page per brand at brand-previews/<brand>/index.html.
     groups: dict[str, list[dict]] = {}
     for info in results:
         groups.setdefault(info["brand"], []).append(info)
-    for variants in groups.values():
+    for brand, variants in groups.items():
         variants.sort(key=lambda v: (v["scheme"] != "as authored", v["scheme"]))
-        for v in variants:
-            (PREVIEWS_DIR / v["dir"] / "index.html").write_text(_detail_html(v, variants))
+        (PREVIEWS_DIR / brand / "index.html").write_text(_brand_detail_html(brand, variants))
 
     (DOCS_DIR / "brands" / "index.html").write_text(_index_html(groups))
-    print(f"wrote gallery: {len(groups)} packs, {len(results)} scheme detail pages", file=sys.stderr)
+    print(f"wrote gallery: {len(groups)} packs, {len(results)} scheme variants", file=sys.stderr)
     return 0 if len(results) == len(jobs) else 1
 
 
