@@ -32,7 +32,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from feinschliff import FillPlan, render
+from feinschliff import FillPlan, master_path, render
 from feinschliff.master_template.catalog import build_catalog
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -232,15 +232,29 @@ def main(argv: list[str]) -> int:
     args = ap.parse_args(argv)
 
     brands = sorted(b for b in BRANDS_DIR.iterdir() if b.is_dir() and not b.name.startswith("."))
+    # A pack whose master resolves through a `master.pptx.ref` pointing
+    # outside the repo (gallery / corporate packs) can't render in an
+    # environment that lacks that local asset directory — notably CI.
+    # Skip such packs up front so they don't count against the exit code;
+    # a genuine render failure of a resolvable pack still fails the run.
+    renderable: list[Path] = []
+    for b in brands:
+        try:
+            master_path(b)
+        except FileNotFoundError:
+            print(f"  SKIP {b.name:30} master unavailable in this environment", file=sys.stderr)
+            continue
+        renderable.append(b)
+
     # Each brand expands to its base + one tile per theme/<name>/scheme.json
     # variant. feinschliff currently ships 8 themes (default + 7); other packs
     # ship no themes today, so they yield a single tile each.
     jobs: list[tuple[Path, Path | None, str]] = []
-    for b in brands:
+    for b in renderable:
         for theme_path, label in _theme_variants(b):
             jobs.append((b, theme_path, label))
 
-    print(f"rendering {len(brands)} brands -> {len(jobs)} tiles "
+    print(f"rendering {len(renderable)} brands -> {len(jobs)} tiles "
           f"with {args.workers} workers", file=sys.stderr)
     PREVIEWS_DIR.mkdir(parents=True, exist_ok=True)
     DOCS_DIR.joinpath("brands").mkdir(parents=True, exist_ok=True)
