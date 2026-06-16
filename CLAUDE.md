@@ -51,14 +51,15 @@ shapes for the master file:
    Microsoft-gallery packs (hosted on R2, `assets.marsmike.com`) and by
    private corporate packs (local asset directory).
 
-In-repo packs: `feinschliff` (default + 8 color themes via clrScheme
-overlay) and `gs-ramspau` commit their `master.pptx`. The eight Microsoft
-PowerPoint Gallery packs — `annual-review`, `geometric`, `scientific`,
-`shapes`, `brand-strategy`, `pitch-deck`, `corporate`, `portfolio` — keep
-their binary off-repo via `master.pptx.ref` (R2). Private corporate packs
-surface via sibling `feinschliff-*` plugin directories — the
-`bin/feinschliff` launcher auto-discovers their `brands/` and exports
-`$FEINSCHLIFF_BRAND_PATH`.
+In-repo packs (10): `feinschliff` (default + 8 color themes via clrScheme
+overlay), `gs-ramspau`, and the eight Microsoft PowerPoint Gallery packs
+(`annual-review`, `geometric`, `scientific`, `shapes`, `brand-strategy`,
+`pitch-deck`, `corporate`, `portfolio`). **No `master.pptx` is committed**
+— every pack keeps its binary off-repo on R2 via `master.pptx.ref`; only
+text (DESIGN.md, layouts.yaml, snippets.yaml, theme JSON, logos) lives in
+git. Private corporate packs surface via sibling `feinschliff-*` plugin
+directories — the `bin/feinschliff` launcher auto-discovers their
+`brands/` and exports `$FEINSCHLIFF_BRAND_PATH`.
 
 ## Themes are clrScheme overlays
 
@@ -82,13 +83,12 @@ Repo stays small on purpose.
   Build scripts render here first. No `/tmp/` or `~/Downloads`
   shortcuts — single-use renders also land in `.debug/<topic>-<date>/`.
 
-**Allowed binary assets in git:** master.pptx files for the two house
-packs (`feinschliff`, `gs-ramspau`) and the feinschmiede mark + social
-card under `assets/`. The Microsoft-gallery packs keep their binary off
-the public repo on R2 (`assets.marsmike.com`), reached via
-`master.pptx.ref` URLs — the renderer fetches and caches them, so the
-gallery still renders every pack in CI without committing third-party
-templates.
+**Allowed binary assets in git:** only the feinschmiede mark + social
+card under `assets/` (and each pack's small house logos). No
+`master.pptx` is committed — all ten brand masters live off the public
+repo on R2 (`assets.marsmike.com`), reached via `master.pptx.ref` URLs;
+the renderer fetches and caches them, so the gallery still renders every
+pack in CI without carrying any pptx binary.
 
 ## After any build — open it
 

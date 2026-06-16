@@ -9,19 +9,21 @@ marketplace install copies into
 
 | Plugin | Files | Size | What it ships |
 |---|---:|---:|---|
-| `feinschliff` | 145 | **20.8 MB** | `bin/` launcher, 10 brand packs (`feinschliff` + 8 themes, `gs-ramspau`, 8 Microsoft-gallery packs via `.ref`→R2), deck skill (1 SKILL.md + 5 references), master-template source, gallery script |
-| `feinbild` | 45 | **347 KB** | `bin/` launcher, 3 skills (svg, excalidraw, imagine) with 9 references |
-| `feinklang` | 13 | **28 KB** | `bin/` launcher, tts skill |
-| `feinschnitt` | 151 | **802 KB** | `bin/` launcher, 3 skills (edit, cli-recorder, remotion) with 39 references |
-| **Total** | **354** | **≈ 22.0 MB** | |
+| `feinschliff` | 96 | **0.8 MB** | `bin/` launcher, 10 brand packs (`feinschliff` + 8 themes, `gs-ramspau`, 8 Microsoft-gallery packs — **all masters off-repo via `.ref`→R2**), deck skill (1 SKILL.md + 5 references), master-template source, gallery script |
+| `feinbild` | 45 | **460 KB** | `bin/` launcher, 3 skills (svg, excalidraw, imagine) with 9 references |
+| `feinklang` | 13 | **64 KB** | `bin/` launcher, tts skill |
+| `feinschnitt` | 151 | **1.1 MB** | `bin/` launcher, 3 skills (edit, cli-recorder, remotion) with 39 references |
+| **Total** | **305** | **≈ 2.4 MB** | |
 
-The bulk of `feinschliff` is brand-pack assets — the `feinschliff`
-master.pptx alone is 8.4 MB. The Microsoft-gallery packs keep their
-master.pptx off-repo on R2 (`.ref` URLs, ~27 MB total never committed);
-only their decompile assets remain in-tree. Private corporate brand
+No `master.pptx` is committed any more — all ten brand masters
+(~36 MB total) live off-repo on R2 (`assets.marsmike.com`) and the
+renderer fetches + caches them via `master.pptx.ref` URLs. What remains
+in-tree per pack is text only: `DESIGN.md`, `layouts.yaml`,
+`snippets.yaml` (both consumed by the deck skill), theme JSON, and the
+`feinschliff` house logos. The ~12 MB of DSL-era decompile assets the
+old gallery packs once carried have been removed. Private corporate
 packs (BSH / Bosch) live outside the repo and are reached via the
-sibling `feinschliff-*` discovery in `bin/feinschliff` — they don't
-inflate the public footprint.
+sibling `feinschliff-*` discovery in `bin/feinschliff`.
 
 The `feinschmiede` workspace package (the shared engine for feinbild's
 diagrams) is not a plugin and not shipped via marketplace.
@@ -73,8 +75,8 @@ After PR 1 (builder deletion) + PR 7 (deck skill rewrite): **8 skills,
 
 | Pack | Source | Layouts | Theme variants |
 |---|---|---:|---:|
-| `feinschliff` | repo (master.pptx 8.4 MB) | 11 | 8 (clrScheme overlays) |
-| `gs-ramspau` | repo (master.pptx 685 KB) | 11 | — |
+| `feinschliff` | `.ref` → R2 (8.4 MB) | 11 | 8 (clrScheme overlays) |
+| `gs-ramspau` | `.ref` → R2 (685 KB) | 11 | — |
 | `annual-review` | `.ref` → R2 (1.0 MB) | 13 | — |
 | `geometric` | `.ref` → R2 (1.9 MB) | 17 | — |
 | `scientific` | `.ref` → R2 (2.3 MB) | 13 | — |
@@ -84,12 +86,11 @@ After PR 1 (builder deletion) + PR 7 (deck skill rewrite): **8 skills,
 | `corporate` | `.ref` → R2 (4.9 MB) | 13 | — |
 | `portfolio` | `.ref` → R2 (8.3 MB) | 14 | — |
 
-Only the two house packs commit their `master.pptx`. The eight Microsoft
-PowerPoint Gallery packs keep their binary off-repo on R2
-(`assets.marsmike.com`), reached via `master.pptx.ref` URLs that the
-renderer fetches and caches at lookup time — so third-party templates
-(~27 MB) never inflate the repo, and the public gallery still renders
-them in CI. Private corporate packs (BSH, Bosch) live in separate repos
+Every pack — house and gallery alike — keeps its `master.pptx` off-repo
+on R2 (`assets.marsmike.com`), reached via a `master.pptx.ref` URL that
+the renderer fetches into a gitignored `.master.pptx` cache at lookup
+time. So no binary inflates the repo, yet the gallery still renders all
+ten in CI. Private corporate packs (BSH, Bosch) live in separate repos
 and use the same `.ref` mechanism with local paths.
 
 ## Methodology
