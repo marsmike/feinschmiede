@@ -1,0 +1,18 @@
+{
+  "$description": "Solarized Dark \u2014 Ethan Schoonover's classic precision-engineered palette \u2014 warm yellows on cool teal-black. Upstream ethanschoonover.com/solarized (MIT).",
+  "$theme_for": "feinschliff",
+  "scheme": {
+    "dk1": "#002B36",
+    "lt1": "#FDF6E3",
+    "dk2": "#073642",
+    "lt2": "#839496",
+    "accent1": "#B58900",
+    "accent2": "#2AA198",
+    "accent3": "#CB4B16",
+    "accent4": "#859900",
+    "accent5": "#b58900",
+    "accent6": "#dc322f",
+    "hlink": "#2AA198",
+    "folHlink": "#CB4B16"
+  }
+}

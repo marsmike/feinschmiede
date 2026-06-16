@@ -1,0 +1,18 @@
+{
+  "$description": "Feinschliff Dark \u2014 Inverted-canvas variant of Feinschliff \u2014 navy-900 surface with warm paper as body ink.",
+  "$theme_for": "feinschliff",
+  "scheme": {
+    "dk1": "#FAF8F3",
+    "lt1": "#0B1A33",
+    "dk2": "#A9BCD6",
+    "lt2": "#6E8BB6",
+    "accent1": "#E4C27A",
+    "accent2": "#FBE6B3",
+    "accent3": "#C9A24A",
+    "accent4": "#162A4A",
+    "accent5": "#1E3258",
+    "accent6": "#0F2040",
+    "hlink": "#FBE6B3",
+    "folHlink": "#C9A24A"
+  }
+}

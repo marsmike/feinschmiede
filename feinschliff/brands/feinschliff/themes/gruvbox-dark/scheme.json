@@ -1,0 +1,18 @@
+{
+  "$description": "Gruvbox Dark \u2014 Retro groove warm palette \u2014 soft brown surfaces and muted earthtone accents. Upstream morhetz/gruvbox (MIT).",
+  "$theme_for": "feinschliff",
+  "scheme": {
+    "dk1": "#EBDBB2",
+    "lt1": "#282828",
+    "dk2": "#D5C4A1",
+    "lt2": "#928374",
+    "accent1": "#FABD2F",
+    "accent2": "#D79921",
+    "accent3": "#FE8019",
+    "accent4": "#b8bb26",
+    "accent5": "#fabd2f",
+    "accent6": "#fb4934",
+    "hlink": "#D79921",
+    "folHlink": "#FE8019"
+  }
+}

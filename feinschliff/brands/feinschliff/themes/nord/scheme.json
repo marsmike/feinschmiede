@@ -1,0 +1,18 @@
+{
+  "$description": "Nord \u2014 Arctic, north-bluish color palette designed for clear and minimal interfaces. Upstream nordtheme/nord (MIT).",
+  "$theme_for": "feinschliff",
+  "scheme": {
+    "dk1": "#ECEFF4",
+    "lt1": "#2E3440",
+    "dk2": "#D8DEE9",
+    "lt2": "#4C566A",
+    "accent1": "#88C0D0",
+    "accent2": "#5E81AC",
+    "accent3": "#81A1C1",
+    "accent4": "#a3be8c",
+    "accent5": "#ebcb8b",
+    "accent6": "#bf616a",
+    "hlink": "#5E81AC",
+    "folHlink": "#81A1C1"
+  }
+}

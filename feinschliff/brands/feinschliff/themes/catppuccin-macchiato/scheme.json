@@ -1,0 +1,18 @@
+{
+  "$description": "Catppuccin Macchiato \u2014 Medium-dark Catppuccin flavor between Frapp\u00e9 and Mocha \u2014 gentle contrast. Upstream catppuccin/palette (MIT).",
+  "$theme_for": "feinschliff",
+  "scheme": {
+    "dk1": "#CAD3F5",
+    "lt1": "#24273A",
+    "dk2": "#A5ADCB",
+    "lt2": "#939AB7",
+    "accent1": "#C6A0F6",
+    "accent2": "#F5BDE6",
+    "accent3": "#B7BDF8",
+    "accent4": "#a6da95",
+    "accent5": "#eed49f",
+    "accent6": "#ed8796",
+    "hlink": "#F5BDE6",
+    "folHlink": "#B7BDF8"
+  }
+}

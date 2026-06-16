@@ -148,14 +148,52 @@ def _atlas(pngs: list[Path], out: Path, cols: int = 2) -> None:
     atlas.save(out, "PNG", optimize=True)
 
 
-def _build_one(brand_dir_str: str) -> dict:
+def _build_one(brand_dir_str: str, theme_path_str: str | None = None,
+               label: str | None = None) -> dict:
     brand_dir = Path(brand_dir_str)
-    work = PREVIEWS_DIR / brand_dir.name
-    info = _render_brand(brand_dir, work)
+    name = label or brand_dir.name
+    work = PREVIEWS_DIR / name
+    work.mkdir(parents=True, exist_ok=True)
+    pptx = work / "showcase.pptx"
+    plans = _sample_plans(brand_dir)
+    theme = Path(theme_path_str) if theme_path_str else None
+    render(brand_dir, plans, pptx, theme=theme)
+
+    profile = work / "_lo-profile"
+    subprocess.run(
+        ["soffice", f"-env:UserInstallation=file://{profile}",
+         "--headless", "--convert-to", "pdf", "--outdir", str(work), str(pptx)],
+        check=True, capture_output=True,
+    )
+    pdf = work / "showcase.pdf"
+    if not pdf.exists():
+        raise RuntimeError(f"soffice produced no PDF for {name}")
+    subprocess.run(
+        ["pdftoppm", "-png", "-r", "120", str(pdf), str(work / "slide")],
+        check=True, capture_output=True,
+    )
+    pngs = sorted(work.glob("slide-*.png"))
     atlas_path = work / "_atlas.png"
-    _atlas([Path(p) for p in info["pngs"]], atlas_path)
-    info["atlas"] = str(atlas_path.relative_to(DOCS_DIR))
-    return info
+    _atlas(pngs, atlas_path)
+    return {
+        "brand": name,
+        "base_brand": brand_dir.name,
+        "n_slides": len(pngs),
+        "atlas": str(atlas_path.relative_to(DOCS_DIR)),
+    }
+
+
+def _theme_variants(brand_dir: Path) -> list[tuple[Path | None, str]]:
+    """One entry per (scheme.json, label) — `(None, brand_dir.name)` is the
+    no-theme base variant; the rest follow the theme-overlay filename."""
+    variants: list[tuple[Path | None, str]] = [(None, brand_dir.name)]
+    themes_dir = brand_dir / "themes"
+    if themes_dir.is_dir():
+        for theme_dir in sorted(themes_dir.iterdir()):
+            scheme = theme_dir / "scheme.json"
+            if scheme.exists():
+                variants.append((scheme, f"{brand_dir.name}-{theme_dir.name}"))
+    return variants
 
 
 def _index_html(brands: list[dict]) -> str:
@@ -195,25 +233,37 @@ def main(argv: list[str]) -> int:
     args = ap.parse_args(argv)
 
     brands = sorted(b for b in BRANDS_DIR.iterdir() if b.is_dir() and not b.name.startswith("."))
-    print(f"rendering {len(brands)} brands with {args.workers} workers", file=sys.stderr)
+    # Each brand expands to its base + one tile per theme/<name>/scheme.json
+    # variant. feinschliff currently ships 8 themes (default + 7); other packs
+    # ship no themes today, so they yield a single tile each.
+    jobs: list[tuple[Path, Path | None, str]] = []
+    for b in brands:
+        for theme_path, label in _theme_variants(b):
+            jobs.append((b, theme_path, label))
+
+    print(f"rendering {len(brands)} brands -> {len(jobs)} tiles "
+          f"with {args.workers} workers", file=sys.stderr)
     PREVIEWS_DIR.mkdir(parents=True, exist_ok=True)
     DOCS_DIR.joinpath("brands").mkdir(parents=True, exist_ok=True)
 
     results: list[dict] = []
     with ProcessPoolExecutor(max_workers=args.workers, mp_context=mp.get_context("spawn")) as ex:
-        futures = {ex.submit(_build_one, str(b)): b.name for b in brands}
+        futures = {
+            ex.submit(_build_one, str(b), str(t) if t else None, label): label
+            for b, t, label in jobs
+        }
         for fut in as_completed(futures):
             try:
                 info = fut.result()
-                print(f"  OK {info['brand']:20} {info['n_slides']} slides", file=sys.stderr)
+                print(f"  OK {info['brand']:30} {info['n_slides']} slides", file=sys.stderr)
                 results.append(info)
             except Exception as e:
-                name = futures[fut]
-                print(f"  FAIL {name:20} {type(e).__name__}: {e}", file=sys.stderr)
+                label = futures[fut]
+                print(f"  FAIL {label:30} {type(e).__name__}: {e}", file=sys.stderr)
 
     (DOCS_DIR / "brands" / "index.html").write_text(_index_html(results))
     print(f"wrote {DOCS_DIR / 'brands' / 'index.html'} with {len(results)} cards", file=sys.stderr)
-    return 0 if len(results) == len(brands) else 1
+    return 0 if len(results) == len(jobs) else 1
 
 
 if __name__ == "__main__":
