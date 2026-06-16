@@ -1,5 +1,13 @@
 name: CI
 
+# Slimmed for the master-template migration (PR 0). The Python suite is
+# being removed; the only gate that stays meaningful is progressive-
+# disclosure validation of every SKILL.md via claude-skills-cli.
+#
+# Branch protection on main requires the status checks "DCO sign-off" and
+# "feinschliff lib tests" — both job display names below must match
+# exactly or PRs will hang forever waiting for the missing check.
+
 on:
   pull_request:
     branches: [main]
@@ -40,196 +48,32 @@ jobs:
             echo "  git commit --amend --signoff"
             exit 1
           fi
-          echo "✓ All commits have DCO sign-off."
-
-  consistency:
-    name: generated files + consistency
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-      - name: Launchers + build-wheels in sync with the generator
-        run: python3 scripts/gen_launchers.py --check
-      - name: Manifest-check unit tests
-        run: uv run --no-project --with pytest pytest scripts/test_gen_launchers.py -q
-      - name: constraints.txt matches the locked closure
-        run: |
-          set -euo pipefail
-          uv export --frozen --no-emit-workspace --no-hashes --no-dev -o /tmp/constraints.txt
-          # Compare only the pin lines; the header comment embeds the -o path.
-          if ! diff -u <(grep -v '^#' constraints.txt) <(grep -v '^#' /tmp/constraints.txt); then
-            echo "::error::constraints.txt is stale — run: uv export --frozen --no-emit-workspace --no-hashes --no-dev -o constraints.txt"
-            exit 1
-          fi
-      - name: All workspace packages share one version
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import tomllib, pathlib, sys
-          members = ["feinschmiede", "feinschliff", "feinschliff-builder",
-                     "feinbild", "feinklang", "feinschnitt"]
-          versions = {m: tomllib.loads(pathlib.Path(m, "pyproject.toml").read_text())["project"]["version"]
-                      for m in members}
-          uniq = set(versions.values())
-          if len(uniq) != 1:
-              print("::error::Python package versions disagree:", versions)
-              sys.exit(1)
-          print("✓ all packages at", uniq.pop())
-          PY
-      - name: Skill docs use bare CLIs (no `uv run <cli>`, no `lib.` engine paths)
-        run: |
-          set -euo pipefail
-          if grep -rn --include='*.md' -E 'uv run (feinschliff|feinschliff-builder|feinbild|feinklang|feinschnitt)\b' */skills/; then
-            echo "::error::skills/ must call the bare CLI on PATH, not 'uv run <cli>'"
-            exit 1
-          fi
-          if grep -rn --include='*.md' -E 'python -m lib\.|feinschliff/lib/' */skills/; then
-            echo "::error::skills/ reference the retired lib.* engine path (now feinschmiede / feinbild)"
-            exit 1
-          fi
-          echo "✓ skill docs clean"
+          echo "OK All commits have DCO sign-off."
 
   feinschliff:
-    # Job display name kept as "feinschliff lib tests" because main's
-    # branch protection lists it as a required status check; renaming it
-    # would leave PRs Expected — Waiting for status to be reported forever.
+    # Display name MUST stay "feinschliff lib tests" — branch protection
+    # on main requires that exact status. Renaming would brick PR merges.
+    # Body is now skill validation, not pytest.
     name: feinschliff lib tests
     runs-on: ubuntu-latest
-    env:
-      # Surface feinschliff-extra brand packs to discover_brands(). Several
-      # cross-plugin tests reference brand names that live only in the
-      # extra plugin (catppuccin, nord, gruvbox, feinschliff-dark, …) —
-      # without this they fail with "brand not found".
-      FEINSCHLIFF_BRAND_PATH: ${{ github.workspace }}/feinschliff-extra/brands
     steps:
       - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/setup-node@v4
         with:
-          enable-cache: true
-      - name: Install workspace (all packages + dev groups)
-        # Both packages are needed: a few core tests exercise the
-        # integrated ship pipeline (build → verify-quality), which calls
-        # into feinschliff-builder. Single sync from the workspace root
-        # keeps lockfile resolution consistent across jobs.
-        run: uv sync --all-packages --all-groups
-      - name: Lint (ruff)
-        working-directory: feinschliff
-        run: uv run ruff check .
-      - name: Run tests
-        working-directory: feinschliff
-        # Skip legacy test_skill_validator: pre-existing failures unrelated to
-        # the lib code; re-include once the legacy skills are reformatted.
-        # Skip render-dependent tests: CI doesn't install libcairo / playwright,
-        # so the render-backend probe in these tests would auto-skip anyway —
-        # ignoring at the file/test level is faster and keeps the report focused
-        # on structural coverage. (The rough+cairosvg render path is covered by
-        # the feinbild leg of the `packages` matrix, which installs libcairo2.)
-        run: |
-          uv run pytest -q \
-            --ignore=../tests/feinschliff/test_skill_validator.py \
-            --ignore=../tests/feinschliff/test_layout_excalidraw_diagram.py \
-            --ignore=../tests/feinschliff/test_layout_svg_infographic.py \
-            --ignore=../tests/feinschliff/test_diagrams_render.py \
-            --ignore=../tests/feinschliff/test_excalidraw_render.py \
-            --ignore=../tests/feinschliff/test_excalidraw_vocabulary_parity.py \
-            --deselect ../tests/feinschliff/test_examples_decks.py::test_deck_builds
-
-  feinschliff-builder:
-    name: feinschliff-builder tests
-    runs-on: ubuntu-latest
-    env:
-      FEINSCHLIFF_BRAND_PATH: ${{ github.workspace }}/feinschliff-extra/brands
-    steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-      - name: Install workspace (all packages + dev groups)
-        run: uv sync --all-packages --all-groups
-      - name: Lint (ruff)
-        working-directory: feinschliff-builder
-        run: uv run ruff check .
-      - name: Run tests
-        working-directory: feinschliff-builder
-        # Only the Playwright/Chromium refurbish tests stay ignored (no browser
-        # in CI). The chrome-scanner and atlas-cache tests are backend-free
-        # (python-pptx/lxml + filesystem) and run here.
-        run: |
-          uv run pytest -q \
-            --ignore=../tests/feinschliff-builder/test_examples_refurbish.py \
-            --ignore=../tests/feinschliff-builder/test_refurbish_polish_cli.py
-
-  packages:
-    name: ${{ matrix.pkg }} tests
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        pkg: [feinschmiede, feinbild, feinklang, feinschnitt]
-    env:
-      FEINSCHLIFF_BRAND_PATH: ${{ github.workspace }}/feinschliff-extra/brands
-    steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-      - name: Install libcairo2 (rough+cairosvg production render path)
-        run: sudo apt-get update && sudo apt-get install -y libcairo2
-      - name: Install workspace (all packages + dev groups)
-        run: uv sync --all-packages --all-groups
-      - name: Lint (ruff)
-        working-directory: ${{ matrix.pkg }}
-        run: uv run ruff check .
-      - name: Run tests
-        working-directory: ${{ matrix.pkg }}
-        run: uv run pytest -q
-
-  feinschliff-orchestration:
-    name: feinschliff orchestration tests
-    runs-on: ubuntu-latest
-    # Only run on pushes to main — not on PRs. The e2e tests are slow and
-    # exercise the tooling layer in offline mode (no LLM / API calls).
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    env:
-      FEINSCHLIFF_BRAND_PATH: ${{ github.workspace }}/feinschliff-extra/brands
-      RUN_E2E_DECK_TEST: "1"
-    steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-      - name: Install workspace (all packages + dev groups)
-        run: uv sync --all-packages --all-groups
-      - name: Run orchestration tests
-        working-directory: feinschliff
-        run: uv run pytest -m orchestration -v
-
-  wheel-install:
-    name: ${{ matrix.plugin }} wheel install + CLI smoke
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        plugin: [feinschliff, feinbild, feinklang, feinschnitt, feinschliff-builder]
-    steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-      - name: Build the bundled wheelhouse from source
-        working-directory: ${{ matrix.plugin }}
-        run: bash build-wheels.sh
-      - name: Bootstrap the launcher venv (offline) and smoke-run the CLI
-        # The same path a fresh marketplace install takes: the bin/ launcher
-        # provisions a clean venv from the wheelhouse (no index) and execs the
-        # CLI. Proves the wheel installs, package data ships, and the CLI starts
-        # — the sole distribution path, previously ungated.
-        working-directory: ${{ matrix.plugin }}
+          node-version: '20'
+      - name: Validate every SKILL.md (progressive disclosure)
         run: |
           set -euo pipefail
-          export CLAUDE_PLUGIN_ROOT="$PWD"
-          export CLAUDE_PLUGIN_DATA="$RUNNER_TEMP/${{ matrix.plugin }}-data"
-          ./bin/${{ matrix.plugin }} --help >/dev/null
-          echo "✓ ${{ matrix.plugin }} installed from wheelhouse and CLI started"
+          fail=0
+          while IFS= read -r skill; do
+            dir="$(dirname "$skill")"
+            echo "── $dir"
+            if ! npx -y claude-skills-cli validate "$dir"; then
+              fail=1
+            fi
+          done < <(find . -name SKILL.md \
+            -not -path '*/.venv/*' \
+            -not -path '*/node_modules/*' \
+            -not -path '*/.debug/*' \
+            -not -path '*/wheels*')
+          exit $fail

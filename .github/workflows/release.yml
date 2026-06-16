@@ -5,8 +5,11 @@ name: Release (rolling latest)
 # every CLI plugin and uploads them (--clobber replaces stale assets).
 # No semver. `git push origin main` is the only release trigger needed.
 on:
-  push:
-    branches: ['main']
+  # Disabled during the master-template migration (PR 0). The plugin
+  # matrix lists packages that are being deleted; running this on every
+  # main push would fail until the suite stabilises. Manual dispatch only
+  # for now — the existing 'latest' release stays usable until a fresh
+  # build is needed. Push trigger comes back when the new shape lands.
   workflow_dispatch:
 
 permissions:

@@ -1,8 +1,10 @@
 name: pages
 
 on:
-  push:
-    branches: [main]
+  # Disabled during the master-template migration (PR 0). The gallery
+  # script lives in feinschliff-builder/ which is being deleted; PR 8
+  # rebuilds the gallery from soffice + pdftoppm against the new
+  # master-template renderer and re-enables the push trigger.
   workflow_dispatch:
 
 permissions:
