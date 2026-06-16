@@ -69,11 +69,16 @@ def apply_clone_plan(prs, plan: ClonePlan, catalog) -> None:
 
 
 def _layout_by_name(prs, name: str):
-    target = name.strip()
+    target = _normalize(name)
     for layout in prs.slide_layouts:
-        if layout.name.strip() == target:
+        if _normalize(layout.name) == target:
             return layout
     raise KeyError(f"layout not in master: {name!r}")
+
+
+def _normalize(name: str) -> str:
+    """Strip ASCII whitespace + NBSP — see fill_plan._normalize."""
+    return name.strip().strip(" ").strip()
 
 
 def _patch_text(slide, replacements: list[tuple[str, str]]) -> None:

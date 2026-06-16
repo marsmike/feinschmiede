@@ -62,11 +62,18 @@ def apply_fill_plan(prs, plan: FillPlan, catalog: Catalog) -> None:
 
 
 def _layout_by_name(prs, name: str):
-    target = name.strip()
+    target = _normalize(name)
     for layout in prs.slide_layouts:
-        if layout.name.strip() == target:
+        if _normalize(layout.name) == target:
             return layout
     raise KeyError(f"layout not in master: {name!r}")
+
+
+def _normalize(name: str) -> str:
+    """Strip ASCII whitespace + NBSP. PowerPoint masters often ship layout
+    names with trailing U+00A0 (looks like a space in the editor). Without
+    NBSP-aware compare, lookups against template names silently fail."""
+    return name.strip().strip(" ").strip()
 
 
 def _fill_text(slide, idx: int, lines: list[str]) -> None:
