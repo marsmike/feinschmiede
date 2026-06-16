@@ -206,7 +206,7 @@ def _brand_detail_html(brand: str, variants: list[dict]) -> str:
 <title>{brand} — feinschmiede brand gallery</title>
 <link rel="icon" type="image/svg+xml" href="../../feinschmiede-mark.svg">
 <style>{_STYLE}</style>
-<a class="back" href="../../brands/">← all brand packs</a>
+<a class="back" href="../../brands/index.html">← all brand packs</a>
 <h1 style="text-transform: capitalize">{brand}</h1>
 <p class="lead">Color scheme — pick one to recolor every slide instantly:</p>
 <nav class="schemes" id="selector">{buttons}</nav>
@@ -238,7 +238,10 @@ def _index_html(groups: dict[str, list[dict]]) -> str:
     for brand in _ordered_brands(groups):
         variants = groups[brand]
         primary = variants[0]
-        detail = f"../brand-previews/{brand}/"
+        # Link to index.html explicitly (not the bare dir) so the gallery
+        # also works opened over file:// — a browser won't resolve a
+        # directory to its index there the way an HTTP server does.
+        detail = f"../brand-previews/{brand}/index.html"
         atlas = f"../{primary['atlas']}"
         chips = "".join(
             f'<a href="{detail}#{v["slug"]}">{v["scheme"]}</a>' for v in variants
