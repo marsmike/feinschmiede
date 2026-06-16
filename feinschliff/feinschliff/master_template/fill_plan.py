@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Sequence
 
+from pptx.enum.shapes import PP_PLACEHOLDER
+
 
 @dataclass
 class PictureRef:
@@ -41,6 +43,9 @@ def apply_fill(slide, plan: FillPlan) -> None:
             _fill_picture(slide, ph, value)
         elif isinstance(value, (list, tuple)):
             tf = ph.text_frame
+            if not value:
+                tf.text = ""
+                continue
             tf.text = str(value[0])
             for line in value[1:]:
                 tf.add_paragraph().text = str(line)
@@ -67,7 +72,7 @@ def _replace_with_chart(slide, ph, spec: ChartSpec) -> None:
 
 def _fill_picture(slide, ph, ref: PictureRef) -> None:
     # PICTURE placeholders honor the master's authored crop / frame.
-    if str(ph.placeholder_format.type).startswith("PICTURE") and hasattr(ph, "insert_picture"):
+    if ph.placeholder_format.type == PP_PLACEHOLDER.PICTURE and hasattr(ph, "insert_picture"):
         ph.insert_picture(str(ref.path))
         return
     # OBJECT placeholders get replaced — center-crop first so
@@ -79,11 +84,17 @@ def _fill_picture(slide, ph, ref: PictureRef) -> None:
 
 
 def _crop_to_aspect(image_path: Path, target_w: int, target_h: int) -> Path:
-    """Center-crop to `target_w/target_h` ratio. Returns a cached sibling file."""
+    """Center-crop to `target_w/target_h` ratio. Returns a cached sibling file.
+
+    The cache filename encodes the target aspect (`__crop_WxH.<ext>`) so the
+    same source image cropped to two different placeholders does NOT collide
+    on a single output file — the second crop would otherwise return the
+    first's cached aspect.
+    """
     from PIL import Image
 
     ratio = target_w / target_h
-    out = image_path.with_name(f"{image_path.stem}__crop{image_path.suffix}")
+    out = image_path.with_name(f"{image_path.stem}__crop_{target_w}x{target_h}{image_path.suffix}")
     if out.exists() and out.stat().st_mtime >= image_path.stat().st_mtime:
         return out
 
