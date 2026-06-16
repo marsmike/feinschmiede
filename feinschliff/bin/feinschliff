@@ -29,7 +29,6 @@ export CLAUDE_PLUGIN_DATA="${CLAUDE_PLUGIN_DATA:-$DATA_DIR}"
 
 VENV="$DATA_DIR/venv"
 WHEELS="$PLUGIN_ROOT/wheels"
-CLI="$VENV/bin/feinschliff"
 READY="$VENV/.feinschliff-ready"
 
 _BOOTSTRAPPING=0
@@ -237,4 +236,10 @@ for _sibling in "$_repo_root"/feinschliff-*; do
 done
 unset _sibling _repo_root
 
-exec "$CLI" "$@"
+# No CLI any more — `feinschliff` is a venv-Python shim. Skills/scripts
+# author a small `.debug/<topic>/build.py` that imports the public
+# surface (`from feinschliff import FillPlan, render, …`) and run it as
+# `feinschliff build.py`. The provisioned venv already has feinschliff,
+# feinschmiede, and the runtime closure (python-pptx, lxml, pillow,
+# pyyaml) installed.
+exec "$VENV/bin/python" "$@"
