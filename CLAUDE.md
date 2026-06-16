@@ -45,15 +45,20 @@ shapes for the master file:
 
 1. `master.pptx`              — the feinschliff convention.
 2. `master/master.pptx`       — the abzug convention (BSH/Bosch v5).
-3. `master.pptx.ref` (text)   — pointer to a file outside the repo,
-   used by private corporate packs that keep large pptx files in a
-   local asset directory.
+3. `master.pptx.ref` (text)   — an `http(s)://` URL or a local path to
+   the binary, kept outside the repo. URLs are fetched once into a
+   gitignored `.master.pptx` cache beside the `.ref`. Used by the
+   Microsoft-gallery packs (hosted on R2, `assets.marsmike.com`) and by
+   private corporate packs (local asset directory).
 
 In-repo packs: `feinschliff` (default + 8 color themes via clrScheme
-overlay), `annual-review`, `geometric`, `scientific`, `shapes`,
-`gs-ramspau`. Private corporate packs surface via sibling
-`feinschliff-*` plugin directories — the `bin/feinschliff` launcher
-auto-discovers their `brands/` and exports `$FEINSCHLIFF_BRAND_PATH`.
+overlay) and `gs-ramspau` commit their `master.pptx`. The eight Microsoft
+PowerPoint Gallery packs — `annual-review`, `geometric`, `scientific`,
+`shapes`, `brand-strategy`, `pitch-deck`, `corporate`, `portfolio` — keep
+their binary off-repo via `master.pptx.ref` (R2). Private corporate packs
+surface via sibling `feinschliff-*` plugin directories — the
+`bin/feinschliff` launcher auto-discovers their `brands/` and exports
+`$FEINSCHLIFF_BRAND_PATH`.
 
 ## Themes are clrScheme overlays
 
@@ -77,11 +82,13 @@ Repo stays small on purpose.
   Build scripts render here first. No `/tmp/` or `~/Downloads`
   shortcuts — single-use renders also land in `.debug/<topic>-<date>/`.
 
-**Allowed binary assets in git:** master.pptx files for in-repo brand
-packs (`feinschliff`, `gs-ramspau`, `annual-review`, `geometric`,
-`scientific`, `shapes`) and the feinschmiede mark + social card under
-`assets/`. So the public gallery renders every pack in CI. Private
-corporate packs keep their binary out of the repo via `master.pptx.ref`.
+**Allowed binary assets in git:** master.pptx files for the two house
+packs (`feinschliff`, `gs-ramspau`) and the feinschmiede mark + social
+card under `assets/`. The Microsoft-gallery packs keep their binary off
+the public repo on R2 (`assets.marsmike.com`), reached via
+`master.pptx.ref` URLs — the renderer fetches and caches them, so the
+gallery still renders every pack in CI without committing third-party
+templates.
 
 ## After any build — open it
 
