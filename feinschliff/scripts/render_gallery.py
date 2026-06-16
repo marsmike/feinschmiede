@@ -40,6 +40,7 @@ from pptx import Presentation
 from PIL import Image
 
 from feinschliff import apply_theme, master_path
+from feinschliff.master_template.theme_overlay import base_palette
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BRANDS_DIR = REPO_ROOT / "feinschliff" / "brands"
@@ -62,7 +63,7 @@ def _showcase_pptx(brand_dir: Path, theme: Path | None, out: Path) -> None:
     overlaying `theme`'s scheme colors first when a variant is requested."""
     prs = Presentation(str(master_path(brand_dir)))
     if theme is not None:
-        apply_theme(prs, theme)
+        apply_theme(prs, theme, recolor_from=base_palette(brand_dir))
     prs.save(str(out))
 
 

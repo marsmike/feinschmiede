@@ -9,7 +9,7 @@ from pptx import Presentation
 from feinschliff.master_template._brand import index_layouts, master_path, norm
 from feinschliff.master_template.clone_plan import ClonePlan, apply_clone
 from feinschliff.master_template.fill_plan import FillPlan, apply_fill
-from feinschliff.master_template.theme_overlay import apply_theme
+from feinschliff.master_template.theme_overlay import apply_theme, base_palette
 
 _R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 
@@ -48,7 +48,7 @@ def render(
     brand_pack = Path(brand_pack)
     prs = Presentation(str(master_path(brand_pack)))
     if theme is not None:
-        apply_theme(prs, theme)
+        apply_theme(prs, theme, recolor_from=base_palette(brand_pack))
     _strip_existing_slides(prs)
 
     source_prs = None
