@@ -1,19 +1,15 @@
-# feinschmiede — shared engine: brand/look system + diagram engine + DSL AST.
+# feinschmiede — shared engine. Live surface after the master-template
+# migration is the diagram pipeline (feinbild's excalidraw / svg skills)
+# plus a small brand-token loader the diagrams use to resolve color
+# names. Deck rendering moved out — see `feinschliff.master_template`.
 
 from feinschmiede.brand.pack import BrandPack
 from feinschmiede.diagnostics import Defect, DefectKind, DiagnosticBag, Severity
-from feinschmiede.dsl.ast import Document, Element, ElementKind, Slide
-from feinschmiede.paths import compounds_dir
 
 __all__ = [
     "BrandPack",
     "Defect",
     "DefectKind",
     "DiagnosticBag",
-    "Document",
-    "Element",
-    "ElementKind",
     "Severity",
-    "Slide",
-    "compounds_dir",
 ]
