@@ -198,10 +198,14 @@ def _theme_variants(brand_dir: Path) -> list[tuple[Path | None, str]]:
 def _index_html(brands: list[dict]) -> str:
     cards = []
     for b in sorted(brands, key=lambda x: x["brand"]):
+        # Atlas paths are stored relative to docs/, but this index.html lives
+        # in docs/brands/ — prefix `../` so the browser resolves them (same
+        # as the favicon link below). The card links to the full-res atlas.
+        href = f"../{b['atlas']}"
         cards.append(f"""
   <article class="card">
-    <img src="{b['atlas']}" alt="{b['brand']}">
-    <h3>{b['brand']}</h3>
+    <a href="{href}"><img src="{href}" alt="{b['brand']}"></a>
+    <h3><a href="{href}">{b['brand']}</a></h3>
     <p>{b['n_slides']} slides rendered against this pack's master.pptx.</p>
   </article>""")
     return f"""<!doctype html>
@@ -216,6 +220,8 @@ def _index_html(brands: list[dict]) -> str:
   .card {{ border: 1px solid #ddd; border-radius: 8px; padding: 1rem; }}
   .card img {{ width: 100%; height: auto; border-radius: 4px; }}
   .card h3 {{ margin: 0.75rem 0 0.25rem; text-transform: capitalize; }}
+  .card h3 a {{ color: inherit; text-decoration: none; }}
+  .card h3 a:hover {{ text-decoration: underline; }}
   .card p {{ margin: 0; color: #666; font-size: 0.9rem; }}
 </style>
 <h1>feinschmiede brand gallery</h1>
