@@ -18,15 +18,31 @@ def norm(name: str) -> str:
 def master_path(brand_pack: Path) -> Path:
     """Locate the on-disk master template for a brand pack.
 
-    Two shapes are accepted, in order:
-      1. `<brand_pack>/master.pptx`        — the feinschliff convention
-      2. `<brand_pack>/master/master.pptx` — the abzug convention (BSH/Bosch)
+    Three shapes are accepted, in order:
+      1. `<brand_pack>/master.pptx`        — the feinschliff convention.
+      2. `<brand_pack>/master/master.pptx` — the abzug convention (BSH/Bosch).
+      3. `<brand_pack>/master.pptx.ref`    — a text file holding a path to
+         the actual binary. Used by gallery / corporate brand packs whose
+         master file lives outside the repo (e.g. under `~/work/pptx-
+         templates/`) so the binary never needs to be checked in.
     """
     brand_pack = Path(brand_pack)
-    flat = brand_pack / "master.pptx"
-    if flat.exists():
-        return flat
-    return brand_pack / "master" / "master.pptx"
+    for candidate in (brand_pack / "master.pptx", brand_pack / "master" / "master.pptx"):
+        if candidate.exists():
+            return candidate
+
+    ref = brand_pack / "master.pptx.ref"
+    if ref.exists():
+        target = Path(ref.read_text().strip()).expanduser()
+        if not target.exists():
+            raise FileNotFoundError(
+                f"master.pptx.ref points to {target}, which does not exist. "
+                "Materialize the binary at that path (the pack is expected to "
+                "live in a local asset directory, not in this repo)."
+            )
+        return target
+
+    raise FileNotFoundError(f"no master.pptx (or .ref) found for brand pack {brand_pack}")
 
 
 def index_layouts(prs) -> dict:
