@@ -57,7 +57,7 @@ def _cmd_excalidraw(args: argparse.Namespace) -> int:
 
 def _cmd_verify(args: argparse.Namespace) -> int:
     # Structural lint of a rendered diagram artifact, via the shared engine
-    # validator (also used by the deck pipeline + feinschliff-builder).
+    # validator (feinschmiede.diagrams.structural_validator).
     from feinschmiede.diagnostics import Severity
     from feinschmiede.diagrams import structural_validator as sv
 

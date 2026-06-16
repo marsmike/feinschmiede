@@ -4,6 +4,48 @@ All notable changes to this project will be documented here. Format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+- **Master-template migration (PRs #130–#142).** `feinschliff` is now a
+  ~500-LOC master-template renderer: open a brand pack's `master.pptx`,
+  optionally overlay a `clrScheme` theme, then fill its layouts via
+  `FillPlan` / clone bespoke source slides via `ClonePlan`. The DSL
+  pipeline, layout picker, verify loop, builder plugin, slot-budget
+  predictors, and the entire `feinschliff` CLI surface are gone. Public
+  surface is `from feinschliff import FillPlan, ClonePlan, PictureRef,
+  ChartSpec, render, apply_theme`. The `bin/feinschliff` launcher now
+  execs `python "$@"` against the provisioned venv — there is no
+  `feinschliff` CLI any more; skills and scripts author a small
+  `build.py` that imports the public surface.
+
+### Removed
+- **DSL pipeline** — `.slide.dsl` / `.deck.dsl` formats, the layout
+  picker, the verify loop, the LLM quality gates (claim-evidence,
+  ghost-deck, storyline, title-lint, post-render rubric), and every
+  `feinschliff <subcommand>` (`build`, `deck`, `ship`, `doctor`,
+  `render-master`, …). Brand styling now lives in each pack's
+  `master.pptx` — authored once in PowerPoint, replayed by the kernel.
+- **`feinschliff-builder` plugin** — compile-html / decompile / verify /
+  improve-brand. Brand-pack authoring is now "open `master.pptx` in
+  PowerPoint." Removed in PR #131.
+- **`feinschliff-extra` plugin** — its four MS-gallery brand packs
+  (annual-review, geometric, scientific, shapes) folded directly into
+  `feinschliff/brands/` in PR #136.
+- **Entire test suite** — dropped in PR #132. Validation is now visual
+  (open the rendered `.pptx`) and via the brand gallery in CI. See
+  STATS.md for the new bar.
+- **`--embed-fonts`, `feinschliff deck plan-skeleton`, `layout_budget`,
+  the diagram text-measure infrastructure, slot warnings, native
+  bullets, italic primitive, native autofit, slot-overflow gating** —
+  all DSL-era machinery removed alongside the pipeline. Diagram rendering
+  (excalidraw / svg) survives under `feinbild`; the feinschmiede engine
+  package now exports only the diagram brand bridge.
+
+### Pre-migration entries (apply to the deleted DSL pipeline only)
+
+The entries below describe features of the DSL pipeline that no longer
+exists. They are kept for historical context; none of these knobs,
+files, or subcommands are reachable from the current public surface.
+
 ### Added
 - **TEXT_OVER_IMAGE detection and auto-clip in pack build.** The slotify pass now detects text boxes that partially cross a picture slot's edge (a decompile artifact where the bound copy wraps onto the photo) and reports them as `TEXT_OVER_IMAGE` in `slot_warnings` frontmatter. Where safely possible the text box is auto-clipped to the free region (gutter 16 px, minimum-remainder guards: 200 px width / 60 px height or 25 % of the original), so `classify_layout` sees the repaired geometry and no warning is emitted. Fully-contained overlays (titles on full-bleed chapter-opener photos) are exempt — the partial-overlap discriminator uses an 8 px epsilon to tolerate kissing edges and decompile jitter. Pack-level opt-out: `tokens.json` `"text-fit": {"clip-to-images": false}`. The `autoshrink_enabled` and new `clip_to_images_enabled` helpers share a single `_text_fit_flag` implementation. The shared geometry helper (`crosses_image_edge`, `IMAGE_OVERLAP_EPSILON`) lives in `slotify.py` and is imported by `layout_profile_gen.py` to keep the two modules in sync.
 - **Diagram text renders in the brand's `font-family` tokens.** SVG DSL bakes the full CSS stack (body / heading / mono) into every `font-family` attribute at expand time; the rough Excalidraw render path substitutes the brand's body and mono faces for Excalidraw's built-in font enums 2 and 3 at render time. Hand-drawn style (font enum 1) and the Playwright fallback keep Excalidraw's bundled fonts — the Playwright path only fires for freedraw/image/frame documents (documented limitation). Unresolvable brand faces degrade gracefully: the CSS stack is still emitted (browser/cairosvg self-falls-back) and exactly one `diagram-font-fallback` WARN is issued per brand/face pair. Diagram text-width estimates (`char_width_em_for`) use the measured brand-face ratio where brand context is available (wireframe, rough bbox); heuristic fallback (`CHAR_WIDTH_EM = 0.62`) is unchanged when font metrics are absent.

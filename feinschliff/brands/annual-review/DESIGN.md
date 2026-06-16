@@ -81,7 +81,6 @@ Thirteen bespoke layouts decompiled 1:1 from the source deck:
 ## Attribution
 
 The source template is © Microsoft, distributed for free reuse through the
-PowerPoint cloud template gallery. This pack reconstructs its layouts as native
-feinschliff DSL primitives (no bitmap substitution); the original `.pptx` and a
-rendered `.pdf` preview ship under `feinschliff-extra/assets/templates/` with an
-`ATTRIBUTION.md`. See that file for the canonical source link.
+PowerPoint cloud template gallery. This pack carries a derived `master.pptx`
+that the master-template renderer fills at runtime; the original source
+template is not redistributed with the pack.

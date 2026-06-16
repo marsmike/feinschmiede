@@ -242,7 +242,7 @@ class BrandPack:
 
     @property
     def design_path(self) -> Path | None:
-        """Path to DESIGN.md if present (used by feinschliff-builder brand inspect)."""
+        """Path to DESIGN.md if present (carried by brand packs for human-readable design notes)."""
         p = self._root / "DESIGN.md"
         return p if p.is_file() else None
 
