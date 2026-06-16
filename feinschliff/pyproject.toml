@@ -1,23 +1,18 @@
 [project]
 name = "feinschliff"
 version = "0.3.0"
-description = "Feinschliff core library and CLI — DSL pipeline + brand pack tooling."
+description = "Feinschliff — master-template PowerPoint renderer for Claude Code."
 requires-python = ">=3.11"
+# The DSL-era renderer is gone (PR 3); PR 4 ports abzug's master_template
+# kernel into this package. Until then, the package is an empty namespace
+# stub. Runtime dependencies match the post-PR-4 set.
 dependencies = [
     "feinschmiede",
     "python-pptx>=1.0.2",
     "lxml>=6.1.1",
-    "jsonschema>=4.26.0",
-    "pyyaml>=6.0.3",
-    "pyphen>=0.17.2",
     "pillow>=10",
-    "cairosvg>=2.9.0",
-    "rough>=1.6",
-    "anthropic>=0.40",
+    "pyyaml>=6.0.3",
 ]
-
-[project.scripts]
-feinschliff = "feinschliff.cli.main:main"
 
 [build-system]
 requires = ["setuptools>=82.0.1"]
@@ -31,7 +26,6 @@ feinschmiede = { workspace = true }
 
 [dependency-groups]
 dev = [
-    "pillow>=12.2.0",
     "ruff>=0.15.14",
 ]
 
@@ -47,16 +41,9 @@ where = ["."]
 include = ["feinschliff*"]
 
 [tool.setuptools.package-data]
-# Non-.py runtime resources read by the package at import / first-use time.
-# Without these declarations the wheel ships only .py files and every CLI gate
-# that reads a JSON schema or YAML arc fixture crashes on first use with
-# FileNotFoundError. Keep this list in sync with any new data files added under
-# the feinschliff/ package tree.
+# Non-.py runtime resources read at first-use time. Currently the bundled
+# brand pack assets (master.pptx, catalogs, themes, illustrations) shipped
+# inside the wheel.
 feinschliff = [
-    "intake/*.json",
-    "schemas/*.json",
-    "storyline/*.json",
-    "storyline/arcs/*.yaml",
-    "assets/illustrations/*",
     "brands/feinschliff/assets/*",
 ]
