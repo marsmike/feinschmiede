@@ -225,8 +225,9 @@ fi
 export FEINSCHLIFF_LAYOUT_PATH="${FEINSCHLIFF_LAYOUT_PATH:+$FEINSCHLIFF_LAYOUT_PATH:}$PLUGIN_ROOT/layouts"
 export FEINSCHLIFF_BRAND_PATH="${FEINSCHLIFF_BRAND_PATH:+$FEINSCHLIFF_BRAND_PATH:}$PLUGIN_ROOT/brands"
 
-# Register brand packs + layouts from sibling feinschliff-* plugin
-# directories (third-party plugins can ship their own brands/ and layouts/).
+# Auto-discover brand packs + layouts from sibling `feinschliff-*` plugins.
+# Used by third-party / private plugins (e.g. corporate brand packs) that
+# live in their own repos and want their `brands/` registered transparently.
 _repo_root="$(cd "$PLUGIN_ROOT/.." && pwd)"
 for _sibling in "$_repo_root"/feinschliff-*; do
   [[ -d "$_sibling/brands" ]] && \
