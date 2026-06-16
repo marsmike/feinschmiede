@@ -1,17 +1,20 @@
 """Render the brand-gallery atlas.
 
-For each in-repo brand pack:
+A brand pack's `master.pptx` *is* the showcase — the brand designer
+authored real, designed sample slides into it (the snippets the
+ClonePlan path clones from). The gallery shows those actual slides, not
+synthetic fills against bare layouts, so each card reflects the brand's
+true visual identity. For each in-repo brand pack:
 
-  1. Compose a small, repeatable storyline (Title -> 3 content slides ->
-     End slide) via FillPlan against the pack's master.
-  2. Save out.pptx into the brand's preview directory.
+  1. Open the master; for a theme variant, overlay its scheme colors so
+     the same designed slides render in that skin.
+  2. Save showcase.pptx into the brand's preview directory.
   3. Convert to PDF with soffice.
-  4. Rasterize each PDF page to PNG with pdftoppm.
-  5. Build a single atlas PNG (4-up grid) via Pillow.
+  4. Rasterize the first `MAX_TILES` PDF pages to PNG with pdftoppm.
+  5. Build a single atlas PNG (2-up grid) via Pillow.
 
-Then emit docs/brands/index.html with one card per brand (atlas thumb,
-brand name, layout count). The whole site is regenerated each run; the
-script is idempotent.
+Then emit docs/brands/index.html with one card per brand/theme variant.
+The whole site is regenerated each run; the script is idempotent.
 
 Run via:
 
@@ -30,108 +33,32 @@ import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
+from pptx import Presentation
 from PIL import Image
 
-from feinschliff import FillPlan, master_path, render
-from feinschliff.master_template.catalog import build_catalog
+from feinschliff import apply_theme, master_path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BRANDS_DIR = REPO_ROOT / "feinschliff" / "brands"
 DOCS_DIR = REPO_ROOT / "docs"
 PREVIEWS_DIR = DOCS_DIR / "brand-previews"
 DEFAULT_WORKERS = max(1, (os.cpu_count() or 2) // 2)
-
-# Layout-name candidates per slot, in preference order. Each brand pack
-# uses different names; we try several and pick the first that exists.
-TITLE_CANDIDATES = [
-    "Title Slide", "Title Slide 1", "Title slide", "Title horizontal",
-    "Title only", "Title Only", "Title",
-]
-CHAPTER_CANDIDATES = [
-    "Section Header", "Section Title", "Section Break", "Section",
-    "Beginning of New Chapter 1", "Chapter horizontal", "Intro", "Agenda", "Summary",
-]
-# Content-slot layouts split by expected slot count. _sample_plans walks
-# from the widest variant downward and dictates the fills accordingly —
-# a 2-slot layout receives 2 fills, not 4 silent no-ops via apply_fill's
-# `if ph is None: continue` guard (which would render two blank slots
-# and misrepresent the brand's capabilities in the gallery card).
-CONTENT_CANDIDATES_3 = [
-    "Title and 3 Contents", "3 Vertical contents", "Content 3 Column",
-]
-CONTENT_CANDIDATES_2 = [
-    "Title and 2 Contents", "2 Vertical contents", "Content 2 Column",
-    "Title and two content", "Two content light blue", "Two content white",
-    "Two Content", "Two Content 1", "Title and content 2",
-]
-CONTENT_CANDIDATES_1 = [
-    "Title and Content", "Introduction 2", "1 Content", "Headline only",
-]
-END_CANDIDATES = [
-    "End Slide", "Thank you", "Closing", "Title Slide", "Title horizontal",
-    "Title only", "Title Only",
-]
+# Sample slides per card. The master leads with its most representative
+# slides (title / section / hero content), so the first few make the tile.
+MAX_TILES = 4
 
 
-def _pick(layouts: list[str], candidates: list[str]) -> str | None:
-    for c in candidates:
-        if c in layouts:
-            return c
-    return None
-
-
-def _sample_plans(brand_dir: Path) -> list[FillPlan]:
-    """Build a 4-slide showcase for a brand pack using layouts that exist."""
-    cat = build_catalog(brand_dir)
-    layouts = [layout["name"] for layout in cat["layouts"]]
-    brand_name = brand_dir.name.replace("-", " ").title()
-
-    plans: list[FillPlan] = []
-    title = _pick(layouts, TITLE_CANDIDATES)
-    if title:
-        plans.append(FillPlan(title, {0: brand_name, 1: "feinschmiede brand pack"}))
-
-    chapter = _pick(layouts, CHAPTER_CANDIDATES)
-    if chapter:
-        plans.append(FillPlan(chapter, {0: "What's inside", 1: f"{len(layouts)} layouts, {len(cat['snippets'])} snippets"}))
-
-    content = _pick(layouts, CONTENT_CANDIDATES_3)
-    if content:
-        plans.append(FillPlan(content, {
-            0: "Master-template renderer",
-            1: ["Plans, not DSL", "FillPlan / ClonePlan against the master.pptx"],
-            2: ["Theme overlay", "Patch theme1.xml clrScheme — one master, N skins"],
-            3: ["Brand-pluggable", "Public + private brand packs, transparent .ref pointers"],
-        }))
-    else:
-        content = _pick(layouts, CONTENT_CANDIDATES_2)
-        if content:
-            plans.append(FillPlan(content, {
-                0: "Master-template renderer",
-                1: ["Plans, not DSL", "FillPlan / ClonePlan against the master.pptx"],
-                2: ["Brand-pluggable", "Public + private brand packs, transparent .ref pointers"],
-            }))
-        else:
-            content = _pick(layouts, CONTENT_CANDIDATES_1)
-            if content:
-                plans.append(FillPlan(content, {
-                    0: "Master-template renderer",
-                    1: ["Plans, not DSL — FillPlan / ClonePlan against the master.pptx",
-                        "Theme overlay — one master, N visual variations",
-                        "Brand-pluggable — public + private packs via .ref pointers"],
-                }))
-
-    end = _pick(layouts, END_CANDIDATES)
-    if end:
-        plans.append(FillPlan(end, {0: f"{brand_name}."}))
-
-    if not plans:
-        raise RuntimeError(f"no usable layouts for {brand_dir.name}: {layouts}")
-    return plans
+def _showcase_pptx(brand_dir: Path, theme: Path | None, out: Path) -> None:
+    """Write the brand's master (its own designed sample slides) to `out`,
+    overlaying `theme`'s scheme colors first when a variant is requested."""
+    prs = Presentation(str(master_path(brand_dir)))
+    if theme is not None:
+        apply_theme(prs, theme)
+    prs.save(str(out))
 
 
 def _atlas(pngs: list[Path], out: Path, cols: int = 2) -> None:
-    """4-up (or N-up) grid composite of the showcase PNGs."""
+    """N-up grid composite of the showcase PNGs."""
     if not pngs:
         return
     tiles = [Image.open(p) for p in pngs]
@@ -153,10 +80,11 @@ def _build_one(brand_dir_str: str, theme_path_str: str | None = None,
     name = label or brand_dir.name
     work = PREVIEWS_DIR / name
     work.mkdir(parents=True, exist_ok=True)
+    for stale in work.glob("slide-*.png"):  # idempotent: drop prior run's tiles
+        stale.unlink()
     pptx = work / "showcase.pptx"
-    plans = _sample_plans(brand_dir)
     theme = Path(theme_path_str) if theme_path_str else None
-    render(brand_dir, plans, pptx, theme=theme)
+    _showcase_pptx(brand_dir, theme, pptx)
 
     profile = work / "_lo-profile"
     subprocess.run(
@@ -167,11 +95,13 @@ def _build_one(brand_dir_str: str, theme_path_str: str | None = None,
     pdf = work / "showcase.pdf"
     if not pdf.exists():
         raise RuntimeError(f"soffice produced no PDF for {name}")
+    # -l MAX_TILES: rasterize only the first few slides — the rest of the
+    # master may run to dozens of snippet slides we don't tile.
     subprocess.run(
-        ["pdftoppm", "-png", "-r", "120", str(pdf), str(work / "slide")],
+        ["pdftoppm", "-png", "-r", "120", "-l", str(MAX_TILES), str(pdf), str(work / "slide")],
         check=True, capture_output=True,
     )
-    pngs = sorted(work.glob("slide-*.png"))
+    pngs = sorted(work.glob("slide-*.png"))[:MAX_TILES]
     atlas_path = work / "_atlas.png"
     _atlas(pngs, atlas_path)
     return {
@@ -206,7 +136,7 @@ def _index_html(brands: list[dict]) -> str:
   <article class="card">
     <a href="{href}"><img src="{href}" alt="{b['brand']}"></a>
     <h3><a href="{href}">{b['brand']}</a></h3>
-    <p>{b['n_slides']} slides rendered against this pack's master.pptx.</p>
+    <p>First {b['n_slides']} slides of this pack's master.pptx.</p>
   </article>""")
     return f"""<!doctype html>
 <meta charset="utf-8">
