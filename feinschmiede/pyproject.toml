@@ -27,6 +27,3 @@ include = ["feinschmiede*"]
 # compound DSL snippets). Without this the wheel ships code but not the data the
 # diagram/brand path loads, breaking any wheel-installed consumer (feinbild).
 feinschmiede = ["schemas/*.json", "compounds/*.dsl", "diagrams/playwright_assets/*.html"]
-
-[tool.pytest.ini_options]
-testpaths = ["../tests/feinschmiede"]

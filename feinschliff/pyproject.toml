@@ -28,31 +28,14 @@ package = true
 
 [tool.uv.sources]
 feinschmiede = { workspace = true }
-feinschliff-builder = { workspace = true }
 
 [dependency-groups]
-# feinschliff-builder depends on feinschliff, so it cannot be a runtime
-# dependency (that would be a cycle). It lives in the dev group instead, which
-# makes the optional builder-gated CLI surfaces — `deck verify-static`,
-# `deck build --strict-static` / `--autofix`, notes-budget / storyline /
-# claim-evidence — available in the working venv without affecting the
-# published package's dependency graph.
 dev = [
     "pillow>=12.2.0",
-    "pytest>=9.0.3",
     "ruff>=0.15.14",
-    "feinschliff-builder",
-]
-
-[tool.pytest.ini_options]
-testpaths = ["../tests/feinschliff"]
-markers = [
-  "orchestration: end-to-end deck pipeline tests (slow; run with `pytest -m orchestration`)",
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["E402"]
-"../tests/feinschliff/**" = ["E402"]
 "scripts/**" = ["E402"]
 # Vendored, self-contained media-skill CLI scripts (copied verbatim from
 # agentic-toolkit). They do __future__/sys.path setup before imports, so E402
