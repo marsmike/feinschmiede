@@ -9,15 +9,17 @@ marketplace install copies into
 
 | Plugin | Files | Size | What it ships |
 |---|---:|---:|---|
-| `feinschliff` | 149 | **20.8 MB** | `bin/` launcher, 6 brand packs (`feinschliff` + 8 themes + 5 gallery packs), deck skill (1 SKILL.md + 5 references), master-template source, gallery script |
+| `feinschliff` | 149 | **29.8 MB** | `bin/` launcher, 6 brand packs (`feinschliff` + 8 themes + 5 gallery packs, all with committed master.pptx), deck skill (1 SKILL.md + 5 references), master-template source, gallery script |
 | `feinbild` | 45 | **347 KB** | `bin/` launcher, 3 skills (svg, excalidraw, imagine) with 9 references |
 | `feinklang` | 13 | **28 KB** | `bin/` launcher, tts skill |
 | `feinschnitt` | 151 | **802 KB** | `bin/` launcher, 3 skills (edit, cli-recorder, remotion) with 39 references |
-| **Total** | **358** | **≈ 22.0 MB** | |
+| **Total** | **358** | **≈ 31.0 MB** | |
 
 The bulk of `feinschliff` is brand-pack assets — the `feinschliff`
-master.pptx alone is 8.4 MB, the gallery packs (geometric, shapes,
-scientific) add ~10 MB of decompile assets. Private corporate brand
+master.pptx alone is 8.4 MB; the gallery packs (annual-review,
+geometric, scientific, shapes) add ~10 MB of decompile assets plus
+~9 MB of committed master.pptx files (1–4 MB each) so the public
+gallery can render every pack in CI. Private corporate brand
 packs (BSH / Bosch) live outside the repo and are reached via the
 sibling `feinschliff-*` discovery in `bin/feinschliff` — they don't
 inflate the public footprint.
@@ -73,17 +75,17 @@ After PR 1 (builder deletion) + PR 7 (deck skill rewrite): **8 skills,
 | Pack | Source | Layouts | Theme variants |
 |---|---|---:|---:|
 | `feinschliff` | repo (master.pptx 8.4 MB) | 11 | 8 (clrScheme overlays) |
-| `annual-review` | `.ref` -> `~/work/pptx-templates/` | 13 | — |
-| `geometric` | `.ref` -> `~/work/pptx-templates/` | 17 | — |
+| `annual-review` | repo (master.pptx 1.0 MB) | 13 | — |
+| `geometric` | repo (master.pptx 1.9 MB) | 17 | — |
 | `gs-ramspau` | repo (master.pptx 685 KB) | 11 | — |
-| `scientific` | `.ref` -> `~/work/pptx-templates/` | 13 | — |
-| `shapes` | `.ref` -> `~/work/pptx-templates/` | 13 | — |
+| `scientific` | repo (master.pptx 2.3 MB) | 13 | — |
+| `shapes` | repo (master.pptx 3.8 MB) | 13 | — |
 | **In-repo total** | | **78** | 8 |
 
-`master.pptx.ref` files keep large source pptx out of the repo while
-the renderer transparently follows the pointer at lookup time. Private
-corporate packs (BSH, Bosch) live in separate repos and use the same
-`.ref` pattern.
+Every in-repo pack commits its `master.pptx` so the public gallery
+renders all of them in CI. Private corporate packs (BSH, Bosch) live in
+separate repos and keep their binary out via `master.pptx.ref`, which
+the renderer transparently follows at lookup time.
 
 ## Methodology
 

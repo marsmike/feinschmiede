@@ -46,8 +46,8 @@ shapes for the master file:
 1. `master.pptx`              — the feinschliff convention.
 2. `master/master.pptx`       — the abzug convention (BSH/Bosch v5).
 3. `master.pptx.ref` (text)   — pointer to a file outside the repo,
-   used by gallery / corporate packs that keep large pptx files in a
-   local asset directory (`~/work/pptx-templates/`).
+   used by private corporate packs that keep large pptx files in a
+   local asset directory.
 
 In-repo packs: `feinschliff` (default + 8 color themes via clrScheme
 overlay), `annual-review`, `geometric`, `scientific`, `shapes`,
@@ -78,9 +78,10 @@ Repo stays small on purpose.
   shortcuts — single-use renders also land in `.debug/<topic>-<date>/`.
 
 **Allowed binary assets in git:** master.pptx files for in-repo brand
-packs (gs-ramspau, feinschliff) and the feinschmiede mark + social
-card under `assets/`. Other brand packs use `master.pptx.ref` to keep
-the binary out of the public repo.
+packs (`feinschliff`, `gs-ramspau`, `annual-review`, `geometric`,
+`scientific`, `shapes`) and the feinschmiede mark + social card under
+`assets/`. So the public gallery renders every pack in CI. Private
+corporate packs keep their binary out of the repo via `master.pptx.ref`.
 
 ## After any build — open it
 
