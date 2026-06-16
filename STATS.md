@@ -1,165 +1,94 @@
 # Feinschmiede — install footprint & context cost
 
-Snapshot of what the suite ships to a user's machine, what stays in dev,
-and what each skill costs in Claude's context window.
-
-All numbers are git-tracked file sizes — what the marketplace install
-actually copies into `~/.claude/plugins/cache/feinschmiede/<plugin>/<sha>/`.
+Snapshot after the master-template migration (PRs 0–10). Numbers are
+git-tracked file sizes — what `git clone` puts on disk and what the
+marketplace install copies into
+`~/.claude/plugins/cache/feinschmiede/<plugin>/<sha>/`.
 
 ## Marketplace install — what users get
 
-After PR #91 moved tests out of the plugin directories:
-
 | Plugin | Files | Size | What it ships |
 |---|---:|---:|---|
-| `feinschliff` | 201 | **1424 KB** | `bin/` launcher, the `feinschliff` brand pack (50 layouts + 8 themes), deck skill (1 SKILL.md + 13 references), Python source for the wheel cache |
-| `feinschliff-builder` | 109 | **822 KB** | `bin/` launcher, 3 skills (autoloop, compile, improve-brand) with 27 references |
-| `feinbild` | 49 | **350 KB** | `bin/` launcher, 3 skills (svg, excalidraw, imagine) with 9 references |
-| `feinklang` | 13 | **29 KB** | `bin/` launcher, tts skill |
-| `feinschnitt` | 151 | **803 KB** | `bin/` launcher, 3 skills (edit, cli-recorder, remotion) with 80 references |
-| **Total** | **523** | **≈ 3.4 MB** | |
+| `feinschliff` | 149 | **20.8 MB** | `bin/` launcher, 6 brand packs (`feinschliff` + 8 themes + 5 gallery packs), deck skill (1 SKILL.md + 5 references), master-template source, gallery script |
+| `feinbild` | 45 | **347 KB** | `bin/` launcher, 3 skills (svg, excalidraw, imagine) with 9 references |
+| `feinklang` | 13 | **28 KB** | `bin/` launcher, tts skill |
+| `feinschnitt` | 151 | **802 KB** | `bin/` launcher, 3 skills (edit, cli-recorder, remotion) with 39 references |
+| **Total** | **358** | **≈ 22.0 MB** | |
 
-The `feinschliff-extra` add-on (5 additional self-contained brand packs,
-58 layouts) is an optional install for users who want more brand chrome
-beyond the feinschliff brand's 8 themes.
+The bulk of `feinschliff` is brand-pack assets — the `feinschliff`
+master.pptx alone is 8.4 MB, the gallery packs (geometric, shapes,
+scientific) add ~10 MB of decompile assets. Private corporate brand
+packs (BSH / Bosch) live outside the repo and are reached via the
+sibling `feinschliff-*` discovery in `bin/feinschliff` — they don't
+inflate the public footprint.
 
-### Before vs after the test move
-
-| Plugin | Before (with tests) | After | Saved |
-|---|---:|---:|---:|
-| `feinschliff` | 3.0 MB | 1.4 MB | **−1.6 MB** |
-| `feinschliff-builder` | 1.6 MB | 0.8 MB | **−0.8 MB** |
-| `feinbild` | 0.5 MB | 0.3 MB | **−0.2 MB** |
-| `feinklang` | 76 KB | 28 KB | **−48 KB** |
-| `feinschnitt` | 1.2 MB | 0.8 MB | **−0.4 MB** |
-| **Suite total** | **6.4 MB** | **3.3 MB** | **−3.1 MB ≈ −48%** |
-
-Tests now live at `tests/<plugin>/` in the repo root. They are git-
-tracked (CI runs them) but never reach the marketplace plugin dir.
-
-## Runtime install — what the launcher fetches
-
-The `bin/<plugin>` launcher provisions a private venv from a wheelhouse
-tarball hosted on the rolling `latest` GitHub release. The wheels are
-**not** in git.
-
-| Plugin | Wheel | Closure (deps) | Cached at |
-|---|---:|---:|---|
-| `feinschliff` | 714 KB | ~35 wheels (pillow, lxml, python-pptx, anthropic, …) | `~/.local/share/feinschmiede/feinschliff/wheels-latest/` |
-| `feinschliff-builder` | ~620 KB | ~12 wheels | `~/.local/share/feinschmiede/feinschliff-builder/wheels-latest/` |
-| `feinbild` | ~80 KB | ~6 wheels | `~/.local/share/feinschmiede/feinbild/wheels-latest/` |
-| `feinklang` | ~12 KB | 1 wheel (`requests`) | `~/.local/share/feinschmiede/feinklang/wheels-latest/` |
-| `feinschnitt` | ~28 KB | ~4 wheels (`google-generativeai`) | `~/.local/share/feinschmiede/feinschnitt/wheels-latest/` |
-
-Wheelhouse cache is bumped by `If-Modified-Since` (curl `-z`). When a
-PR lands on `main`, the release rebuilds, the next launcher invocation
-detects the new tarball and rebuilds the venv. No semver, no manual
-update.
+The `feinschmiede` workspace package (the shared engine for feinbild's
+diagrams) is not a plugin and not shipped via marketplace.
 
 ## Source code — what we maintain
 
 | Plugin | Python LOC | Notes |
 |---|---:|---|
-| `feinschliff` | 18,446 | DSL parser, emitter, picker, polish, intake, storyline, picker, verify, quality, CLI |
-| `feinschliff-builder` | 16,415 | Brand-pack authoring, decompiler, render harness, verify gates |
-| `feinschmiede` (engine) | 5,891 | Shared brand discovery, tokens, themes, diagrams |
+| `feinschliff` | **830** | Master-template renderer (490) + render_gallery.py (220) + theme overlay |
+| `feinschmiede` | 5,677 | Diagram engine (consumed by feinbild) + brand/token helpers |
 | `feinschnitt` | 3,282 | Video edit pipeline, recorder, Remotion glue |
 | `feinbild` | 374 | Image / SVG / Excalidraw generation |
 | `feinklang` | 338 | ElevenLabs TTS client |
-| **Total** | **45,000** | excluding tests |
+| **Total** | **10,501** | (no tests — they were deleted in PR 2) |
 
-Tests at repo root: **235 files, 1.4 MB**. Pytest collects ~2,100 across
-the suite; CI runs the full set on every PR.
+Pre-migration total was ~45,000 LOC across the same package set.
+**~77% reduction** in maintained Python, driven by:
+
+- DSL pipeline deletion: `feinschliff/feinschliff/` dropped from
+  ~10,400 LOC to 490 LOC (PR 3 + PR 4).
+- `feinschliff-builder` plugin deleted entirely: ~16,400 LOC (PR 1).
+- `feinschmiede` DSL-era surface trimmed: 5,891 → 5,677 LOC (PR 6).
+- All tests removed: 6.1 MB / 132 files (PR 2).
 
 ## Skill context cost
 
-Every plugin ships one or more skills as Claude Code prose. The
-[`SKILL.md`](https://docs.anthropic.com/en/docs/claude-code/plugins#skills)
-body is **always loaded** when the skill activates (Level 2 context).
-References (`references/*.md`) are **lazy** — Claude reads them only
-when their topic comes up.
-
-We police every `SKILL.md` body to ≤ 40 lines via the
-`claude-skills-cli` validator (`tests/.../test_skill_validator.py`).
-
 | Skill | Body lines | references/ files | references/ size |
 |---|---:|---:|---:|
-| `feinschliff/deck` | 41 | 13 | 158 KB |
-| `feinschliff-builder/compile` | 41 | 17 | 49 KB |
-| `feinschliff-builder/improve-brand` | 39 | 6 | 41 KB |
-| `feinschliff-builder/autoloop` | 36 | 4 | 7 KB |
-| `feinbild/svg` | 37 | 3 | 8 KB |
-| `feinbild/excalidraw` | 39 | 5 | 32 KB |
-| `feinbild/imagine` | 41 | 1 | 2 KB |
-| `feinklang/tts` | 39 | 1 | 1 KB |
-| `feinschnitt/edit` | 39 | 4 | 9 KB |
-| `feinschnitt/cli-recorder` | 41 | 1 | 5 KB |
-| `feinschnitt/remotion` | 40 | 75 | 396 KB |
-| **Total** | **433 lines** | **130 files** | **708 KB** |
+| `feinschliff/deck` | 40 | 5 | 24 KB |
+| `feinbild/svg` | 41 | 3 | 16 KB |
+| `feinbild/excalidraw` | 41 | 5 | 44 KB |
+| `feinbild/imagine` | 41 | 1 | 4 KB |
+| `feinklang/tts` | 39 | 1 | 4 KB |
+| `feinschnitt/edit` | 39 | 4 | 16 KB |
+| `feinschnitt/cli-recorder` | 41 | 1 | 8 KB |
+| `feinschnitt/remotion` | 40 | 34 | 540 KB |
+| **Total** | **322 lines** | **54 files** | **656 KB** |
 
-### Context impact for the user
+Every SKILL.md body passes `claude-skills-cli` ("Good progressive
+disclosure"). The CI's required `feinschliff lib tests` check is now
+purely this validation — no Python tests, just `npx -y claude-skills-cli
+validate <path>` over every SKILL.md.
 
-- **Pre-activation cost** (skill description in the picker) — every
-  installed skill contributes its `description` field (typically 100–250
-  chars) to the always-loaded skill list. 11 skills ≈ 1.5–2 KB of
-  always-loaded context across the suite.
-- **Activation cost** (SKILL.md body) — when a skill activates, its body
-  joins the context window. At 40 lines × ~80 chars = ~3.2 KB per
-  skill, or ~250 tokens.
-- **Reference cost** (`references/*.md`) — Claude reads these on demand.
-  The biggest single reference set is `feinschnitt/remotion` at 396 KB
-  (Remotion is documentation-heavy by nature).
-
-Practical rule of thumb: installing all 11 skills adds ~2 KB to your
-always-loaded context. Activating a skill costs ~250 tokens of body
-prose. Reading a single reference file is typically 1–10 KB
-(< 2500 tokens).
+Pre-migration: 11 skills, 433 body lines, 130 reference files, 708 KB.
+After PR 1 (builder deletion) + PR 7 (deck skill rewrite): **8 skills,
+322 body lines, 54 references, 656 KB**.
 
 ## Brand packs
 
-| Plugin | Brand packs | Layouts | Notes |
-|---|---:|---:|---|
-| `feinschliff` | 1 | 50 | `feinschliff` brand with 8 themes (`default`, `claude`, `catppuccin-latte`, `catppuccin-macchiato`, `feinschliff-dark`, `gruvbox-dark`, `nord`, `solarized-dark`) |
-| `feinschliff-extra` | 5 | 58 | MS-gallery ports (annual-review, geometric, scientific, shapes) + bespoke school pack (gs-ramspau) |
-| **Total** | **6** | **108** | |
+| Pack | Source | Layouts | Theme variants |
+|---|---|---:|---:|
+| `feinschliff` | repo (master.pptx 8.4 MB) | 11 | 8 (clrScheme overlays) |
+| `annual-review` | `.ref` -> `~/work/pptx-templates/` | 13 | — |
+| `geometric` | `.ref` -> `~/work/pptx-templates/` | 17 | — |
+| `gs-ramspau` | repo (master.pptx 685 KB) | 11 | — |
+| `scientific` | `.ref` -> `~/work/pptx-templates/` | 13 | — |
+| `shapes` | `.ref` -> `~/work/pptx-templates/` | 13 | — |
+| **In-repo total** | | **78** | 8 |
 
-Each brand pack is fully self-contained (no `extends` inheritance).
-Tokens, fonts, and layouts live entirely within the brand's own directory.
-Layouts are `.slide.dsl` files (1–5 KB each).
-
-**Changes since last snapshot (PR #98 + #99 + this PR):**
-- Brand / theme split introduced — every brand pack is fully self-contained;
-  themes layer colors on top via `themes/<name>/tokens.json`. CLI: `--theme`.
-- `extends:` inheritance subsystem removed entirely (chain walk, DESIGN.md
-  frontmatter field, schema entry, all callers). Net **−26,108 lines**.
-- 3 trademarked extra brands (`binance`, `spotify`, `ferrari`) deleted.
-- `blank` brand (internal-only stub) deleted.
-- 6 palette-only extra brands (catppuccin-latte, catppuccin-macchiato,
-  feinschliff-dark, gruvbox-dark, nord, solarized-dark) demoted to themes
-  under the `feinschliff` brand.
-- Toolkit layouts moved from `feinschliff/layouts/` to
-  `brands/feinschliff/layouts/` so the feinschliff brand is structurally
-  identical to any downstream corporate pack.
-- `compile_slide()` + `static_verify` now thread `theme` so brands whose
-  colors live only in a theme overlay render correctly.
-- Brand gallery is now theme-aware: feinschliff section shows a theme switcher
-  (8 chips); palette swatches + typography swap on click via CSS-var/JS toggle,
-  no re-render. Gallery subtitle reads "6 brands · 8 themes · 108 layouts".
+`master.pptx.ref` files keep large source pptx out of the repo while
+the renderer transparently follows the pointer at lookup time. Private
+corporate packs (BSH, Bosch) live in separate repos and use the same
+`.ref` pattern.
 
 ## Methodology
 
-- All sizes from `git ls-files <path> | xargs cat | wc -c` so we count
-  exactly what `git clone` puts on disk.
-- Wheel sizes from `uv build --wheel` output for the latest commit.
-- Skill body line count strips YAML frontmatter (the validator's count).
+- All sizes from `git ls-files <path> | xargs -I{} stat -f %z {}` so
+  we count exactly what `git clone` puts on disk.
 - LOC from `git ls-files <path> | grep '\.py$' | xargs cat | wc -l`.
-
-Regenerate this file:
-
-```bash
-# Run from repo root after `git pull`
-python3 scripts/measure_stats.py > STATS.md  # (planned — not yet wired)
-```
-
-For now the table is hand-maintained. Adding a `scripts/measure_stats.py`
-that prints the same shape is a follow-up.
+- Skill body line count strips YAML frontmatter (matches the
+  validator).

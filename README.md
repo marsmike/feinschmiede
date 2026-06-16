@@ -32,17 +32,15 @@ the marketplace once, then install only the plugins you need.
 
 | Plugin | Install | What it does |
 |---|---|---|
-| [`feinschliff`](feinschliff/) | `feinschliff@feinschmiede` | **Office / decks** — brand-perfect PowerPoint from a brief or DESIGN.md. `/deck`. Ships 3 brand packs + 50 layouts. |
+| [`feinschliff`](feinschliff/) | `feinschliff@feinschmiede` | **Office / decks** — brand-perfect PowerPoint via the master-template renderer. `/deck`. Ships 6 brand packs + 8 color themes. |
 | [`feinbild`](feinbild/) | `feinbild@feinschmiede` | **Image & 2D** — AI images (Replicate/Gemini), SVG, Excalidraw diagrams. `/imagine`, `/svg`, `/excalidraw`. |
 | [`feinklang`](feinklang/) | `feinklang@feinschmiede` | **Audio** — ElevenLabs voiceover. `/tts`. |
 | [`feinschnitt`](feinschnitt/) | `feinschnitt@feinschmiede` | **Video** — programmatic Remotion videos + CLI session recordings. `/video`, `/record`. Composes feinbild + feinklang. |
-| [`feinschliff-extra`](feinschliff-extra/) | `feinschliff-extra@feinschmiede` | 14 extra brand packs (data only). Requires `feinschliff`. |
-| [`feinschliff-builder`](feinschliff-builder/) | `feinschliff-builder@feinschmiede` | Brand-pack authoring toolkit (compile-html, decompile, verify, improve-brand). Requires `feinschliff`. |
 
-Most users want one product plugin (e.g. `feinschliff` for decks). `feinschliff`
-depends on `feinbild` (diagrams), and Claude Code installs declared
-dependencies automatically. `feinschliff-extra` and `feinschliff-builder` are
-optional add-ons for more brands and for authoring your own brand pack.
+Brand-pack authoring is now done in PowerPoint itself — design the master,
+run `python -m feinschliff.master_template.catalog <pack>` to emit
+`layouts.yaml` + `snippets.yaml`, drop the pack under
+`feinschliff/brands/<name>/`. No separate authoring plugin required.
 
 ## Quick start
 
@@ -52,20 +50,18 @@ optional add-ons for more brands and for authoring your own brand pack.
 /deck "Q1 update: 12 launches, 3 customers, $4.2M ARR"
 ```
 
-Use a different theme (built into the core plugin — no extra install):
+Switch the look without authoring a new master — themes are clrScheme
+overlays applied at render time:
 
-```bash
-/deck --theme catppuccin-macchiato "..."
-/deck --theme nord "..."
-/deck --theme feinschliff-dark "..."
+```python
+from feinschliff import render
+render(brand_pack, plans, out, theme=brand_pack / "themes/nord/scheme.json")
 ```
 
 Before your first run, see [`INSTALLATION.md`](INSTALLATION.md) for the
 system prerequisites (Python 3.11+, `soffice`, `pdftoppm`, …) and the
-API keys each plugin needs (`ANTHROPIC_API_KEY` for `feinschliff`,
-`ELEVENLABS_API_KEY` for `feinklang`, etc.). Keys go in `~/.env`; every
-plugin reads it at startup. After install, run `feinschliff doctor` to
-verify the setup.
+API keys each plugin needs (`ELEVENLABS_API_KEY` for `feinklang`, etc.).
+Keys go in `~/.env`; every plugin reads it at startup.
 
 ## How it fits together
 
