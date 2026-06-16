@@ -51,12 +51,21 @@ CHAPTER_CANDIDATES = [
     "Section Header", "Section Title", "Section Break", "Section",
     "Beginning of New Chapter 1", "Chapter horizontal", "Intro", "Agenda", "Summary",
 ]
-CONTENT_CANDIDATES = [
+# Content-slot layouts split by expected slot count. _sample_plans walks
+# from the widest variant downward and dictates the fills accordingly —
+# a 2-slot layout receives 2 fills, not 4 silent no-ops via apply_fill's
+# `if ph is None: continue` guard (which would render two blank slots
+# and misrepresent the brand's capabilities in the gallery card).
+CONTENT_CANDIDATES_3 = [
     "Title and 3 Contents", "3 Vertical contents", "Content 3 Column",
+]
+CONTENT_CANDIDATES_2 = [
     "Title and 2 Contents", "2 Vertical contents", "Content 2 Column",
     "Title and two content", "Two content light blue", "Two content white",
-    "Two Content", "Two Content 1", "Title and Content", "Title and content 2",
-    "Introduction 2", "1 Content", "Headline only",
+    "Two Content", "Two Content 1", "Title and content 2",
+]
+CONTENT_CANDIDATES_1 = [
+    "Title and Content", "Introduction 2", "1 Content", "Headline only",
 ]
 END_CANDIDATES = [
     "End Slide", "Thank you", "Closing", "Title Slide", "Title horizontal",
@@ -86,7 +95,7 @@ def _sample_plans(brand_dir: Path) -> list[FillPlan]:
     if chapter:
         plans.append(FillPlan(chapter, {0: "What's inside", 1: f"{len(layouts)} layouts, {len(cat['snippets'])} snippets"}))
 
-    content = _pick(layouts, CONTENT_CANDIDATES)
+    content = _pick(layouts, CONTENT_CANDIDATES_3)
     if content:
         plans.append(FillPlan(content, {
             0: "Master-template renderer",
@@ -94,6 +103,23 @@ def _sample_plans(brand_dir: Path) -> list[FillPlan]:
             2: ["Theme overlay", "Patch theme1.xml clrScheme — one master, N skins"],
             3: ["Brand-pluggable", "Public + private brand packs, transparent .ref pointers"],
         }))
+    else:
+        content = _pick(layouts, CONTENT_CANDIDATES_2)
+        if content:
+            plans.append(FillPlan(content, {
+                0: "Master-template renderer",
+                1: ["Plans, not DSL", "FillPlan / ClonePlan against the master.pptx"],
+                2: ["Brand-pluggable", "Public + private brand packs, transparent .ref pointers"],
+            }))
+        else:
+            content = _pick(layouts, CONTENT_CANDIDATES_1)
+            if content:
+                plans.append(FillPlan(content, {
+                    0: "Master-template renderer",
+                    1: ["Plans, not DSL — FillPlan / ClonePlan against the master.pptx",
+                        "Theme overlay — one master, N visual variations",
+                        "Brand-pluggable — public + private packs via .ref pointers"],
+                }))
 
     end = _pick(layouts, END_CANDIDATES)
     if end:

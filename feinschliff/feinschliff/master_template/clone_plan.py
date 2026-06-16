@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 
 from lxml import etree
 
-from feinschliff.master_template._brand import norm
+from feinschliff.master_template._brand import index_layouts, norm
 
 _A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
 _R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -33,9 +33,10 @@ def apply_clone(prs, source_prs, plan: ClonePlan) -> None:
         )
     src_slide = source_prs.slides[plan.source_idx]
     src_name = norm(src_slide.slide_layout.name)
-    dest_layout = next(
-        (l for l in prs.slide_layouts if norm(l.name) == src_name), None
-    )
+    # Use index_layouts so collision policy matches the FillPlan path —
+    # a pack with two layouts that normalize identically RAISES here,
+    # rather than silently picking whichever python-pptx returns first.
+    dest_layout = index_layouts(prs).get(src_name)
     if dest_layout is None:
         raise KeyError(
             f"clone source slide {plan.source_idx} uses layout "

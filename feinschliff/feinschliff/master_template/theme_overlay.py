@@ -35,13 +35,22 @@ _SCHEME_SLOTS = {"dk1", "lt1", "dk2", "lt2",
                  "hlink", "folHlink"}
 
 
-def _theme_part(prs):
-    """Return the theme1.xml part of the master slide. Brand packs may carry
-    multiple theme parts (one per slide-master); the first one is the active
-    scheme PowerPoint resolves against."""
-    return prs.slide_masters[0].part.part_related_by(
-        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme"
-    )
+def _theme_parts(prs):
+    """Yield every theme part reachable from a slide master.
+
+    Brand packs may carry multiple slide masters (a corporate pack with a
+    light + dark master, say). Each carries its own theme rel; an overlay
+    must patch them all, otherwise layouts owned by master[1..N] render in
+    the original palette while master[0]'s layouts render in the overlaid
+    one — a silent visual split.
+    """
+    rel_type = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme"
+    seen: set[int] = set()
+    for master in prs.slide_masters:
+        part = master.part.part_related_by(rel_type)
+        if id(part) not in seen:
+            seen.add(id(part))
+            yield part
 
 
 def _patch_clr(slot_el, hex_value: str) -> None:
@@ -62,15 +71,15 @@ def apply_theme(prs, theme: Path | dict) -> None:
     if not scheme:
         return
 
-    part = _theme_part(prs)
-    root = etree.fromstring(part.blob)
-    clr_scheme = root.find(f".//{{{_A_NS}}}clrScheme")
-    if clr_scheme is None:
-        return
+    for part in _theme_parts(prs):
+        root = etree.fromstring(part.blob)
+        clr_scheme = root.find(f".//{{{_A_NS}}}clrScheme")
+        if clr_scheme is None:
+            continue
 
-    for slot_el in clr_scheme:
-        slot_name = etree.QName(slot_el).localname
-        if slot_name in _SCHEME_SLOTS and slot_name in scheme:
-            _patch_clr(slot_el, scheme[slot_name])
+        for slot_el in clr_scheme:
+            slot_name = etree.QName(slot_el).localname
+            if slot_name in _SCHEME_SLOTS and slot_name in scheme:
+                _patch_clr(slot_el, scheme[slot_name])
 
-    part._blob = etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
+        part._blob = etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
