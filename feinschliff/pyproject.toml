@@ -3,11 +3,9 @@ name = "feinschliff"
 version = "0.3.0"
 description = "Feinschliff — master-template PowerPoint renderer for Claude Code."
 requires-python = ">=3.11"
-# The DSL-era renderer is gone (PR 3); PR 4 ports abzug's master_template
-# kernel into this package. Until then, the package is an empty namespace
-# stub. Runtime dependencies match the post-PR-4 set.
+# Master-template kernel only — no DSL, no feinschmiede engine dep.
+# (feinschmiede stays in the workspace for feinbild's diagram skills.)
 dependencies = [
-    "feinschmiede",
     "python-pptx>=1.0.2",
     "lxml>=6.1.1",
     "pillow>=10",
@@ -20,9 +18,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.uv]
 package = true
-
-[tool.uv.sources]
-feinschmiede = { workspace = true }
 
 [dependency-groups]
 dev = [

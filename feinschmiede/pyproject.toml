@@ -1,17 +1,14 @@
 [project]
 name = "feinschmiede"
 version = "0.3.0"
-description = "feinschmiede — shared engine for the feinschmiede media family: brand/look system + diagram engine + DSL AST."
+description = "feinschmiede — shared engine for the feinschmiede media family: diagram pipeline (feinbild excalidraw/svg) + brand-token loader."
 requires-python = ">=3.11"
 license = "MIT"
 authors = [{ name = "Mike Mueller", email = "mike@objektarium.de" }]
 dependencies = [
-    "jsonschema>=4.26.0",
     "pyyaml>=6.0.3",
     "cairosvg>=2.9.0",
     "rough>=1.6",
-    "python-pptx>=1.0.2",
-    "lxml>=6.1.1",
 ]
 
 [build-system]
@@ -23,7 +20,5 @@ where = ["."]
 include = ["feinschmiede*"]
 
 [tool.setuptools.package-data]
-# Non-.py engine data read at runtime (brand token-schema validation + bundled
-# compound DSL snippets). Without this the wheel ships code but not the data the
-# diagram/brand path loads, breaking any wheel-installed consumer (feinbild).
-feinschmiede = ["schemas/*.json", "compounds/*.dsl", "diagrams/playwright_assets/*.html"]
+# Playwright assets are the diagram pipeline's rendering shell.
+feinschmiede = ["diagrams/playwright_assets/*.html"]
