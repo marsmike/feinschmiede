@@ -54,11 +54,6 @@ REGISTRY: dict[str, dict] = {
         "is_workspace_member": True,
         "is_plugin": True,
     },
-    "feinschliff-builder": {
-        "has_cli": True,
-        "is_workspace_member": True,
-        "is_plugin": True,
-    },
     "feinschliff-extra": {
         "has_cli": False,
         "is_workspace_member": False,
@@ -113,12 +108,6 @@ PLUGINS: dict[str, dict] = {
         "builds": ["feinschnitt"],
         "third_party": ["google-generativeai"],
         "env_tail": "recorder",
-    },
-    "feinschliff-builder": {
-        "builds": ["feinschliff-builder", "feinschliff", "feinschmiede"],
-        "third_party": ["python-pptx", "lxml", "pillow", "cairosvg", "pyphen",
-                        "jsonschema", "pyyaml", "rough", "anthropic"],
-        "env_tail": "none",
     },
 }
 
@@ -613,8 +602,8 @@ def check_ci_yml(ci_text: str) -> list[str]:
     Expected projections:
       members_heredoc  = is_workspace_member
       cli_regex        = has_cli
-      packages_matrix  = is_workspace_member minus {feinschliff, feinschliff-builder}
-                         (those two have dedicated CI jobs)
+      packages_matrix  = is_workspace_member minus {feinschliff}
+                         (which has a dedicated CI job)
       wheel_matrix     = has_cli
     """
     errors: list[str] = []
@@ -637,7 +626,7 @@ def check_ci_yml(ci_text: str) -> list[str]:
         ))
 
     # packages matrix = workspace members minus the two dedicated jobs
-    _DEDICATED_JOBS = {"feinschliff", "feinschliff-builder"}
+    _DEDICATED_JOBS = {"feinschliff"}
     expected_pkg_matrix = _WS_MEMBERS - _DEDICATED_JOBS
     if not parsed["packages_matrix"]:
         errors.append("  ci.yml: could not parse packages matrix")
