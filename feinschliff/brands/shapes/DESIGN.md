@@ -5,6 +5,8 @@ description: 'Port of Microsoft''s free "The power of communication" (Shapes des
 typography:
   display: Tw Cen MT
   body: Avenir Next LT Pro Light
+source_name: Microsoft PowerPoint Gallery
+source_url: https://create.microsoft.com/en-us/templates
 ---
 ## Overview
 

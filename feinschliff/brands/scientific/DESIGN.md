@@ -5,6 +5,8 @@ description: 'Port of Microsoft''s free "Scientific discovery" pitch-deck templa
 typography:
   display: Posterama
   body: Daytona Condensed Light
+source_name: Microsoft PowerPoint Gallery
+source_url: https://create.microsoft.com/en-us/templates
 ---
 ## Overview
 

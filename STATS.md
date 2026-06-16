@@ -9,17 +9,16 @@ marketplace install copies into
 
 | Plugin | Files | Size | What it ships |
 |---|---:|---:|---|
-| `feinschliff` | 149 | **29.8 MB** | `bin/` launcher, 6 brand packs (`feinschliff` + 8 themes + 5 gallery packs, all with committed master.pptx), deck skill (1 SKILL.md + 5 references), master-template source, gallery script |
+| `feinschliff` | 145 | **20.8 MB** | `bin/` launcher, 10 brand packs (`feinschliff` + 8 themes, `gs-ramspau`, 8 Microsoft-gallery packs via `.ref`→R2), deck skill (1 SKILL.md + 5 references), master-template source, gallery script |
 | `feinbild` | 45 | **347 KB** | `bin/` launcher, 3 skills (svg, excalidraw, imagine) with 9 references |
 | `feinklang` | 13 | **28 KB** | `bin/` launcher, tts skill |
 | `feinschnitt` | 151 | **802 KB** | `bin/` launcher, 3 skills (edit, cli-recorder, remotion) with 39 references |
-| **Total** | **358** | **≈ 31.0 MB** | |
+| **Total** | **354** | **≈ 22.0 MB** | |
 
 The bulk of `feinschliff` is brand-pack assets — the `feinschliff`
-master.pptx alone is 8.4 MB; the gallery packs (annual-review,
-geometric, scientific, shapes) add ~10 MB of decompile assets plus
-~9 MB of committed master.pptx files (1–4 MB each) so the public
-gallery can render every pack in CI. Private corporate brand
+master.pptx alone is 8.4 MB. The Microsoft-gallery packs keep their
+master.pptx off-repo on R2 (`.ref` URLs, ~27 MB total never committed);
+only their decompile assets remain in-tree. Private corporate brand
 packs (BSH / Bosch) live outside the repo and are reached via the
 sibling `feinschliff-*` discovery in `bin/feinschliff` — they don't
 inflate the public footprint.
@@ -75,17 +74,23 @@ After PR 1 (builder deletion) + PR 7 (deck skill rewrite): **8 skills,
 | Pack | Source | Layouts | Theme variants |
 |---|---|---:|---:|
 | `feinschliff` | repo (master.pptx 8.4 MB) | 11 | 8 (clrScheme overlays) |
-| `annual-review` | repo (master.pptx 1.0 MB) | 13 | — |
-| `geometric` | repo (master.pptx 1.9 MB) | 17 | — |
 | `gs-ramspau` | repo (master.pptx 685 KB) | 11 | — |
-| `scientific` | repo (master.pptx 2.3 MB) | 13 | — |
-| `shapes` | repo (master.pptx 3.8 MB) | 13 | — |
-| **In-repo total** | | **78** | 8 |
+| `annual-review` | `.ref` → R2 (1.0 MB) | 13 | — |
+| `geometric` | `.ref` → R2 (1.9 MB) | 17 | — |
+| `scientific` | `.ref` → R2 (2.3 MB) | 13 | — |
+| `shapes` | `.ref` → R2 (3.8 MB) | 13 | — |
+| `brand-strategy` | `.ref` → R2 (1.9 MB) | 11 | — |
+| `pitch-deck` | `.ref` → R2 (2.8 MB) | 13 | — |
+| `corporate` | `.ref` → R2 (4.9 MB) | 13 | — |
+| `portfolio` | `.ref` → R2 (8.3 MB) | 14 | — |
 
-Every in-repo pack commits its `master.pptx` so the public gallery
-renders all of them in CI. Private corporate packs (BSH, Bosch) live in
-separate repos and keep their binary out via `master.pptx.ref`, which
-the renderer transparently follows at lookup time.
+Only the two house packs commit their `master.pptx`. The eight Microsoft
+PowerPoint Gallery packs keep their binary off-repo on R2
+(`assets.marsmike.com`), reached via `master.pptx.ref` URLs that the
+renderer fetches and caches at lookup time — so third-party templates
+(~27 MB) never inflate the repo, and the public gallery still renders
+them in CI. Private corporate packs (BSH, Bosch) live in separate repos
+and use the same `.ref` mechanism with local paths.
 
 ## Methodology
 

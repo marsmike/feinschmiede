@@ -19,6 +19,8 @@ colors:
 typography:
   display: Arial Nova
   body: Arial Nova
+source_name: Microsoft PowerPoint Gallery
+source_url: https://create.microsoft.com/en-us/templates
 ---
 ## Overview
 

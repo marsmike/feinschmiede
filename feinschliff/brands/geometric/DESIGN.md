@@ -5,6 +5,8 @@ description: 'Port of Microsoft''s free "The power of communication" (Geometric 
 typography:
   display: Arial Black
   body: Sabon Next LT
+source_name: Microsoft PowerPoint Gallery
+source_url: https://create.microsoft.com/en-us/templates
 ---
 ## Overview
 

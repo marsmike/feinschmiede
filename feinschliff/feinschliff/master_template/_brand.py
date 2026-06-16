@@ -21,10 +21,12 @@ def master_path(brand_pack: Path) -> Path:
     Three shapes are accepted, in order:
       1. `<brand_pack>/master.pptx`        — the feinschliff convention.
       2. `<brand_pack>/master/master.pptx` — historical (abzug) convention.
-      3. `<brand_pack>/master.pptx.ref`    — a text file holding a path to
-         the actual binary. Used by corporate / gallery packs whose master
-         file lives outside the repo (e.g. a local asset directory) so the
-         binary never needs to be checked in.
+      3. `<brand_pack>/master.pptx.ref`    — a text file holding either an
+         `http(s)://` URL or a local path to the actual binary. Used by
+         gallery / corporate packs whose master lives outside the repo (a
+         public R2 bucket, or a local asset directory) so the binary never
+         needs to be checked in. URLs are fetched once into a gitignored
+         `.master.pptx` cache beside the `.ref`.
     """
     brand_pack = Path(brand_pack)
     for candidate in (brand_pack / "master.pptx", brand_pack / "master" / "master.pptx"):
@@ -33,16 +35,47 @@ def master_path(brand_pack: Path) -> Path:
 
     ref = brand_pack / "master.pptx.ref"
     if ref.exists():
-        target = Path(ref.read_text().strip()).expanduser()
-        if not target.exists():
+        target = ref.read_text().strip()
+        if target.startswith(("http://", "https://")):
+            return _fetch_cached(target, brand_pack)
+        local = Path(target).expanduser()
+        if not local.exists():
             raise FileNotFoundError(
-                f"master.pptx.ref points to {target}, which does not exist. "
+                f"master.pptx.ref points to {local}, which does not exist. "
                 "Materialize the binary at that path (the pack is expected to "
                 "live in a local asset directory, not in this repo)."
             )
-        return target
+        return local
 
     raise FileNotFoundError(f"no master.pptx (or .ref) found for brand pack {brand_pack}")
+
+
+def _fetch_cached(url: str, brand_pack: Path) -> Path:
+    """Download a `master.pptx.ref` URL once into a gitignored sibling cache.
+
+    Public gallery packs host their master off-repo (so the binary never lands
+    in git); the renderer fetches it on demand. The cache is keyed by URL — if
+    the `.ref` later points elsewhere, the stale copy is replaced."""
+    import urllib.request
+
+    cache = brand_pack / ".master.pptx"
+    stamp = brand_pack / ".master.pptx.url"
+    if cache.exists() and stamp.exists() and stamp.read_text().strip() == url:
+        return cache
+    tmp = cache.with_suffix(".tmp")
+    # A real User-Agent — Cloudflare's WAF 403s the default `Python-urllib`.
+    req = urllib.request.Request(url, headers={"User-Agent": "feinschliff-brand-fetch/1"})
+    try:
+        with urllib.request.urlopen(req) as resp:  # noqa: S310 (trusted brand-pack URL)
+            tmp.write_bytes(resp.read())
+    except Exception as exc:  # network / 404 — surface which pack and URL
+        raise FileNotFoundError(
+            f"master.pptx.ref for {brand_pack.name} points to {url}, "
+            f"which could not be fetched: {exc}"
+        ) from exc
+    tmp.replace(cache)
+    stamp.write_text(url)
+    return cache
 
 
 def index_layouts(prs) -> dict:

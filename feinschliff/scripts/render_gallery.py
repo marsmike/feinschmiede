@@ -65,6 +65,21 @@ def _slug(name: str) -> str:
     return name.replace(" ", "-")
 
 
+def _origin(brand_dir: Path) -> tuple[str, str] | None:
+    """`(source_name, source_url)` from a pack's DESIGN.md frontmatter, or None.
+    Lets the gallery annotate where a pack came from (e.g. the MS gallery)."""
+    design = brand_dir / "DESIGN.md"
+    if not design.exists():
+        return None
+    name = url = ""
+    for line in design.read_text().splitlines():
+        if line.startswith("source_name:"):
+            name = line.split(":", 1)[1].strip()
+        elif line.startswith("source_url:"):
+            url = line.split(":", 1)[1].strip().strip("\"'")
+    return (name, url) if name else None
+
+
 def _showcase_pptx(brand_dir: Path, theme: Path | None, out: Path) -> None:
     """Write the brand's master (its own designed sample slides) to `out`,
     overlaying `theme`'s scheme colors first when a variant is requested."""
@@ -176,7 +191,18 @@ _STYLE = """
   figure img { width: 100%; height: auto; display: block; }
   figcaption { padding: 0.4rem 0.7rem; color: #777; font-size: 0.8rem; background: #fafafa; }
   .back { display: inline-block; margin-bottom: 1rem; }
+  .origin { color: #888; font-size: 0.8rem; margin: 0.4rem 0 0; }
+  .lead .origin { display: inline; }
 """
+
+
+def _origin_html(origin: tuple[str, str] | None) -> str:
+    """A small 'Origin: <name>' line, linked when a URL is known."""
+    if not origin:
+        return ""
+    name, url = origin
+    label = f'<a href="{url}" target="_blank" rel="noopener">{name} ↗</a>' if url else name
+    return f'<p class="origin">Origin: {label}</p>'
 
 
 def _ordered_brands(groups: dict[str, list[dict]]) -> list[str]:
@@ -185,7 +211,7 @@ def _ordered_brands(groups: dict[str, list[dict]]) -> list[str]:
     return ([FIRST_BRAND] if FIRST_BRAND in groups else []) + rest
 
 
-def _brand_detail_html(brand: str, variants: list[dict]) -> str:
+def _brand_detail_html(brand: str, variants: list[dict], origin: tuple[str, str] | None) -> str:
     """One page per brand at brand-previews/<brand>/index.html: every slide,
     plus a color-scheme selector that swaps all images in place via JS (no page
     reload). Images live in per-scheme subdirs (<slug>/slide-NN.png)."""
@@ -208,6 +234,7 @@ def _brand_detail_html(brand: str, variants: list[dict]) -> str:
 <style>{_STYLE}</style>
 <a class="back" href="../../brands/index.html">← all brand packs</a>
 <h1 style="text-transform: capitalize">{brand}</h1>
+{_origin_html(origin)}
 <p class="lead">Color scheme — pick one to recolor every slide instantly:</p>
 <nav class="schemes" id="selector">{buttons}</nav>
 <section class="slides" id="slides">{figures}
@@ -231,7 +258,7 @@ def _brand_detail_html(brand: str, variants: list[dict]) -> str:
 """
 
 
-def _index_html(groups: dict[str, list[dict]]) -> str:
+def _index_html(groups: dict[str, list[dict]], origins: dict[str, tuple[str, str] | None]) -> str:
     """The overview — one card per brand pack, color schemes deep-linking into
     that brand's page (#<scheme> preselects it)."""
     cards = []
@@ -254,6 +281,7 @@ def _index_html(groups: dict[str, list[dict]]) -> str:
     <h3><a href="{detail}">{brand}</a></h3>
     <p>{primary['n_slides']} slides · {schemes_label}</p>
     <nav class="schemes">{chips}</nav>
+    {_origin_html(origins.get(brand))}
   </article>""")
     n_variants = sum(len(v) for v in groups.values())
     return f"""<!doctype html>
@@ -322,11 +350,13 @@ def main(argv: list[str]) -> int:
     groups: dict[str, list[dict]] = {}
     for info in results:
         groups.setdefault(info["brand"], []).append(info)
+    origins = {brand: _origin(BRANDS_DIR / brand) for brand in groups}
     for brand, variants in groups.items():
         variants.sort(key=lambda v: (v["scheme"] != "as authored", v["scheme"]))
-        (PREVIEWS_DIR / brand / "index.html").write_text(_brand_detail_html(brand, variants))
+        (PREVIEWS_DIR / brand / "index.html").write_text(
+            _brand_detail_html(brand, variants, origins[brand]))
 
-    (DOCS_DIR / "brands" / "index.html").write_text(_index_html(groups))
+    (DOCS_DIR / "brands" / "index.html").write_text(_index_html(groups, origins))
     print(f"wrote gallery: {len(groups)} packs, {len(results)} scheme variants", file=sys.stderr)
     return 0 if len(results) == len(jobs) else 1
 

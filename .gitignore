@@ -138,3 +138,7 @@ feinblick/uv.lock
 feinschnitt/edit-engine/node_modules/
 feinschnitt/edit-engine/out/
 feinschnitt/edit-engine/public/
+
+# Brand-master cache fetched from master.pptx.ref URLs (off-repo binaries)
+feinschliff/brands/*/.master.pptx
+feinschliff/brands/*/.master.pptx.url
