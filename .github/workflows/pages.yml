@@ -1,10 +1,8 @@
 name: pages
 
 on:
-  # Disabled during the master-template migration. The old gallery
-  # script lived in feinschliff-builder/ (deleted in PR 1); PR 8 rebuilds
-  # the gallery from soffice + pdftoppm against the new master-template
-  # renderer and re-enables the push trigger.
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -24,14 +22,20 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
+      - name: Install soffice (LibreOffice) + poppler-utils
+        # Gallery script: feinschliff -> render() -> soffice convert-to pdf
+        # -> pdftoppm rasterize -> PIL atlas grid. Both binaries are
+        # OS-level — easier to apt-install once than to add a Python wheel.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libreoffice-impress poppler-utils
       - name: Install workspace (all packages)
-        # The gallery script lives in feinschliff-builder/scripts/ post-split
-        # and reads brand packs from both feinschliff/ and feinschliff-extra/,
-        # so install the whole workspace.
         run: uv sync --all-packages
-      - name: Build brand-gallery site
-        working-directory: feinschliff-builder
-        run: uv run python scripts/build_brand_gallery_site.py
+      - name: Render brand-gallery atlas
+        # Half-CPU workers per CLAUDE.md. The runner has 4 vCPUs -> 2
+        # parallel brand renders, isolated LibreOffice profiles per worker
+        # so soffice instances don't race over the global profile lock.
+        run: uv run --package feinschliff python feinschliff/scripts/render_gallery.py --workers 2
       - name: Add root redirect to /brands/
         run: |
           cat > docs/index.html <<'HTML'
