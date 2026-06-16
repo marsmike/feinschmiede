@@ -13,7 +13,7 @@ dependencies = [
     "pillow>=10",
     "cairosvg>=2.9.0",
     "rough>=1.6",
-    "anthropic>=0.40",
+    "anthropic>=0.109.2",
 ]
 
 [project.scripts]
@@ -32,7 +32,7 @@ feinschmiede = { workspace = true }
 [dependency-groups]
 dev = [
     "pillow>=12.2.0",
-    "ruff>=0.15.14",
+    "ruff>=0.15.17",
 ]
 
 [tool.ruff.lint.per-file-ignores]
