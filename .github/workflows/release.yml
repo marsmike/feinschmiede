@@ -64,7 +64,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        plugin: [feinschliff, feinschliff-builder, feinbild, feinklang, feinschnitt]
+        plugin: [feinschliff, feinbild, feinklang, feinschnitt]
         python-version: ['3.11', '3.12', '3.13']
     runs-on: ubuntu-latest
     steps:

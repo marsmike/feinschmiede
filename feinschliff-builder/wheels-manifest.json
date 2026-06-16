@@ -1,8 +1,0 @@
-{
-  "release_tag": "latest",
-  "wheels": {
-    "py311": "https://github.com/marsmike/feinschmiede/releases/download/latest/feinschliff-builder-wheels-py311.tar.gz",
-    "py312": "https://github.com/marsmike/feinschmiede/releases/download/latest/feinschliff-builder-wheels-py312.tar.gz",
-    "py313": "https://github.com/marsmike/feinschmiede/releases/download/latest/feinschliff-builder-wheels-py313.tar.gz"
-  }
-}
