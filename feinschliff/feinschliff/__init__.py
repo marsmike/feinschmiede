@@ -13,7 +13,8 @@ from feinschliff.master_template import (
     FillPlan,
     PictureRef,
     apply_theme,
+    master_path,
     render,
 )
 
-__all__ = ["FillPlan", "ClonePlan", "PictureRef", "ChartSpec", "render", "apply_theme"]
+__all__ = ["FillPlan", "ClonePlan", "PictureRef", "ChartSpec", "render", "apply_theme", "master_path"]

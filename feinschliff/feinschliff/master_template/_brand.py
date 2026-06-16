@@ -7,10 +7,10 @@ from pathlib import Path
 def norm(name: str) -> str:
     """Normalize layout / placeholder names for tolerant lookup.
 
-    Brand packs ship layout names with quirks the source designer typed —
-    BSH puts NBSP between words (`Title\\xa0and Picture`), Bosch leaves a
-    trailing space (`Title horizontal `). Users typing the clean name
-    should still resolve to the layout.
+    Brand packs ship layout names with typographic quirks the source
+    designer typed — non-breaking space (NBSP) between words, trailing
+    whitespace, and the like. Users typing the clean name should still
+    resolve to the layout the master actually contains.
     """
     return name.replace("\xa0", " ").strip()
 
@@ -20,11 +20,11 @@ def master_path(brand_pack: Path) -> Path:
 
     Three shapes are accepted, in order:
       1. `<brand_pack>/master.pptx`        — the feinschliff convention.
-      2. `<brand_pack>/master/master.pptx` — the abzug convention (BSH/Bosch).
+      2. `<brand_pack>/master/master.pptx` — historical (abzug) convention.
       3. `<brand_pack>/master.pptx.ref`    — a text file holding a path to
-         the actual binary. Used by gallery / corporate brand packs whose
-         master file lives outside the repo (e.g. under `~/work/pptx-
-         templates/`) so the binary never needs to be checked in.
+         the actual binary. Used by corporate / gallery packs whose master
+         file lives outside the repo (e.g. a local asset directory) so the
+         binary never needs to be checked in.
     """
     brand_pack = Path(brand_pack)
     for candidate in (brand_pack / "master.pptx", brand_pack / "master" / "master.pptx"):
