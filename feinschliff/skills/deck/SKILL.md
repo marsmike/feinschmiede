@@ -1,43 +1,44 @@
 ---
 name: deck
-description: Build or polish a brand-compliant PowerPoint deck via the master-template renderer. Use when the user asks to create a deck, make a presentation, or polish a rough .pptx.
+description: Build a brand-perfect PowerPoint deck via the master-template renderer. Use when the user asks to create a deck or presentation.
 ---
 
-# deck — Feinschliff master-template deck builder
+# deck — master-template renderer
 
-Creates / polishes / critiques presentations. The brand pack ships a `master.pptx` + `layouts.yaml` + `snippets.yaml`; this skill composes a list of `FillPlan` / `ClonePlan` objects against that catalog, then calls `feinschmiede.master_template.render`. The master is the source of styling truth — typography, brand colors, footer chrome, slide-number conventions all inherit from it.
-
-Brand resolves: `--brand` → `FEINSCHLIFF_BRAND` → `feinschliff`.
+Generate a brand-perfect `.pptx` by composing **plans** against a brand pack's `master.pptx`. The master supplies typography, colors, footers, slide-number chrome — the renderer only fills placeholders and clones bespoke shapes.
 
 ## Quick Start
 
+```python
+from pathlib import Path
+from feinschliff import FillPlan, render
+
+render(
+    Path("feinschliff/brands/feinschliff"),
+    [FillPlan(layout="Title Slide", fills={0: "Q3 update", 1: "Roadmap"})],
+    Path("out.pptx"),
+)
 ```
-/deck "Q1 2026 update: 62k employees, +5.1% revenue, 40 factories"
-```
 
-See [`references/quick-start.md`](references/quick-start.md) for examples.
+Author the call in `feinschliff/.debug/<topic>-<date>/build.py` and run it with `feinschliff build.py` — the plugin's launcher execs the venv Python directly, no CLI in between.
 
-## Modes
+## Brand packs
 
-- **create** — `/deck "brief"` → new deck.
-- **plan** — `/deck plan "brief"` → paper draft, no render.
-- **polish** — `/deck polish rough.pptx` → `--mode cosmetic` (default) preserves slide count + content, fixes chrome / typography / overflow only. See [`references/modes.md`](references/modes.md).
-- **critique** — `/deck critique existing.pptx` → read-only defect analysis.
+Each pack ships under `feinschliff/brands/<name>/` with a `master.pptx` (or `.ref` pointer) and catalog files. Built-in packs: `feinschliff` (default), `annual-review`, `geometric`, `scientific`, `shapes`, `gs-ramspau`. Corporate / private packs surface through sibling `feinschliff-*` plugin directories (`$FEINSCHLIFF_BRAND_PATH`). Run `python -m feinschliff.master_template.catalog <brand_pack>` to list layouts + snippets for any pack.
 
-## Pipeline
+## Mental model
 
-`ask → intake → commit → ingest → approve → plan → ghost-deck → pick layouts → render → verify → revise`. Full step-by-step: [`references/pipeline.md`](references/pipeline.md).
+A deck is a list of plans, in slide order:
 
-**MANDATORY artifacts — every one on disk before declaring done:** `deck_brief.yaml` · `commitment.yaml` · `content_plan.json` · `ghost_deck_report.md` · `title_lint_report.md` · `plans.yaml` · `verify_report.md`. **Do NOT print "Verdict: clean" without writing `verify_report.md` to disk first.** Missing artifact → not done; run the gate.
+- **`FillPlan(layout, fills)`** — pick a layout by name (see `<brand>/layouts.yaml`), fill placeholders by `idx`. Values: `str`, `list[str]`, `PictureRef`, or `ChartSpec`. Charts and pictures replace the OBJECT placeholder.
+- **`ClonePlan(source_idx, replacements)`** — XML-clone a bespoke source slide from `<brand>/snippets.yaml`. `replacements` is a queue per old-string; repeating `("Milestone", ...)` consumes successive occurrences in document order.
+- **`render(..., theme=Path|dict)`** — optional. Patches the master's `theme1.xml` `<a:clrScheme>` from a small JSON. One `master.pptx`, N visual variations; the file on disk is never touched.
 
-**Render via `feinschliff render-master`** — pass `--brand-pack <path> --plans plans.yaml -o out.pptx [--theme <name>]`. The `plans.yaml` is the list of `FillPlan` / `ClonePlan` entries the planning step composes. Layouts come from `<brand-pack>/layouts.yaml`; clone snippets come from `<brand-pack>/snippets.yaml`. Both are inspectable.
+## Flow
 
-**Images by default.** Any slide that can carry an image SHOULD carry one — pick a layout whose schema accepts `picture` for that placeholder. The `image_style` field in `deck_brief.yaml` (`rich-imagery` / `mixed` / `data-dense` / `concept-text` / `minimal`) governs density.
-
-**Picker** — pick layouts directly from `layouts.yaml` by role (`cover` / `chapter` / `content` / `closing` / `agenda`) + placeholder accept-list. For bespoke designer slides, pick a snippet from `snippets.yaml` by intent and emit a `ClonePlan` with `text_replacements`. See [`references/picking.md`](references/picking.md).
-
-## References
-
-**Recipe:** [`references/pipeline.md`](references/pipeline.md) · [`references/picking.md`](references/picking.md) · [`references/modes.md`](references/modes.md) · [`references/quick-start.md`](references/quick-start.md) · [`references/iteration-loop.md`](references/iteration-loop.md).
-
-**Theory:** [`references/visual-vocabulary.md`](references/visual-vocabulary.md) · [`references/content-best-practices.md`](references/content-best-practices.md) · [`references/narrative-frames.md`](references/narrative-frames.md) · [`references/audience-calibration.md`](references/audience-calibration.md) · [`references/slide-claim-test.md`](references/slide-claim-test.md) · [`references/anti-patterns.md`](references/anti-patterns.md) · [`references/design-brief-schema.md`](references/design-brief-schema.md) · [`references/speaker-notes.md`](references/speaker-notes.md) · [`references/slide-grammar.md`](references/slide-grammar.md).
+1. **Interview** if the brief is thin. Topic + audience are the minimum; [references/storyline.md](references/storyline.md) maps audience to a default slide count.
+2. **Draft the storyline** per [references/storyline.md](references/storyline.md) — emit the brief block + numbered slides block, pick a frame, tag each row with `role` and `act`, write claim-style titles.
+3. **Pick layouts** per [references/layouts.md](references/layouts.md). For bespoke shapes (timelines, funnels, infographics) clone from `<brand>/snippets.yaml` — see [references/clones.md](references/clones.md) for the text-anchor recipe.
+4. **Approval gate** — show storyline + chosen layouts, ask "ok?". Don't render until approved.
+5. **Render** with the Quick Start snippet. Respect the verbosity tier when sizing fills. See [references/gotchas.md](references/gotchas.md) for pitfalls.
+6. **Verify and loop** — convert to PDF and read the pages against the defect classes in [references/verify.md](references/verify.md). Fix and re-render until clean; the reference describes the `/loop`-driven iteration.
