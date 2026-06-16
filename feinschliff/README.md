@@ -1,76 +1,100 @@
 # feinschliff
 
-> *Feinschliff* — German for "fine polish." Brand-pluggable design system that
-> builds `.pptx` decks from a DSL and per-brand tokens.
+> *Feinschliff* — German for "fine polish." A master-template `.pptx`
+> renderer for Claude Code: open a brand pack's `master.pptx`, optionally
+> overlay a color theme, then fill its layouts (or clone bespoke source
+> slides) via a small set of plan dataclasses.
 
-[Browse the brand gallery](https://marsmike.github.io/feinschmiede/brands/) — every brand pack rendered against every layout.
+[Browse the brand gallery](https://marsmike.github.io/feinschmiede/brands/) — every brand pack rendered against the master-template kernel.
 
 ## Install
 
 ```bash
 /plugin marketplace add marsmike/feinschmiede
+/plugin install feinschliff@feinschmiede
 ```
+
+System prerequisites and API-key setup live in
+[`INSTALLATION.md`](../INSTALLATION.md) at the repo root.
 
 ## What it does
 
-Office/decks skills for Claude Code:
+Office/decks skill for Claude Code: **`/deck`** turns a brief into a
+brand-perfect `.pptx`. Image/2D, video, and audio live in sibling
+plugins — feinbild (`/imagine`, `/svg`, `/excalidraw`), feinschnitt
+(`/video`, `/record`), feinklang (`/tts`).
 
-- **`/deck`** — create or polish a brand-compliant `.pptx` from a brief or rough
-  draft. Generates speaker notes and an annotated handout PDF via `deck book`.
-
-Image/2D, video, and audio live in sibling plugins: **feinbild** (`/imagine`,
-`/svg`, `/excalidraw`), **feinschnitt** (`/video`, `/record`), and **feinklang**
-(`/tts`).
-
-Three CLI subcommands (`feinschliff <subcommand>`):
-
-| Subcommand | What it does |
-|---|---|
-| `build` | Expand a single `.slide.dsl` into a `.pptx` |
-| `deck` | Multi-slide composer with layout picker + speaker notes |
-| `ship` | One-command build + verify + verify-quality with a single verdict |
-
-## Quick start
+There is no `feinschliff` CLI any more — the `bin/feinschliff` launcher
+provisions a self-contained venv from bundled wheels and execs Python:
 
 ```bash
-# Claude Code skill
-/deck "Q1 update: 12 launches, 3 customers, $4.2M ARR"
-
-# Pick a different theme (built in — no extra install)
-/deck --theme nord "..."
-/deck --theme catppuccin-macchiato "..."
-
-# Standalone CLI (no Claude Code required)
-feinschliff build layouts/quote.slide.dsl \
-  --brand feinschliff --content tests/fixtures/layouts/quote.yaml -o out.pptx
+feinschliff path/to/build.py    # runs `python build.py` in the venv
 ```
 
-## Brand packs (1 ships in the box, with 8 themes)
+A skill (or a `.debug/<topic>/build.py` script) imports the public
+surface and calls `render`:
 
-| Pack | Themes | Description | License |
-|---|---|---|---|
-| `feinschliff` | `default`, `claude`, `catppuccin-latte`, `catppuccin-macchiato`, `feinschliff-dark`, `gruvbox-dark`, `nord`, `solarized-dark` | Navy ramp + warm paper + single gold accent. Bauhaus register | MIT |
+```python
+from feinschliff import FillPlan, ClonePlan, render, apply_theme
 
-Additional brands are available as separate plugins:
+render(
+    brand_pack=Path("feinschliff/brands/feinschliff"),
+    plans=[
+        FillPlan("Title Slide", {0: "Q1 update", 1: "12 launches, 3 customers, $4.2M ARR"}),
+        FillPlan("Title and Content", {0: "What's new", 1: ["…", "…", "…"]}),
+    ],
+    out=Path("out.pptx"),
+    theme=Path("feinschliff/brands/feinschliff/themes/nord/scheme.json"),
+)
+```
 
-- **[feinschliff-extra](https://github.com/marsmike/feinschmiede)** — 5 more brand packs
-  (MS-gallery ports, bespoke school pack).
-- **[feinschliff-builder](https://github.com/marsmike/feinschmiede)** — authoring toolkit
-  to compile HTML to DSL, decompile existing PPTX files, and verify brand quality.
-- **[feinbild](https://github.com/marsmike/feinschmiede)** — image & 2D: AI images
-  (Replicate / Gemini), SVG, and Excalidraw diagrams (`/imagine`, `/svg`, `/excalidraw`
-  moved here from feinschliff).
+`FillPlan` fills a layout's placeholders by index; `ClonePlan` deep-copies
+a bespoke source slide and patches its text runs. See the deck skill's
+[`references/clones.md`](skills/deck/references/clones.md) for the clone
+flow and the `catalog` inspector that surfaces every layout + reusable
+snippet:
 
-## 50 shared layouts
+```bash
+python -m feinschliff.master_template.catalog feinschliff/brands/feinschliff
+```
 
-The toolkit ships 50 layout templates covering title slides, chapter dividers,
-content grids, charts, diagrams, and more. Every layout renders with any brand pack.
-Brand packs can add or override layouts in their own `layouts/` directory.
+## Brand packs (6 in-repo, with theme overlays)
 
-## Documentation
+| Pack | Themes | Description |
+|---|---|---|
+| `feinschliff` | `default`, `catppuccin-latte`, `catppuccin-macchiato`, `claude`, `feinschliff-dark`, `gruvbox-dark`, `nord`, `solarized-dark` | Navy ramp + warm paper + single gold accent. Bauhaus register. |
+| `annual-review` | — | Editorial register, hero photography, large-figure callouts. |
+| `geometric` | — | Hard-edged shape vocabulary, primary palette. |
+| `gs-ramspau` | — | Family / community register (high-contrast accent + photography). |
+| `scientific` | — | Diagrammatic, axis + grid first, neutral palette. |
+| `shapes` | — | Pure shape composition, no photography. |
 
-- [`docs/brand-pack-contract.md`](docs/brand-pack-contract.md) — brand-pack specification
+Themes are `clrScheme` overlays — a single JSON file under
+`themes/<name>/scheme.json` patches the master's color slots in memory
+at render time, so one `master.pptx` produces N visual variations
+without authoring new files. Add a `theme=` argument to `render(...)`
+and the catalog colors render against the overlaid palette.
+
+Private corporate brand packs surface via sibling `feinschliff-*`
+plugin directories — the launcher auto-discovers their `brands/` and
+exports `FEINSCHLIFF_BRAND_PATH` so the public surface picks them up.
+
+## Where the code lives
+
+The master-template kernel is ~500 LOC across six files under
+`feinschliff/master_template/`:
+
+- `fill_plan.py` — `FillPlan`, `PictureRef`, `ChartSpec`, the
+  layout-fill dispatcher.
+- `clone_plan.py` — `ClonePlan` and the deep-clone path.
+- `render.py` — open master, optionally apply theme, play the plan
+  list, save.
+- `theme_overlay.py` — patch `clrScheme` in `theme1.xml` in memory.
+- `catalog.py` — emit `layouts` + `snippets` YAML for a brand pack.
+- `_brand.py` — shared brand-pack helpers (`master_path`, `norm`,
+  `index_layouts`).
 
 ## License
 
-MIT — see repo root [`LICENSE`](../LICENSE). Third-party attribution: [`NOTICE.md`](../NOTICE.md).
+MIT — see repo root [`LICENSE`](../LICENSE). Third-party attribution:
+[`NOTICE.md`](../NOTICE.md).

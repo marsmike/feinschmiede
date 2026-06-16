@@ -69,11 +69,10 @@ def _cwd_dev_brands_roots() -> list[Path]:
     `~/work/feinschliff/feinschliff/brands/<brand>/` and runs scripts that
     don't sit inside the package.
 
-    Sibling plugin dirs in the same checkout ship brands too — the public
-    `feinschliff-extra/brands/` plus gitignored corporate fixtures
-    (`feinschliff-<corp>/brands/`). Without the glob those packs (and any
-    brand they `extends:`-derive) are invisible unless FEINSCHLIFF_BRAND_PATH
-    is exported, and a stale installed-plugin copy of a same-named brand
+    Sibling plugin dirs in the same checkout ship brands too — gitignored
+    corporate fixtures live at `feinschliff-<corp>/brands/`. Without the
+    glob those packs are invisible unless FEINSCHLIFF_BRAND_PATH is
+    exported, and a stale installed-plugin copy of a same-named brand
     silently wins.
 
     The walk stops at the first git boundary so we don't accidentally scan

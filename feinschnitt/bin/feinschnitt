@@ -21,8 +21,8 @@ set -euo pipefail
 
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}"
 DATA_DIR="${CLAUDE_PLUGIN_DATA:-"${XDG_DATA_HOME:-$HOME/.local/share}/feinschmiede/feinschnitt"}"
-# Export so the CLI (e.g. `feinschliff doctor`) can probe the wheelhouse + venv
-# locations that the launcher actually used.
+# Export so the venv-Python shim (and any script it execs) can probe the
+# wheelhouse + venv locations that the launcher actually used.
 export PLUGIN_ROOT DATA_DIR
 export CLAUDE_PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$PLUGIN_ROOT}"
 export CLAUDE_PLUGIN_DATA="${CLAUDE_PLUGIN_DATA:-$DATA_DIR}"

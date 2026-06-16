@@ -24,12 +24,11 @@ CONSTRAINTS=()
 [[ -f "$ROOT/constraints.txt" ]] && CONSTRAINTS=(-c "$ROOT/constraints.txt")
 
 uv build --wheel --out-dir "$BUILD" "$HERE"   # this plugin
-uv build --wheel --out-dir "$BUILD" "$ROOT/feinschmiede"   # feinschmiede
-cp "$BUILD"/feinschliff-*.whl "$BUILD"/feinschmiede-*.whl "$STAGE"/
+cp "$BUILD"/feinschliff-*.whl "$STAGE"/
 
 # Vendor the third-party runtime closure (resolves the full closure for this platform).
 python3 -m pip download "${CONSTRAINTS[@]}" --only-binary=:all: --dest "$STAGE" \
-  python-pptx lxml pillow cairosvg pyphen jsonschema pyyaml rough anthropic
+  python-pptx lxml pillow pyyaml
 # Pure-python fallback for the one universal binary dep (ABI portability; best-effort).
 python3 -m pip download --no-deps --only-binary=:all: \
   --implementation py --abi none --platform any --python-version 3 \

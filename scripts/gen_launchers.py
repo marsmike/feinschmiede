@@ -40,8 +40,6 @@ ROOT = Path(__file__).resolve().parent.parent
 #                          and has its own .claude-plugin/plugin.json.
 #
 # feinschmiede: shared engine package — workspace member, NOT a plugin.
-# feinschliff-extra: pure-data plugin — plugin but NOT a workspace member
-#                    (no pyproject.toml) and NOT a CLI plugin (no launcher).
 # ---------------------------------------------------------------------------
 REGISTRY: dict[str, dict] = {
     "feinschmiede": {
@@ -52,11 +50,6 @@ REGISTRY: dict[str, dict] = {
     "feinschliff": {
         "has_cli": True,
         "is_workspace_member": True,
-        "is_plugin": True,
-    },
-    "feinschliff-extra": {
-        "has_cli": False,
-        "is_workspace_member": False,
         "is_plugin": True,
     },
     "feinbild": {
@@ -87,12 +80,16 @@ _PLUGIN_NAMES = {n for n, r in REGISTRY.items() if r["is_plugin"]}
 #   third_party: pip-download closure (charset-normalizer's universal fallback
 #                is appended by the template for every plugin).
 #   env_tail:    extra `export`s appended after the bootstrap, before exec.
+#   exec_kind:   'cli' execs $VENV/bin/<name> (default — pyproject declares a
+#                [project.scripts] entry); 'python_shim' execs $VENV/bin/python
+#                with the user's arguments verbatim (no CLI; skills author a
+#                build.py that imports the public surface).
 PLUGINS: dict[str, dict] = {
     "feinschliff": {
-        "builds": ["feinschliff", "feinschmiede"],
-        "third_party": ["python-pptx", "lxml", "pillow", "cairosvg",
-                        "pyphen", "jsonschema", "pyyaml", "rough", "anthropic"],
+        "builds": ["feinschliff"],
+        "third_party": ["python-pptx", "lxml", "pillow", "pyyaml"],
         "env_tail": "office",
+        "exec_kind": "python_shim",
     },
     "feinbild": {
         "builds": ["feinbild", "feinschmiede"],
@@ -168,8 +165,8 @@ set -euo pipefail
 
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}"
 DATA_DIR="${CLAUDE_PLUGIN_DATA:-"${XDG_DATA_HOME:-$HOME/.local/share}/feinschmiede/@NAME@"}"
-# Export so the CLI (e.g. `feinschliff doctor`) can probe the wheelhouse + venv
-# locations that the launcher actually used.
+# Export so the venv-Python shim (and any script it execs) can probe the
+# wheelhouse + venv locations that the launcher actually used.
 export PLUGIN_ROOT DATA_DIR
 export CLAUDE_PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$PLUGIN_ROOT}"
 export CLAUDE_PLUGIN_DATA="${CLAUDE_PLUGIN_DATA:-$DATA_DIR}"
@@ -368,8 +365,18 @@ if [[ ! -f "$READY" || "$(cat "$READY" 2>/dev/null)" != "$SIG" ]]; then
   _bootstrap "$SIG"
 fi
 @ENV_TAIL@
-exec "$CLI" "$@"
+@EXEC_LINE@
 '''
+
+EXEC_LINES = {
+    "cli": 'exec "$CLI" "$@"',
+    "python_shim": (
+        '# No CLI — `@NAME@` is a venv-Python shim. Skills/scripts author a small\n'
+        '# `.debug/<topic>/build.py` that imports the public surface\n'
+        '# (`from @NAME@ import …`) and run it as `@NAME@ build.py`.\n'
+        'exec "$VENV/bin/python" "$@"'
+    ),
+}
 
 BUILD_WHEELS_TMPL = r'''#!/usr/bin/env bash
 # Rebuild @NAME@/wheels/ — the offline wheelhouse the bin/ launcher installs.
@@ -416,8 +423,10 @@ def _wheel_base(dir_name: str) -> str:
 
 
 def render_launcher(name: str, spec: dict) -> str:
+    exec_line = EXEC_LINES[spec.get("exec_kind", "cli")]
     return (LAUNCHER_TMPL
             .replace("@ENV_TAIL@", ENV_TAILS[spec["env_tail"]])
+            .replace("@EXEC_LINE@", exec_line)
             .replace("@NAME@", name))
 
 
@@ -593,33 +602,30 @@ def _parse_ci_yml(ci_text: str) -> dict[str, set[str]]:
 
 
 def check_ci_yml(ci_text: str) -> list[str]:
-    """Verify ci.yml name-lists against registry projections.
+    """Verify any registry-derived name-lists that ci.yml still carries.
 
-    Parsing strategy: stdlib regex against known structural anchors
-    (gen_launchers.py is a stdlib-only script — no pyyaml in its runtime).
-    Each pattern is documented in _parse_ci_yml above.
+    PR 0 of the master-template migration slimmed ci.yml down to DCO +
+    SKILL.md validation, removing the workspace-members heredoc, the
+    CLI-name regex, the packages matrix, and the wheel-install matrix.
+    Sections that no longer exist are tolerated — the check only fires
+    when a section IS present and its members diverge from the registry.
 
-    Expected projections:
+    Expected projections (when sections are present):
       members_heredoc  = is_workspace_member
       cli_regex        = has_cli
       packages_matrix  = is_workspace_member minus {feinschliff}
-                         (which has a dedicated CI job)
       wheel_matrix     = has_cli
     """
     errors: list[str] = []
     parsed = _parse_ci_yml(ci_text)
 
-    if not parsed["members_heredoc"]:
-        errors.append("  ci.yml: could not parse workspace members heredoc list")
-    else:
+    if parsed["members_heredoc"]:
         errors.extend(_fmt_diff(
             "ci.yml members heredoc vs registry is_workspace_member",
             _WS_MEMBERS, parsed["members_heredoc"],
         ))
 
-    if not parsed["cli_regex"]:
-        errors.append("  ci.yml: could not parse CLI-name regex alternation")
-    else:
+    if parsed["cli_regex"]:
         errors.extend(_fmt_diff(
             "ci.yml CLI-name regex vs registry has_cli",
             _CLI_NAMES, parsed["cli_regex"],
@@ -628,17 +634,13 @@ def check_ci_yml(ci_text: str) -> list[str]:
     # packages matrix = workspace members minus the two dedicated jobs
     _DEDICATED_JOBS = {"feinschliff"}
     expected_pkg_matrix = _WS_MEMBERS - _DEDICATED_JOBS
-    if not parsed["packages_matrix"]:
-        errors.append("  ci.yml: could not parse packages matrix")
-    else:
+    if parsed["packages_matrix"]:
         errors.extend(_fmt_diff(
             "ci.yml packages matrix vs registry (is_workspace_member minus dedicated jobs)",
             expected_pkg_matrix, parsed["packages_matrix"],
         ))
 
-    if not parsed["wheel_matrix"]:
-        errors.append("  ci.yml: could not parse wheel-install matrix")
-    else:
+    if parsed["wheel_matrix"]:
         errors.extend(_fmt_diff(
             "ci.yml wheel-install matrix vs registry has_cli",
             _CLI_NAMES, parsed["wheel_matrix"],

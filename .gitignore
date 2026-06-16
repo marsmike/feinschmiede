@@ -88,14 +88,6 @@ docs/index.html
 feinschliff/examples/**/*.pdf
 feinschliff/examples/**/*.pptx
 
-# feinschliff-builder regenerates a showcase deck under examples/ on every
-# brand-pack edit. The rendered binaries (pptx, pdf), asset_lock, and cache
-# images are never committed — they regenerate locally.
-feinschliff-builder/examples/**/*.pdf
-feinschliff-builder/examples/**/*.pptx
-feinschliff-builder/examples/**/asset_lock.json
-feinschliff-builder/examples/**/.cache/
-
 # Golden render references — manual fidelity baselines for
 # `scripts/dsl_golden_compare.py`. No pytest test gates against them,
 # so they're regenerated on demand via `scripts/render_v2_goldens.py`
@@ -114,10 +106,9 @@ feinschliff/docs/images/teaser-*
 
 # Local-only corporate fixture packs (proprietary brand marks + source
 # assets, large image dumps) — any feinschliff-<fixture>/ dir at the repo
-# root stays local; the shipped plugin dirs are re-included below.
+# root stays local; in-repo brand packs all live under
+# `feinschliff/brands/` post-migration.
 /feinschliff-*/
-!/feinschliff-builder/
-!/feinschliff-extra/
 
 # Repo-root scratch — ad-hoc renders, source decks, verify-loop output.
 # Mirrors the feinschliff/.debug/ convention at the worktree root.
@@ -142,19 +133,6 @@ feinblick/uv.lock
 
 # /goal autonomous loop working state (mirrors .debug/ discipline)
 .autoloop/
-
-# --- MS-gallery brand packs (feinschliff-extra) ---
-# Source templates live in the feinschmiede-test repo (git-lfs); local copies only.
-feinschliff-extra/assets/templates/
-# Decompile working snapshots.
-feinschliff-extra/brands/*/layouts.bak/
-# Carried MS content photos stay local (slot defaults fall back to the gem
-# placeholder / image provider at render). Background ARTWORK (bg.*) is
-# template chrome and IS committed.
-feinschliff-extra/brands/*/assets/decompile/**
-!feinschliff-extra/brands/*/assets/decompile/*/
-!feinschliff-extra/brands/*/assets/decompile/*/bg.*
-feinschliff-extra/brands/*/tokens.json.bak
 
 # feinschnitt edit-engine (committed source; deps + renders are not)
 feinschnitt/edit-engine/node_modules/

@@ -2,8 +2,8 @@
 
 This page lists everything an end-user needs to install before any of
 the `feinschmiede` plugins (`feinschliff`, `feinbild`, `feinklang`,
-`feinschnitt`, `feinschliff-builder`) will run. If you only use one
-plugin, skim to its row in the table below.
+`feinschnitt`) will run. If you only use one plugin, skim to its row
+in the table below.
 
 Plugins install via Claude Code's plugin marketplace:
 
@@ -48,30 +48,25 @@ only checked when their feature actually runs.
 
 | Plugin | Required for | Key | Get one at |
 |---|---|---|---|
-| `feinschliff` | LLM quality gates (claim-evidence, ghost-deck, storyline, title-lint, post-render rubric) | `ANTHROPIC_API_KEY` | <https://console.anthropic.com/settings/keys> |
-| `feinschliff-builder` | Brand-pack authoring audit gates | `ANTHROPIC_API_KEY` | (same) |
 | `feinbild` | `/imagine` — pick **one** of: | `REPLICATE_API_KEY` **or** `GEMINI_API_KEY` | <https://replicate.com/account/api-tokens> · <https://aistudio.google.com/apikey> |
 | `feinklang` | `/tts` | `ELEVENLABS_API_KEY` | <https://elevenlabs.io/app/settings/api-keys> |
 | `feinschnitt` | `/edit` (Gemini transcript analyze) | `GEMINI_API_KEY` | <https://aistudio.google.com/apikey> |
 | `feinschnitt` | `/video` (Remotion voiceover, optional) | `ELEVENLABS_API_KEY` | <https://elevenlabs.io/app/settings/api-keys> |
 
 `feinbild`'s diagram skills (`/excalidraw`, `/svg`) are pure-deterministic
-and need no API key.
-
-`feinschliff` will **degrade gracefully** without `ANTHROPIC_API_KEY`:
-the deck still builds, but the LLM-driven quality gates print
-`[skipped — ANTHROPIC_API_KEY unset]` instead of running. The build +
-visual verify still happen. `feinschliff doctor` reports the missing
-key as a `[WARN]`, not a fail.
+and need no API key. `feinschliff` itself is deterministic and needs no
+API key — the renderer fills a brand-authored `master.pptx` from
+`FillPlan` / `ClonePlan` entries; the optional LLM judgment lives in
+sibling plugins and reads its key the same way.
 
 ## Where to put your keys
 
 ### Option A — `~/.env` file (recommended)
 
-Every plugin (`feinschliff`, `feinklang`, `feinschnitt`, `feinbild`,
-`feinschliff-builder`) calls a small `load_home_env()` helper at CLI
-startup that reads `~/.env` and populates `os.environ` for any key not
-already exported. Format:
+Every plugin (`feinschliff`, `feinklang`, `feinschnitt`, `feinbild`)
+calls a small `load_home_env()` helper at CLI startup that reads
+`~/.env` and populates `os.environ` for any key not already exported.
+Format:
 
 ```sh
 # ~/.env — one KEY=value per line. Lines may use `export KEY=value`.
@@ -137,7 +132,7 @@ Option B.
 For one-off use, prefix the slash command's underlying CLI:
 
 ```bash
-ANTHROPIC_API_KEY=sk-... feinschliff doctor
+ELEVENLABS_API_KEY=sk_... feinklang voices
 ```
 
 This only works from a shell, not from inside Claude Code.
@@ -149,30 +144,31 @@ POSIX shell. On Windows you need WSL2 or Git Bash. Inside WSL2,
 `~/.env` lives at your Linux home (`/home/<you>/.env`), not your
 Windows profile. The same loader picks it up.
 
-## Verification — `feinschliff doctor`
+## Verification
 
-After installation, run:
-
-```bash
-feinschliff doctor
-```
-
-The diagnostic probes 8 checks (Python version, wheelhouse, venv,
-`ANTHROPIC_API_KEY`, `soffice`, `pdftoppm`, brand pack, builder=optional)
-and prints color-coded results with plain-English fixes. Exit 0 = all
-OK, 1 = at least one FAIL (action required), 2 = WARN (works but
-incomplete).
-
-JSON output for tooling:
+After installation, run a smoke render. The `feinschliff` launcher is
+a venv-Python shim — it execs `python "$@"` once the bundled wheelhouse
+is provisioned, so a one-liner that imports the public surface and
+exits 0 confirms the install:
 
 ```bash
-feinschliff doctor --json
+feinschliff -c "from feinschliff import FillPlan, render; print('ok')"
 ```
 
-The other plugins (`feinbild`, `feinklang`, `feinschnitt`,
-`feinschliff-builder`) do not currently ship their own `doctor`
-subcommand — but they all read `~/.env` the same way feinschliff does,
-so the verification above covers most onboarding friction.
+If you see `ok`, the wheelhouse fetched, the venv built, and the
+public surface imports. First run prints the provisioning steps to
+stderr; subsequent runs are instant.
+
+For sibling plugins, invoke their CLI's bare help:
+
+```bash
+feinbild --help
+feinklang --help
+feinschnitt --help
+```
+
+Each launcher shares the same bootstrap path, so a working `--help`
+confirms the install.
 
 ## Troubleshooting
 
@@ -210,9 +206,3 @@ export it in your shell.
 
 Same as above for `/edit` (feinschnitt).
 
-### LLM judgment "skipped" in the `/deck` build
-
-Set `ANTHROPIC_API_KEY` and re-run. The deck will still build without
-it (the build + visual verify path is deterministic), but the LLM
-gates (claim-evidence, ghost-deck, storyline, title-lint, post-render
-rubric) are skipped without a key.

@@ -5,9 +5,7 @@
     "description": "Feinschmiede — branded media plugins for Claude Code, coupled by CLI capabilities (never file paths): decks, image/2D, video, and audio, over a shared engine."
   },
   "plugins": [
-    { "name": "feinschliff", "description": "Office / decks (PowerPoint) — brand-pluggable design system.", "source": "./feinschliff" },
-    { "name": "feinschliff-builder", "description": "Brand-pack authoring toolkit (compile-html, decompile, verify, improve-brand). Requires feinschliff.", "source": "./feinschliff-builder" },
-    { "name": "feinschliff-extra", "description": "Extra brand packs for feinschliff: additional brand themes (terminal palettes, corporate, gallery ports).", "source": "./feinschliff-extra" },
+    { "name": "feinschliff", "description": "Office / decks (PowerPoint) — master-template renderer with theme overlays.", "source": "./feinschliff" },
     { "name": "feinklang", "description": "Audio voiceover — ElevenLabs text-to-speech via the clean `feinklang` CLI.", "source": "./feinklang" },
     { "name": "feinbild", "description": "Image & 2D — AI images (Replicate/Gemini), SVG, and Excalidraw diagrams via the `feinbild` CLI.", "source": "./feinbild" },
     { "name": "feinschnitt", "description": "Video — programmatic Remotion videos and CLI session recordings via the `feinschnitt` CLI. Composes feinbild + feinklang.", "source": "./feinschnitt" }

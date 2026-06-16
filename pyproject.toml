@@ -1,5 +1,3 @@
-# Note: feinschliff-extra is a pure-data plugin (no Python, no pyproject.toml)
-# and is intentionally NOT a workspace member. It ships brand-pack assets only.
 [tool.uv.workspace]
 members = [
     "feinschmiede",
