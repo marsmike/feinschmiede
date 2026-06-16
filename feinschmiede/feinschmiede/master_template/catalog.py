@@ -93,11 +93,18 @@ def _load_yaml(path: Path) -> dict:
         return yaml.safe_load(fh) or {}
 
 
+def _normalize_name(name: str) -> str:
+    """Strip ASCII whitespace + NBSP — PowerPoint master layout names
+    frequently ship with trailing U+00A0 which str.strip() doesn't catch.
+    Mirrored in fill_plan._normalize and clone_plan._normalize."""
+    return name.strip().strip(" ").strip()
+
+
 def _parse_layout(d: dict) -> LayoutEntry:
     hero = d.get("hero_image")
     hero_bbox = tuple(hero["bbox_emu"]) if hero and "bbox_emu" in hero else None
     return LayoutEntry(
-        name=d["name"],
+        name=_normalize_name(d["name"]),
         role=d.get("role"),
         placeholders=tuple(
             PlaceholderSchema(
