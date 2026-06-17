@@ -11,7 +11,7 @@ from pathlib import Path
 import yaml
 from pptx import Presentation
 
-from feinschliff.master_template._brand import master_path, norm
+from feinschliff.master_template._brand import index_layouts, master_path, norm
 
 _A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
 
@@ -33,18 +33,11 @@ def _snippet_anchors(slide) -> dict[str, int]:
 def build_catalog(brand_pack: Path) -> dict:
     prs = Presentation(str(master_path(brand_pack)))
 
-    layouts = []
-    seen: dict[str, str] = {}
-    for layout in prs.slide_layouts:
-        name = norm(layout.name)
-        if name in seen:
-            raise ValueError(
-                f"layout name collision after normalization: {name!r} "
-                f"(from {seen[name]!r} and {layout.name!r}) — "
-                "rename one in the master before regenerating the catalog"
-            )
-        seen[name] = layout.name
-        layouts.append({
+    # index_layouts applies the same normalization + collision policy the
+    # renderer uses, so the catalog can't list a layout name the renderer
+    # would reject (and the two no longer carry duplicate collision loops).
+    layouts = [
+        {
             "name": name,
             "placeholders": [
                 {
@@ -54,7 +47,9 @@ def build_catalog(brand_pack: Path) -> dict:
                 }
                 for ph in layout.placeholders
             ],
-        })
+        }
+        for name, layout in index_layouts(prs).items()
+    ]
 
     snippets = []
     for i, slide in enumerate(prs.slides):

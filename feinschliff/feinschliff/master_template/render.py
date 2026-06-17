@@ -46,7 +46,8 @@ def render(
     master.
     """
     brand_pack = Path(brand_pack)
-    prs = Presentation(str(master_path(brand_pack)))
+    master = master_path(brand_pack)
+    prs = Presentation(str(master))
     if theme is not None:
         apply_theme(prs, theme, recolor_from=base_palette(brand_pack))
     _strip_existing_slides(prs)
@@ -62,8 +63,8 @@ def render(
             apply_fill(prs.slides.add_slide(layout), plan)
         elif isinstance(plan, ClonePlan):
             if source_prs is None:
-                source_prs = Presentation(str(source_deck or master_path(brand_pack)))
-            apply_clone(prs, source_prs, plan)
+                source_prs = Presentation(str(source_deck or master))
+            apply_clone(prs, source_prs, plan, layout_by_name)
         else:
             raise TypeError(f"unknown plan type: {type(plan).__name__}")
 

@@ -5,6 +5,7 @@ Values may be `str`, `list[str]` (one paragraph per item), `PictureRef`, or
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Sequence
@@ -36,7 +37,11 @@ def apply_fill(slide, plan: FillPlan) -> None:
     for idx, value in plan.fills.items():
         ph = by_idx.get(idx)
         if ph is None:
-            continue
+            raise KeyError(
+                f"FillPlan targets placeholder idx {idx} on layout {plan.layout!r}, "
+                f"which has no such placeholder (present: {sorted(by_idx)}). "
+                "Fix the plan's fill index or the layout."
+            )
         if isinstance(value, ChartSpec):
             _replace_with_chart(slide, ph, value)
         elif isinstance(value, PictureRef):
@@ -99,6 +104,7 @@ def _crop_to_aspect(image_path: Path, target_w: int, target_h: int) -> Path:
         return out
 
     img = Image.open(image_path)
+    fmt = img.format  # source images may carry no filename extension
     w, h = img.size
     if abs(w / h - ratio) < 0.001:
         return image_path
@@ -108,5 +114,12 @@ def _crop_to_aspect(image_path: Path, target_w: int, target_h: int) -> Path:
     else:
         new_h = int(w / ratio)
         box = (0, (h - new_h) // 2, w, (h - new_h) // 2 + new_h)
-    img.crop(box).save(out, quality=92)
+    # Write to a pid-unique temp then atomically rename, so concurrent renders
+    # cropping the same source to the same box can't read a half-written file.
+    # Pass `format` explicitly: an extensionless `out` gives Pillow nothing to
+    # infer from. add_picture sniffs content, not extension, so out's lack of
+    # suffix is fine downstream.
+    tmp = out.with_name(f"{out.name}.{os.getpid()}.tmp")
+    img.crop(box).save(tmp, format=fmt or "PNG", quality=92)
+    tmp.replace(out)
     return out
