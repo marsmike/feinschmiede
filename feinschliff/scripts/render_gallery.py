@@ -29,6 +29,7 @@ half-CPU rule. Each brand is independent, so workers parallelise cleanly.
 from __future__ import annotations
 
 import argparse
+import html
 import multiprocessing as mp
 import os
 import shutil
@@ -115,6 +116,11 @@ def _scheme_variants(brand_dir: Path) -> list[tuple[Path | None, str]]:
     themes_dir = brand_dir / "themes"
     if themes_dir.is_dir():
         for theme_dir in sorted(themes_dir.iterdir()):
+            # `themes/default` is the identity palette base_palette() recolors
+            # FROM, so overlaying it is a no-op visually identical to
+            # "as authored" — skip it instead of rendering a duplicate tile.
+            if theme_dir.name == "default":
+                continue
             scheme = theme_dir / "scheme.json"
             if scheme.exists():
                 variants.append((scheme, theme_dir.name))
@@ -139,7 +145,10 @@ def _build_one(brand_str: str, theme_path_str: str | None, scheme: str) -> dict:
 
     profile = work / "_lo-profile"
     subprocess.run(
-        ["soffice", f"-env:UserInstallation=file://{profile}",
+        # .as_uri() percent-encodes the path; a bare f"file://{profile}" breaks
+        # (and de-isolates parallel workers' profiles) when the repo path holds
+        # a space, e.g. a checkout under "~/My Projects/".
+        ["soffice", f"-env:UserInstallation={profile.as_uri()}",
          "--headless", "--convert-to", "pdf", "--outdir", str(work), str(pptx)],
         check=True, capture_output=True,
     )
@@ -217,23 +226,29 @@ def _brand_detail_html(brand: str, variants: list[dict], origin: tuple[str, str]
     reload). Images live in per-scheme subdirs (<slug>/slide-NN.png)."""
     primary = variants[0]                       # "as authored"
     vq = f"?v={VERSION}" if VERSION else ""
+    # pickScheme reads this.dataset.slug rather than a slug interpolated into
+    # the JS literal, and every interpolated leaf is escaped — so a scheme dir
+    # name carrying a quote can't break the selector or inject markup.
     buttons = "".join(
-        f'<a data-slug="{v["slug"]}" class="{"current" if v is primary else ""}" '
-        f'href="#{v["slug"]}" onclick="pickScheme(\'{v["slug"]}\');return false;">{v["scheme"]}</a>'
+        f'<a data-slug="{html.escape(v["slug"], quote=True)}" '
+        f'class="{"current" if v is primary else ""}" '
+        f'href="#{html.escape(v["slug"], quote=True)}" '
+        f'onclick="pickScheme(this.dataset.slug);return false;">{html.escape(v["scheme"])}</a>'
         for v in variants
     )
     figures = "".join(
-        f'\n  <figure><img loading="lazy" data-file="{fn}" src="{primary["slug"]}/{fn}{vq}"'
+        f'\n  <figure><img loading="lazy" data-file="{html.escape(fn, quote=True)}"'
+        f' src="{html.escape(primary["slug"], quote=True)}/{html.escape(fn, quote=True)}{vq}"'
         f' alt="slide {i}"><figcaption>Slide {i}</figcaption></figure>'
         for i, fn in enumerate(primary["slides"], 1)
     )
     return f"""<!doctype html>
 <meta charset="utf-8">
-<title>{brand} — feinschmiede brand gallery</title>
+<title>{html.escape(brand)} — feinschmiede brand gallery</title>
 <link rel="icon" type="image/svg+xml" href="../../feinschmiede-mark.svg">
 <style>{_STYLE}</style>
 <a class="back" href="../../brands/index.html">← all brand packs</a>
-<h1 style="text-transform: capitalize">{brand}</h1>
+<h1 style="text-transform: capitalize">{html.escape(brand)}</h1>
 {_origin_html(origin)}
 <p class="lead">Color scheme — pick one to recolor every slide instantly:</p>
 <nav class="schemes" id="selector">{buttons}</nav>
@@ -271,14 +286,15 @@ def _index_html(groups: dict[str, list[dict]], origins: dict[str, tuple[str, str
         detail = f"../brand-previews/{brand}/index.html"
         atlas = f"../{primary['atlas']}"
         chips = "".join(
-            f'<a href="{detail}#{v["slug"]}">{v["scheme"]}</a>' for v in variants
+            f'<a href="{detail}#{html.escape(v["slug"], quote=True)}">{html.escape(v["scheme"])}</a>'
+            for v in variants
         )
         n_schemes = len(variants)
         schemes_label = "1 color scheme" if n_schemes == 1 else f"{n_schemes} color schemes"
         cards.append(f"""
   <article class="card">
-    <a href="{detail}"><img src="{atlas}" alt="{brand}"></a>
-    <h3><a href="{detail}">{brand}</a></h3>
+    <a href="{detail}"><img src="{atlas}" alt="{html.escape(brand, quote=True)}"></a>
+    <h3><a href="{detail}">{html.escape(brand)}</a></h3>
     <p>{primary['n_slides']} slides · {schemes_label}</p>
     <nav class="schemes">{chips}</nav>
     {_origin_html(origins.get(brand))}

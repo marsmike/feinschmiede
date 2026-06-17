@@ -24,7 +24,7 @@ class ClonePlan:
     replacements: list[tuple[str, str]] = field(default_factory=list)
 
 
-def apply_clone(prs, source_prs, plan: ClonePlan) -> None:
+def apply_clone(prs, source_prs, plan: ClonePlan, layout_by_name: dict | None = None) -> None:
     n_src = len(source_prs.slides)
     if not 0 <= plan.source_idx < n_src:
         raise IndexError(
@@ -33,10 +33,14 @@ def apply_clone(prs, source_prs, plan: ClonePlan) -> None:
         )
     src_slide = source_prs.slides[plan.source_idx]
     src_name = norm(src_slide.slide_layout.name)
-    # Use index_layouts so collision policy matches the FillPlan path —
-    # a pack with two layouts that normalize identically RAISES here,
-    # rather than silently picking whichever python-pptx returns first.
-    dest_layout = index_layouts(prs).get(src_name)
+    # Reuse the caller's normalized layout index when given (render() builds it
+    # once); otherwise build our own so apply_clone stays usable standalone.
+    # index_layouts' collision policy matches the FillPlan path — a pack with
+    # two layouts that normalize identically RAISES here, rather than silently
+    # picking whichever python-pptx returns first.
+    if layout_by_name is None:
+        layout_by_name = index_layouts(prs)
+    dest_layout = layout_by_name.get(src_name)
     if dest_layout is None:
         raise KeyError(
             f"clone source slide {plan.source_idx} uses layout "
