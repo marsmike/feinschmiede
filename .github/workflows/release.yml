@@ -20,7 +20,7 @@ jobs:
     name: Reset latest release at HEAD
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Re-tag and re-create latest release
@@ -41,7 +41,7 @@ jobs:
     needs: prep-release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Build marketplace zip
         run: |
           set -e
@@ -68,7 +68,7 @@ jobs:
         python-version: ['3.11', '3.12', '3.13']
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
