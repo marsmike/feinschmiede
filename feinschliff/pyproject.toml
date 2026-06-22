@@ -21,7 +21,7 @@ package = true
 
 [dependency-groups]
 dev = [
-    "ruff>=0.15.17",
+    "ruff>=0.15.18",
 ]
 
 [tool.ruff.lint.per-file-ignores]
